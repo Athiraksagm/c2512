@@ -1,18 +1,30 @@
-Pseudocode
+//A string is palindrome or not
 
-function main
-   string str
-   string temp
-   int i, j
-   input str
-   temp= str
-   j=str. length()-1
-  
+Pseudofunction
+
+bool palindromeOrNot(str-->string)
+temp=str
+j=str.length()-1
 while(i<j)
-  swap(str[i], str[j])
-  i++
-  j--
+    swap(str[i], str[j])
+    i++
+    j--
+end while
+if(temp==str)
+    return true
+end if
+     return false
 
-if(temp==str) //palindrome
-else          //not palindrome
-  return 0
+
+void palindromeOrNotTest()
+input str
+result=palindromeOrNot(str)
+if(result)
+   print "string is Palindrome"
+else
+   print "string is not Palindrome"
+
+
+pseudocode
+  palindromeOrNotTest()
+  
