@@ -1,8 +1,17 @@
-function isPalindrome(str)
-string rev
-reverse(rev. begin(), rev. end())
-if(str==rev)  //palindrome
-else //not palindrome
+Pseudocode
 
 function main
-isPalindrome(str)
+   string str
+   string temp
+   int i, j
+  input str
+  temp= str
+
+while(i<j)
+  swap(str[i], str[j])
+  i++
+  j--
+
+if(temp==str) //palindrome
+else          //not palindrome
+  return 0
