@@ -1,1 +1,8 @@
+function isPalindrome(str)
+string rev
+reverse(rev. begin(), rev. end())
+if(str==rev)  //palindrome
+else //not palindrome
 
+function main
+isPalindrome(str)
