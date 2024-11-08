@@ -24,6 +24,14 @@ void palindromeOrNotTest(){
     cin>>str;
     result=palindromeOrNot(str);
     if(result)
+        cout<<str<< " is a Palindrome ";
+    else
+        cout<<str<< " is not a Palindrome ";
+}
+int main(){
+     palindromeOrNotTest();
+     return 0;
+}
 
 
 
