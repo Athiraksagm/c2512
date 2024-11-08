@@ -2,9 +2,9 @@
 pseudofunction
 function divisibleByThree(number-->int)
   if(number%3==0)
-     return true;
+     return true
   end if
-     return false;
+     return false
 end function
 
 function divisibleByThreeTest() 
