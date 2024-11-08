@@ -1,0 +1,15 @@
+#include<iostream>
+#include<string>
+using namespace std;
+bool palindromeOrNot(string str){
+  string str;
+  string temp;
+  int i=0,j;
+  temp=str;
+  j=str.length()-1;
+  while(i<j)
+   {
+      swap(str[i],str[j]);
+      i++;
+      j--;
+   }
