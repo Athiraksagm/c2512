@@ -9,6 +9,7 @@ bool divisibleByThree(int number){
 }
 void divisibleByThreeTest(){
     int number;
+    bool result=false;
     cout<<"Enter a Number to be checked : ";
     cin>>number;
     result=divisibleByThree(number);
