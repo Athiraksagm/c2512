@@ -13,3 +13,22 @@ bool palindromeOrNot(string str){
       i++;
       j--;
    }
+  if(temp==str)
+      return true;
+  else 
+      return false;
+}
+void palindromeOrNotTest(){
+    string str;
+    cout<<"Enter a string to be checked : ";
+    cin>>str;
+    result=palindromeOrNot(str);
+    if(result)
+
+
+
+
+
+
+
+    
