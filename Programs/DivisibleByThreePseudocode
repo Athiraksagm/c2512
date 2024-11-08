@@ -9,4 +9,13 @@ end function
 
 function divisibleByThreeTest() 
   input number
+  result=divisibleByThree(number)
+  if(result)
+     print "Number is divisible by three"
+  else
+     print "Number is not divisible by three"
+
+pseudocode
+   divisibleByThreeTest() 
+
   
