@@ -20,6 +20,7 @@ bool palindromeOrNot(string str){
 }
 void palindromeOrNotTest(){
     string str;
+    bool result=false;
     cout<<"Enter a string to be checked : ";
     cin>>str;
     result=palindromeOrNot(str);
