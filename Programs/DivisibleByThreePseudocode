@@ -1,0 +1,12 @@
+// A number divisible by 3 or not
+pseudofunction
+function divisibleByThree(number-->int)
+  if(number%3==0)
+     return true;
+  end if
+     return false;
+end function
+
+function divisibleByThreeTest() 
+  input number
+  
