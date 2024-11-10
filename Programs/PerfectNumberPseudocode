@@ -1,20 +1,22 @@
 //To check a number is perfect number or not
-pseudofunction
+
+pseudofunctions
+
 function perfectNumber(number-->int)
- for(i=1;i<number;i++)
-    divisor=number%i
-    if divisor==0 then
-       sum=sum+i;
+ for (i = 1; i < number; i++)
+    divisor = number % i
+    if divisor == 0 then
+       sum = sum + i;
  end for
-  if sum==number then
+  if sum == number then
       return true
   end if
       return false
 
 function perfectNumberTest()
  input number
- result= perfectNumber(number)
- if(result)
+ result = perfectNumber(number)
+ if (result)
      print "is a perfect number"
  else
      print "not a perfect number"
