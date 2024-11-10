@@ -4,9 +4,9 @@ using std::cin;
 
 bool primeOrNot(int number)
 {
- for(int i=1;i< number/2;i++)
+ for (int i=1; i< (number/2); i++)
  {
-    if(number % i == 0)     
+    if ((number % i) == 0)     
       {
       return true;
       }
@@ -26,7 +26,7 @@ void primeOrNotTest(void)
  cin >> number;
 
  result = primeOrNot(number);
- if(result)
+ if (result)
      {
       cout << number << "is a prime number ";
      }
