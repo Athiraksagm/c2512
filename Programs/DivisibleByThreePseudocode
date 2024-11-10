@@ -1,7 +1,9 @@
 // A number divisible by 3 or not
-pseudofunction
+
+pseudofunctions
+
 function divisibleByThree(number-->int)
-  if(number%3==0)
+  if ((number % 3) == 0)
      return true
   end if
      return false
@@ -9,8 +11,8 @@ end function
 
 function divisibleByThreeTest() 
   input number
-  result=divisibleByThree(number)
-  if(result)
+  result = divisibleByThree(number)
+  if (result)
      print "Number is divisible by three"
   else
      print "Number is not divisible by three"
