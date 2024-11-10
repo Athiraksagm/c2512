@@ -7,13 +7,13 @@ bool perfectNumber(int number)
  int divisor;
  int sum = 0;
  
- for(int i=1;i< number;i++)
+ for (int i = 1; i < number; i++)
  {
-    divisor = number % i;
-    if(divisor == 0)
-      sum = sum + i;
+    divisor = (number % i);
+    if (divisor == 0)
+      sum = (sum + i);
  }
-if(sum == number)
+if (sum == number)
 {
     return true;
 }
@@ -32,7 +32,7 @@ void perfectNumberTest(void)
  cin >> number;
  
  result = perfectNumber(number);
- if(result)
+ if (result)
  {
       cout << number << "is a perfect number ";
  }
