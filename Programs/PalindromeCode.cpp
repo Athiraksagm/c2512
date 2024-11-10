@@ -9,9 +9,9 @@ bool palindromeOrNot(string str)
   string temp;
   int i = 0, j;
   temp = str;
-  j = str.length()-1;
+  j = (str.length() - 1);
   
-  while(i<j)
+  while (i < j)
    {
       swap(str[i], str[j]);
       i++;
@@ -37,7 +37,7 @@ void palindromeOrNotTest(void)
     cin >> str;
   
     result = palindromeOrNot(str);
-    if(result)
+    if (result)
     {
         cout<<str<< " is a Palindrome ";
     }
