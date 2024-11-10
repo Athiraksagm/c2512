@@ -1,16 +1,16 @@
 //A string is palindrome or not
 
-Pseudofunction
+Pseudofunctions
 
 bool palindromeOrNot(str-->string)
-temp=str
-j=str.length()-1
-while(i<j)
+temp = str
+j = (str.length() - 1)
+while (i < j)
     swap(str[i], str[j])
     i++
     j--
 end while
-if(temp==str)
+if (temp == str)
     return true
 end if
      return false
@@ -18,8 +18,8 @@ end if
 
 void palindromeOrNotTest()
 input str
-result=palindromeOrNot(str)
-if(result)
+result = palindromeOrNot(str)
+if (result)
    print "string is Palindrome"
 else
    print "string is not Palindrome"
