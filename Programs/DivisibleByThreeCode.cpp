@@ -5,7 +5,7 @@ using std::cin;
 bool divisibleByThree(int number)
 {
   int number;
-  if(number % 3 == 0)
+  if ((number % 3) == 0)
   {
      return true;
   }
@@ -18,13 +18,13 @@ bool divisibleByThree(int number)
 void divisibleByThreeTest(void)
 {
     int number;
-    bool result=false;
+    bool result = false;
   
     cout << "Enter a Number to be checked : ";
     cin >> number;
   
     result = divisibleByThree(number);
-    if(result)
+    if (result)
     {
         cout << number << " is divisible by three";
     }
