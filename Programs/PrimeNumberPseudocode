@@ -1,8 +1,10 @@
 //To check a number is prime or not
-pseudofunction
+
+pseudofunctions:
+
 function primeOrNot(number-->int)
- for(i=2;i<=number/2;i++)
-    if number%i==0
+ for (i = 2; i <= (number/2); i++)
+    if number % i == 0
      return true
   end for
      return false
@@ -10,8 +12,8 @@ end function
 
 function primeOrNotTest()
   input number
-  result=primeOrNot(number)
-  if(result)
+  result = primeOrNot(number)
+  if (result)
      print "Number is prime"
   else
      print "Number is not prime"
