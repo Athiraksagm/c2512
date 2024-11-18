@@ -173,55 +173,55 @@ Tabular Data Representation
 
 Customer Table
 
-customer_id	customer_name	customer_city
-1	           Athira	     Chennai
-2	           Athii	     Bangalore
+customer_id	| customer_name |  customer_city
+1	        |  Athira	    |   Chennai
+2	        |  Athii	    |   Bangalore
 
 Airline Table
 
-airline_id	airline_name
-1	         Air India
-2	         SpiceJet
+airline_id	| airline_name
+1	        |  Air India
+2	        |  SpiceJet
 
 Seat Table
 
-seat_id	seat_number	seat_price
-1	      12A	     5000
-2	      12B	     5000
-3	      12C	     5000
-4	      1A	     8000
-5	      1B	     8000
+seat_id	| seat_number |	seat_price
+1	    |  12A	      |   5000
+2	    |  12B	      |   5000
+3	    |  12C	      |   5000
+4	    |  1A	      |   8000
+5	    |  1B	      |   8000
 
 Meal Table
 
-meal_id	meal_name	    price
-1	      Veg Meal	     300
-2	      Chicken Meal   500
-3	      Coffee	       100
+meal_id	 | meal_name	 |   price
+1	     | Veg Meal	     |   300
+2	     | Chicken Meal  |   500
+3	     | Coffee	     |   100
 
 Booking Table
 
-booking_id	booking_number	flight_number  flight_date  departure_time  arrival_time  departure_city  arrival_city	ticket_price  seat_class  customer_id airline_id
-1	          B001	          AI102	       2024-11-20	     10:00 AM	      1:00 PM	    Chennai	         Delhi	        15000      	Economy 	 1	       1
-2	          B002	          SG345	       2024-11-22	     5:00 PM	      7:00 PM	    Bangalore	     Mumbai	        16000	    Business	 2	       2
+booking_id|booking_number|flight_number|flight_date|departure_time|arrival_time|departure_city|arrival_city|ticket_price|seat_class|customer_id|airline_id|
+1	      |    B001	     |    AI102	   |2024-11-20 |   10:00 AM	  |  1:00 PM   |   Chennai	  |    Delhi   |     15000  |  Economy |  1	       |   1
+2	      |    B002	     |    SG345	   |2024-11-22 |   5:00 PM	  |  7:00 PM   |   Bangalore  |    Mumbai  |     16000	|  Business|  2	       |   2
 
 Booking Seat Table
 
-seat_id	seat_number	price	booking_id
-1	      12A	        5000	 1
-2	      12B	        5000	 1
-3	      12C	        5000	 1
-4	      1A	        8000	 2
-5	      1B	        8000	 2
+seat_id	| seat_number |	price  | booking_id
+1	    |  12A	      |  5000  | 1
+2	    |  12B	      |  5000  | 1
+3	    |  12C	      |  5000  | 1
+4	    |  1A	      |  8000  | 2
+5	    |  1B	      |  8000  | 2
 
 Booking Meal Table
 
-meal_id	meal_name	    price  quantity	amount	booking_id
-1	      Veg Meal	    300	    2	        600	    1
-2	      Chicken Meal  500	    1	        500	    1
-3	      Coffee	    100	    3	        300	    1
-1	      Veg Meal	    300	    1	        300	    2
-2	      Chicken Meal	500	    2	        1000    2
+meal_id |	meal_name	 |   price  | quantity	| amount  |	booking_id
+1	    |   Veg Meal	 |   300	|   2	    |   600	  |  1
+2	    |   Chicken Meal |   500	|   1	    |   500	  |  1
+3	    |   Coffee	     |   100	|   3	    |   300	  |  1
+1	    |   Veg Meal	 |   300	|   1	    |   300	  |  2
+2	    |   Chicken Meal |	 500	|   2	    |   1000  |  2
 
 //--------------------------------------------------------------------------------------------
 
