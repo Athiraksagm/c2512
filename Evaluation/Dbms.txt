@@ -24,7 +24,7 @@ booking_meal: meal_id, meal_name, price, quantity, amount, booking_id
 booking_seat: seat_id, seat_number, price, booking_id  
 
 My data is going to be:
-I am Aravind, and I have booked tickets for my family from Chennai to Delhi on flight AI102 operated by Air India.
+I am Athira, and I have booked tickets for my family from Chennai to Delhi on flight AI102 operated by Air India.
 flight_date: 2024-11-20, departure_time: 10:00 AM, arrival_time: 1:00 PM
 seat_class: economy
 seat_numbers: [12A, 12B, 12C], each seat price is Rs.5000
@@ -115,8 +115,8 @@ CREATE TABLE booking_meal (
 
 Insert into customer
 
-INSERT INTO customer VALUES (1, 'Aravind', 'Chennai');
-INSERT INTO customer VALUES (2, 'Aravind', 'Bangalore');
+INSERT INTO customer VALUES (1, 'Athira', 'Chennai');
+INSERT INTO customer VALUES (2, 'Athii', 'Bangalore');
 
 Insert into airline
 
@@ -170,8 +170,8 @@ Tabular Data Representation
 Customer Table
 
 customer_id	customer_name	customer_city
-1	           Aravind	     Chennai
-2	           Aravind	     Bangalore
+1	           Athira	     Chennai
+2	           Athii	     Bangalore
 
 Airline Table
 
@@ -198,8 +198,8 @@ meal_id	meal_name	    price
 Booking Table
 
 booking_id	booking_number	flight_number  flight_date  departure_time  arrival_time  departure_city  arrival_city	ticket_price  seat_class  customer_id airline_id
-1	          B001	           AI102	       2024-11-20	     10:00 AM	      1:00 PM	    Chennai	         Delhi	        15000      	Economy 	      1	       1
-2	          B002	           SG345	       2024-11-22	     5:00 PM	      7:00 PM	    Bangalore	       Mumbai	        16000	      Business	      2	       2
+1	          B001	          AI102	       2024-11-20	     10:00 AM	      1:00 PM	    Chennai	         Delhi	        15000      	Economy 	 1	       1
+2	          B002	          SG345	       2024-11-22	     5:00 PM	      7:00 PM	    Bangalore	     Mumbai	        16000	    Business	 2	       2
 
 Booking Seat Table
 
@@ -215,9 +215,9 @@ Booking Meal Table
 meal_id	meal_name	    price  quantity	amount	booking_id
 1	      Veg Meal	    300	    2	        600	    1
 2	      Chicken Meal  500	    1	        500	    1
-3	      Coffee	      100	    3	        300	    1
+3	      Coffee	    100	    3	        300	    1
 1	      Veg Meal	    300	    1	        300	    2
-2	      Chicken Meal	500	    2	        1000	  2
+2	      Chicken Meal	500	    2	        1000    2
 
 //--------------------------------------------------------------------------------------------
 
@@ -274,7 +274,7 @@ Updated `Customer` Table Structure in Tabular Format
 
 | customer_id | customer_name | customer_city | adhaar_id       |
 |-------------|---------------|---------------|-----------------|
-| 1           |  Aravind      | Trichy        | 1234-5678-9012  |
+| 1           |  Athira       | Trichy        | 1234-5678-9012  |
 
 Updated `Booking` Table Structure in Tabular Format
 
@@ -311,5 +311,6 @@ WHERE booking_id = 2;
 Updated `Booking` Table Structure in Tabular Format
 
 booking_id booking_number flight_number  flight_date  departure_time  arrival_time  departure_city  arrival_city	ticket_price  seat_class  customer_id airline_id flight_date_time total_meal_cost 
-1	          B001	           AI102	       2024-11-20	     10:00 AM	      1:00 PM	    Chennai	         Delhi	        15000      	Economy 	  1	     1  20-NOV-2024 10:00    1400 
-2	          B002	           SG345	       2024-11-22	     5:00 PM	      7:00 PM	    Bangalore	       Mumbai	        16000	      Business	  2	     2   21-NOV-2024 13:00    1300
+1	          B001	           AI102	       2024-11-20	     10:00 AM	   1:00 PM	    Chennai	       Delhi	      15000      Economy 	  1	             1   20-NOV-2024 10:00    1400 
+2	          B002	           SG345	       2024-11-22	     5:00 PM	   7:00 PM	    Bangalore	   Mumbai	      16000  	 Business	  2	  
+2   21-NOV-2024 13:00    1300
