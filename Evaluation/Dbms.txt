@@ -1,1 +1,315 @@
+I have an UNF table
+tickets
+booking_id, booking_number, airline_id, airline_name,
+customer_id, customer_name, customer_city,
+flight_number, flight_date, departure_time, arrival_time,
+departure_city, arrival_city, ticket_price, seat_class,
+seat1_number, seat1_price,
+seat2_number, seat2_price,
+seat3_number, seat3_price,
+meal1_item_id, meal1_item_name, meal1_price, meal1_qty, meal1_amount,
+meal2_item_id, meal2_item_name, meal2_price, meal2_qty, meal2_amount,
+meal3_item_id, meal3_item_name, meal3_price, meal3_qty, meal3_amount
 
+I formed the below NF tables:
+customer: customer_id, customer_name, customer_city
+airline: airline_id, airline_name
+seat: seat_id, seat_number, seat_price
+meal: meal_id, meal_name, price
+
+booking: booking_id, booking_number, flight_number, flight_date,  
+    departure_time, arrival_time, departure_city, arrival_city,  
+    ticket_price, seat_class, customer_id, airline_id  
+booking_meal: meal_id, meal_name, price, quantity, amount, booking_id  
+booking_seat: seat_id, seat_number, price, booking_id  
+
+My data is going to be:
+I am Aravind, and I have booked tickets for my family from Chennai to Delhi on flight AI102 operated by Air India.
+flight_date: 2024-11-20, departure_time: 10:00 AM, arrival_time: 1:00 PM
+seat_class: economy
+seat_numbers: [12A, 12B, 12C], each seat price is Rs.5000
+meals ordered: [Veg Meal @ Rs.300 x 2, Chicken Meal @ Rs.500 x 1, Coffee @ Rs.100 x 3]
+And
+I have booked tickets for my parents from Bangalore to Mumbai on flight SG345 operated by SpiceJet.
+flight_date: 2024-11-22, departure_time: 5:00 PM, arrival_time: 7:00 PM
+seat_class: business
+seat_numbers: [1A, 1B], each seat price is Rs.8000
+meals ordered: [Veg Meal @ Rs.300 x 1, Chicken Meal @ Rs.500 x 2]
+
+Now, I need the table scripts in Oracle with primary keys, not null, and foreign keys.
+I also need insert statements for the tables.
+And I need the data in tabular form for all NF tables.
+
+----------------solution--------------------------------
+
+
+-- Customer Table
+CREATE TABLE customer (
+    customer_id NUMBER PRIMARY KEY,
+    customer_name VARCHAR2(100) NOT NULL,
+    customer_city VARCHAR2(100) NOT NULL
+);
+
+-- Airline Table
+CREATE TABLE airline (
+    airline_id NUMBER PRIMARY KEY,
+    airline_name VARCHAR2(100) NOT NULL
+);
+
+-- Seat Table
+CREATE TABLE seat (
+    seat_id NUMBER PRIMARY KEY,
+    seat_number VARCHAR2(10) NOT NULL,
+    seat_price NUMBER NOT NULL
+);
+
+-- Meal Table
+CREATE TABLE meal (
+    meal_id NUMBER PRIMARY KEY,
+    meal_name VARCHAR2(100) NOT NULL,
+    price NUMBER NOT NULL
+);
+
+-- Booking Table
+CREATE TABLE booking (
+    booking_id NUMBER PRIMARY KEY,
+    booking_number VARCHAR2(50) NOT NULL,
+    flight_number VARCHAR2(50) NOT NULL,
+    flight_date DATE NOT NULL,
+    departure_time VARCHAR2(20) NOT NULL,
+    arrival_time VARCHAR2(20) NOT NULL,
+    departure_city VARCHAR2(100) NOT NULL,
+    arrival_city VARCHAR2(100) NOT NULL,
+    ticket_price NUMBER NOT NULL,
+    seat_class VARCHAR2(20) NOT NULL,
+    customer_id NUMBER NOT NULL,
+    airline_id NUMBER NOT NULL,
+    FOREIGN KEY (customer_id) REFERENCES customer(customer_id),
+    FOREIGN KEY (airline_id) REFERENCES airline(airline_id)
+);
+
+-- Booking Seat Table
+CREATE TABLE booking_seat (
+    seat_id NUMBER,
+    seat_number VARCHAR2(10) NOT NULL,
+    price NUMBER NOT NULL,
+    booking_id NUMBER NOT NULL,
+    PRIMARY KEY (seat_id, booking_id),
+    FOREIGN KEY (seat_id) REFERENCES seat(seat_id),
+    FOREIGN KEY (booking_id) REFERENCES booking(booking_id)
+);
+
+-- Booking Meal Table
+CREATE TABLE booking_meal (
+    meal_id NUMBER,
+    meal_name VARCHAR2(100) NOT NULL,
+    price NUMBER NOT NULL,
+    quantity NUMBER NOT NULL,
+    amount NUMBER NOT NULL,
+    booking_id NUMBER NOT NULL,
+    PRIMARY KEY (meal_id, booking_id),
+    FOREIGN KEY (meal_id) REFERENCES meal(meal_id),
+    FOREIGN KEY (booking_id) REFERENCES booking(booking_id)
+);
+
+
+Insert into customer
+
+INSERT INTO customer VALUES (1, 'Aravind', 'Chennai');
+INSERT INTO customer VALUES (2, 'Aravind', 'Bangalore');
+
+Insert into airline
+
+INSERT INTO airline VALUES (1, 'Air India');
+INSERT INTO airline VALUES (2, 'SpiceJet');
+
+Insert into seat
+
+INSERT INTO seat VALUES (1, '12A', 5000);
+INSERT INTO seat VALUES (2, '12B', 5000);
+INSERT INTO seat VALUES (3, '12C', 5000);
+INSERT INTO seat VALUES (4, '1A', 8000);
+INSERT INTO seat VALUES (5, '1B', 8000);
+
+Insert into meal
+
+INSERT INTO meal VALUES (1, 'Veg Meal', 300);
+INSERT INTO meal VALUES (2, 'Chicken Meal', 500);
+INSERT INTO meal VALUES (3, 'Coffee', 100);
+
+Insert into booking
+select * from booking;
+desc booking;
+INSERT INTO booking VALUES (2, 'B002', 'SG345', TO_DATE('2024-11-22', 'YYYY-MM-DD'), 
+    '5:00 PM', '7:00 PM', 'Bangalore', 'Mumbai', 16000, 'Business', 2, 2);
+
+
+INSERT INTO booking VALUES (1, 'B001', 'SG305', TO_DATE('2024-11-18', 'YYYY-MM-DD'), 
+    '4:00 PM', '8:00 PM', 'Bangalore', 'Kochi', 14000, 'Business', 1, 1);
+
+Insert into booking_seat
+
+INSERT INTO booking_seat VALUES (1, '12A', 5000, 1);
+INSERT INTO booking_seat VALUES (2, '12B', 5000, 1);
+INSERT INTO booking_seat VALUES (3, '12C', 5000, 1);
+INSERT INTO booking_seat VALUES (4, '1A', 8000, 2);
+INSERT INTO booking_seat VALUES (5, '1B', 8000, 2);
+
+Insert into booking_meal
+
+INSERT INTO booking_meal VALUES (1, 'Veg Meal', 300, 2, 600, 1);
+INSERT INTO booking_meal VALUES (2, 'Chicken Meal', 500, 1, 500, 1);
+INSERT INTO booking_meal VALUES (3, 'Coffee', 100, 3, 300, 1);
+
+INSERT INTO booking_meal VALUES (1, 'Veg Meal', 300, 1, 300, 2);
+INSERT INTO booking_meal VALUES (2, 'Chicken Meal', 500, 2, 1000, 2);
+
+
+Tabular Data Representation
+
+Customer Table
+
+customer_id	customer_name	customer_city
+1	           Aravind	     Chennai
+2	           Aravind	     Bangalore
+
+Airline Table
+
+airline_id	airline_name
+1	         Air India
+2	         SpiceJet
+
+Seat Table
+
+seat_id	seat_number	seat_price
+1	      12A	     5000
+2	      12B	     5000
+3	      12C	     5000
+4	      1A	     8000
+5	      1B	     8000
+
+Meal Table
+
+meal_id	meal_name	    price
+1	      Veg Meal	     300
+2	      Chicken Meal   500
+3	      Coffee	       100
+
+Booking Table
+
+booking_id	booking_number	flight_number  flight_date  departure_time  arrival_time  departure_city  arrival_city	ticket_price  seat_class  customer_id airline_id
+1	          B001	           AI102	       2024-11-20	     10:00 AM	      1:00 PM	    Chennai	         Delhi	        15000      	Economy 	      1	       1
+2	          B002	           SG345	       2024-11-22	     5:00 PM	      7:00 PM	    Bangalore	       Mumbai	        16000	      Business	      2	       2
+
+Booking Seat Table
+
+seat_id	seat_number	price	booking_id
+1	      12A	        5000	 1
+2	      12B	        5000	 1
+3	      12C	        5000	 1
+4	      1A	        8000	 2
+5	      1B	        8000	 2
+
+Booking Meal Table
+
+meal_id	meal_name	    price  quantity	amount	booking_id
+1	      Veg Meal	    300	    2	        600	    1
+2	      Chicken Meal  500	    1	        500	    1
+3	      Coffee	      100	    3	        300	    1
+1	      Veg Meal	    300	    1	        300	    2
+2	      Chicken Meal	500	    2	        1000	  2
+
+//--------------------------------------------------------------------------------------------
+
+Another prompt question:
+````````````````````````````````````````````````````````````````````````````````
+I have given my adhaar id for ticket booking.
+We taken a flight on 20-NOV-2024 10:00AM. 
+Also we taken a flight on 21-NOV-2024 13:00 PM.
+Please add flight date time column and adhaar id also.
+And give me tables 'alter' script and update script.
+
+
+````````````````````````````````````````````````````````````````````````````````
+prompt Solution 
+````````````````````````````````````````````````````````````````````````````````
+
+1. `ALTER TABLE Script` for `booking` Table
+
+```sql
+ALTER TABLE booking
+ADD (flight_date_time DATE);
+```
+
+`ALTER TABLE Script` for `customer` Table
+```sql
+ALTER TABLE customer
+ADD (adhaar_id VARCHAR2(16) NOT NULL UNIQUE);
+```
+
+2. `Customer Table Data Update` (Adding Aadhaar ID as a Unique Identifier)
+
+#Updating `adhaar_id` in the Customer Table
+
+```sql
+-- Update Aadhaar ID for Aravind in Customer Table
+UPDATE customer
+SET adhaar_id = '1234-5678-9012'
+WHERE customer_id = 1;
+```
+-- Update flight date and time for the booking flight on 20-NOV-2024.
+```
+UPDATE booking
+SET flight_date_time = TO_DATE('20-NOV-2024 10:00', 'DD-MON-YYYY HH24:MI')
+WHERE booking_id = 1;
+
+-- Update flight date and time for the booking flight on 21-NOV-2024.
+UPDATE booking
+SET flight_date_time = TO_DATE('21-NOV-2024 13:00', 'DD-MON-YYYY HH24:MI')
+WHERE booking_id = 2;
+```
+
+3.
+Updated `Customer` Table Structure in Tabular Format
+
+| customer_id | customer_name | customer_city | adhaar_id       |
+|-------------|---------------|---------------|-----------------|
+| 1           |  Aravind      | Trichy        | 1234-5678-9012  |
+
+Updated `Booking` Table Structure in Tabular Format
+
+booking_id booking_number flight_number  flight_date  departure_time  arrival_time  departure_city  arrival_city	ticket_price  seat_class  customer_id airline_id flight_date_time 
+1	          B001	           AI102	       2024-11-20	     10:00 AM	      1:00 PM	    Chennai	         Delhi	        15000      	Economy 	  1	     1  20-NOV-2024 10:00     
+2	          B002	           SG345	       2024-11-22	     5:00 PM	      7:00 PM	    Bangalore	       Mumbai	        16000	      Business	  2	     2   21-NOV-2024 13:00        
+
+
+````````````````````````````````````````````````````````````````````````````````
+Prompt 3
+
+I need to update my flight seat booking database to track Aadhaar ID for customers and flight date/time for bookings. Additionally, I would like to calculate the total cost of a booking, including both seat prices and meal costs.
+
+prompt solution:
+
+INSERT INTO booking_meal (meal_id, meal_name, price, quantity, amount, booking_id, meal_preference) 
+VALUES (1, 'Veg Meal', 300, 2, 600, 1, 'Vegetarian');
+
+INSERT INTO booking_meal (meal_id, meal_name, price, quantity, amount, booking_id, meal_preference) 
+VALUES (2, 'Chicken Meal', 500, 2, 1000, 2, 'Non-Vegetarian');
+
+
+-- Update total meal cost for booking_id = 1
+UPDATE booking
+SET total_meal_cost = (SELECT SUM(amount) FROM booking_meal WHERE booking_id = 1)
+WHERE booking_id = 1;
+
+-- Update total meal cost for booking_id = 2
+UPDATE booking
+SET total_meal_cost = (SELECT SUM(amount) FROM booking_meal WHERE booking_id = 2)
+WHERE booking_id = 2;
+
+
+Updated `Booking` Table Structure in Tabular Format
+
+booking_id booking_number flight_number  flight_date  departure_time  arrival_time  departure_city  arrival_city	ticket_price  seat_class  customer_id airline_id flight_date_time total_meal_cost 
+1	          B001	           AI102	       2024-11-20	     10:00 AM	      1:00 PM	    Chennai	         Delhi	        15000      	Economy 	  1	     1  20-NOV-2024 10:00    1400 
+2	          B002	           SG345	       2024-11-22	     5:00 PM	      7:00 PM	    Bangalore	       Mumbai	        16000	      Business	  2	     2   21-NOV-2024 13:00    1300
