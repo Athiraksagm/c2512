@@ -115,36 +115,40 @@ CREATE TABLE booking_meal (
 
 Insert into customer
 
-INSERT INTO customer VALUES (1, 'Athira', 'Chennai');
-INSERT INTO customer VALUES (2, 'Athii', 'Bangalore');
+INSERT INTO customer(customer_id, customer_name, customer_city) VALUES (1, 'Athira', 'Chennai');
+INSERT INTO customer(customer_id, customer_name, customer_city) VALUES (2, 'Athii', 'Bangalore');
 
 Insert into airline
 
-INSERT INTO airline VALUES (1, 'Air India');
-INSERT INTO airline VALUES (2, 'SpiceJet');
+INSERT INTO airline( airline_id, airline_name) VALUES (1, 'Air India');
+INSERT INTO airline( airline_id, airline_name) VALUES (2, 'SpiceJet');
 
 Insert into seat
 
-INSERT INTO seat VALUES (1, '12A', 5000);
-INSERT INTO seat VALUES (2, '12B', 5000);
-INSERT INTO seat VALUES (3, '12C', 5000);
-INSERT INTO seat VALUES (4, '1A', 8000);
-INSERT INTO seat VALUES (5, '1B', 8000);
+INSERT INTO seat(seat_id, seat_number, seat_price) VALUES (1, '12A', 5000);
+INSERT INTO seat(seat_id, seat_number, seat_price) VALUES (2, '12B', 5000);
+INSERT INTO seat(seat_id, seat_number, seat_price) VALUES (3, '12C', 5000);
+INSERT INTO seat(seat_id, seat_number, seat_price) VALUES (4, '1A', 8000);
+INSERT INTO seat(seat_id, seat_number, seat_price) VALUES (5, '1B', 8000);
 
 Insert into meal
 
-INSERT INTO meal VALUES (1, 'Veg Meal', 300);
-INSERT INTO meal VALUES (2, 'Chicken Meal', 500);
-INSERT INTO meal VALUES (3, 'Coffee', 100);
+INSERT INTO meal(meal_id, meal_name, price) VALUES (1, 'Veg Meal', 300);
+INSERT INTO meal(meal_id, meal_name, price) VALUES (2, 'Chicken Meal', 500);
+INSERT INTO meal(meal_id, meal_name, price) VALUES (3, 'Coffee', 100);
 
 Insert into booking
 select * from booking;
 desc booking;
-INSERT INTO booking VALUES (2, 'B002', 'SG345', TO_DATE('2024-11-22', 'YYYY-MM-DD'), 
+INSERT INTO booking(booking_id, booking_number, flight_number, flight_date,  
+    departure_time, arrival_time, departure_city, arrival_city,  
+    ticket_price, seat_class, customer_id, airline_id) VALUES (2, 'B002', 'SG345', TO_DATE('2024-11-22', 'YYYY-MM-DD'), 
     '5:00 PM', '7:00 PM', 'Bangalore', 'Mumbai', 16000, 'Business', 2, 2);
 
 
-INSERT INTO booking VALUES (1, 'B001', 'SG305', TO_DATE('2024-11-18', 'YYYY-MM-DD'), 
+INSERT INTO booking(booking_id, booking_number, flight_number, flight_date,  
+    departure_time, arrival_time, departure_city, arrival_city,  
+    ticket_price, seat_class, customer_id, airline_id) VALUES (1, 'B001', 'SG305', TO_DATE('2024-11-18', 'YYYY-MM-DD'), 
     '4:00 PM', '8:00 PM', 'Bangalore', 'Kochi', 14000, 'Business', 1, 1);
 
 Insert into booking_seat
