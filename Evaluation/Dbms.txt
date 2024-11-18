@@ -12,16 +12,23 @@ meal2_item_id, meal2_item_name, meal2_price, meal2_qty, meal2_amount,
 meal3_item_id, meal3_item_name, meal3_price, meal3_qty, meal3_amount
 
 I formed the below NF tables:
+
 customer: customer_id, customer_name, customer_city
+
 airline: airline_id, airline_name
+
 seat: seat_id, seat_number, seat_price
+
 meal: meal_id, meal_name, price
 
 booking: booking_id, booking_number, flight_number, flight_date,  
     departure_time, arrival_time, departure_city, arrival_city,  
-    ticket_price, seat_class, customer_id, airline_id  
+    ticket_price, seat_class, customer_id, airline_id
+
 booking_meal: meal_id, meal_name, price, quantity, amount, booking_id  
+
 booking_seat: seat_id, seat_number, price, booking_id  
+
 
 My data is going to be:
 I am Athira, and I have booked tickets for my family from Chennai to Delhi on flight AI102 operated by Air India.
@@ -42,7 +49,6 @@ And I need the data in tabular form for all NF tables.
 
 ----------------solution--------------------------------
 
-
 -- Customer Table
 CREATE TABLE customer (
     customer_id NUMBER PRIMARY KEY,
@@ -50,11 +56,27 @@ CREATE TABLE customer (
     customer_city VARCHAR2(100) NOT NULL
 );
 
+Insert into customer
+
+INSERT INTO customer(customer_id,customer_name,customer_city) VALUES (1, 'Athira','Chennai');
+INSERT INTO customer(customer_id,customer_name,customer_city) VALUES (2, 'Athii','Banglore');
+
+
+
 -- Airline Table
 CREATE TABLE airline (
     airline_id NUMBER PRIMARY KEY,
     airline_name VARCHAR2(100) NOT NULL
 );
+
+Insert into airline
+
+INSERT INTO airline( airline_id, airline_name) VALUES (1, 'Air India');
+INSERT INTO airline( airline_id, airline_name) VALUES (2, 'SpiceJet');
+
+commit;
+
+
 
 -- Seat Table
 CREATE TABLE seat (
@@ -63,12 +85,30 @@ CREATE TABLE seat (
     seat_price NUMBER NOT NULL
 );
 
+Insert into seat
+
+INSERT INTO seat(seat_id, seat_number, seat_price) VALUES (1, '12A', 5000);
+INSERT INTO seat(seat_id, seat_number, seat_price) VALUES (2, '12B', 5000);
+INSERT INTO seat(seat_id, seat_number, seat_price) VALUES (3, '12C', 5000);
+INSERT INTO seat(seat_id, seat_number, seat_price) VALUES (4, '1A', 8000);
+INSERT INTO seat(seat_id, seat_number, seat_price) VALUES (5, '1B', 8000);
+
+
+
 -- Meal Table
 CREATE TABLE meal (
     meal_id NUMBER PRIMARY KEY,
     meal_name VARCHAR2(100) NOT NULL,
     price NUMBER NOT NULL
 );
+
+Insert into meal
+
+INSERT INTO meal(meal_id, meal_name, price) VALUES (1, 'Veg Meal', 300);
+INSERT INTO meal(meal_id, meal_name, price) VALUES (2, 'Chicken Meal', 500);
+INSERT INTO meal(meal_id, meal_name, price) VALUES (3, 'Coffee', 100);
+
+
 
 -- Booking Table
 CREATE TABLE booking (
@@ -88,6 +128,16 @@ CREATE TABLE booking (
     FOREIGN KEY (airline_id) REFERENCES airline(airline_id)
 );
 
+Insert into booking
+select * from booking;
+desc booking;
+INSERT INTO booking(booking_id, booking_number, flight_number, flight_date,departure_time, arrival_time, departure_city, arrival_city, ticket_price, seat_class, customer_id, airline_id) VALUES (2, 'B002', 'SG345', TO_DATE('2024-11-22', 'YYYY-MM-DD'), '5:00 PM', '7:00 PM', 'Bangalore', 'Mumbai', 16000, 'Business', 2, 2);
+
+
+INSERT INTO booking(booking_id, booking_number, flight_number, flight_date, departure_time, arrival_time, departure_city, arrival_city,  ticket_price, seat_class, customer_id, airline_id) VALUES (1, 'B001', 'SG305', TO_DATE('2024-11-18', 'YYYY-MM-DD'), '4:00 PM', '8:00 PM', 'Bangalore', 'Kochi', 14000, 'Business', 1, 1);
+
+
+
 -- Booking Seat Table
 CREATE TABLE booking_seat (
     seat_id NUMBER,
@@ -98,6 +148,16 @@ CREATE TABLE booking_seat (
     FOREIGN KEY (seat_id) REFERENCES seat(seat_id),
     FOREIGN KEY (booking_id) REFERENCES booking(booking_id)
 );
+
+Insert into booking_seat
+
+INSERT INTO booking_seat(seat_id, seat_number, price, booking_id) VALUES (1, '12A', 5000, 1);
+INSERT INTO booking_seat(seat_id, seat_number, price, booking_id) VALUES (2, '12B', 5000, 1);
+INSERT INTO booking_seat(seat_id, seat_number, price, booking_id) VALUES (3, '12C', 5000, 1);
+INSERT INTO booking_seat(seat_id, seat_number, price, booking_id) VALUES (4, '1A', 8000, 2);
+INSERT INTO booking_seat(seat_id, seat_number, price, booking_id) VALUES (5, '1B', 8000, 2);
+
+
 
 -- Booking Meal Table
 CREATE TABLE booking_meal (
@@ -112,61 +172,15 @@ CREATE TABLE booking_meal (
     FOREIGN KEY (booking_id) REFERENCES booking(booking_id)
 );
 
-
-Insert into customer
-
-INSERT INTO customer(customer_id, customer_name, customer_city) VALUES (1, 'Athira', 'Chennai');
-INSERT INTO customer(customer_id, customer_name, customer_city) VALUES (2, 'Athii', 'Bangalore');
-
-Insert into airline
-
-INSERT INTO airline( airline_id, airline_name) VALUES (1, 'Air India');
-INSERT INTO airline( airline_id, airline_name) VALUES (2, 'SpiceJet');
-
-Insert into seat
-
-INSERT INTO seat(seat_id, seat_number, seat_price) VALUES (1, '12A', 5000);
-INSERT INTO seat(seat_id, seat_number, seat_price) VALUES (2, '12B', 5000);
-INSERT INTO seat(seat_id, seat_number, seat_price) VALUES (3, '12C', 5000);
-INSERT INTO seat(seat_id, seat_number, seat_price) VALUES (4, '1A', 8000);
-INSERT INTO seat(seat_id, seat_number, seat_price) VALUES (5, '1B', 8000);
-
-Insert into meal
-
-INSERT INTO meal(meal_id, meal_name, price) VALUES (1, 'Veg Meal', 300);
-INSERT INTO meal(meal_id, meal_name, price) VALUES (2, 'Chicken Meal', 500);
-INSERT INTO meal(meal_id, meal_name, price) VALUES (3, 'Coffee', 100);
-
-Insert into booking
-select * from booking;
-desc booking;
-INSERT INTO booking(booking_id, booking_number, flight_number, flight_date,  
-    departure_time, arrival_time, departure_city, arrival_city,  
-    ticket_price, seat_class, customer_id, airline_id) VALUES (2, 'B002', 'SG345', TO_DATE('2024-11-22', 'YYYY-MM-DD'), 
-    '5:00 PM', '7:00 PM', 'Bangalore', 'Mumbai', 16000, 'Business', 2, 2);
-
-
-INSERT INTO booking(booking_id, booking_number, flight_number, flight_date,  
-    departure_time, arrival_time, departure_city, arrival_city,  
-    ticket_price, seat_class, customer_id, airline_id) VALUES (1, 'B001', 'SG305', TO_DATE('2024-11-18', 'YYYY-MM-DD'), 
-    '4:00 PM', '8:00 PM', 'Bangalore', 'Kochi', 14000, 'Business', 1, 1);
-
-Insert into booking_seat
-
-INSERT INTO booking_seat VALUES (1, '12A', 5000, 1);
-INSERT INTO booking_seat VALUES (2, '12B', 5000, 1);
-INSERT INTO booking_seat VALUES (3, '12C', 5000, 1);
-INSERT INTO booking_seat VALUES (4, '1A', 8000, 2);
-INSERT INTO booking_seat VALUES (5, '1B', 8000, 2);
-
 Insert into booking_meal
 
-INSERT INTO booking_meal VALUES (1, 'Veg Meal', 300, 2, 600, 1);
-INSERT INTO booking_meal VALUES (2, 'Chicken Meal', 500, 1, 500, 1);
-INSERT INTO booking_meal VALUES (3, 'Coffee', 100, 3, 300, 1);
+INSERT INTO booking_meal(meal_id, meal_name, price, quantity, amount, booking_id) VALUES (1, 'Veg Meal', 300, 2, 600, 1);
+INSERT INTO booking_meal(meal_id, meal_name, price, quantity, amount, booking_id) VALUES (2, 'Chicken Meal', 500, 1, 500, 1);
+INSERT INTO booking_meal(meal_id, meal_name, price, quantity, amount, booking_id) VALUES (3, 'Coffee', 100, 3, 300, 1);
+INSERT INTO booking_meal(meal_id, meal_name, price, quantity, amount, booking_id) VALUES (1, 'Veg Meal', 300, 1, 300, 2);
+INSERT INTO booking_meal(meal_id, meal_name, price, quantity, amount, booking_id) VALUES (2, 'Chicken Meal', 500, 2, 1000, 2);
 
-INSERT INTO booking_meal VALUES (1, 'Veg Meal', 300, 1, 300, 2);
-INSERT INTO booking_meal VALUES (2, 'Chicken Meal', 500, 2, 1000, 2);
+
 
 
 Tabular Data Representation
@@ -318,3 +332,41 @@ booking_id booking_number flight_number  flight_date  departure_time  arrival_ti
 1	          B001	           AI102	       2024-11-20	     10:00 AM	   1:00 PM	    Chennai	       Delhi	      15000      Economy 	  1	             1   20-NOV-2024 10:00    1400 
 2	          B002	           SG345	       2024-11-22	     5:00 PM	   7:00 PM	    Bangalore	   Mumbai	      16000  	 Business	  2	  
 2   21-NOV-2024 13:00    1300
+
+
+
+Joins:
+find the booking details along with customer names for those customers who have made bookings by using customer and bookings table.
+
+solution:
+
+1.Inner join
+
+SELECT Booking.booking_id, Booking.booking_number, Customer.customer_name
+FROM Booking
+INNER JOIN Customer ON Booking.customer_id = Customer.customer_id;
+
+2.Left outer join
+
+SELECT Booking.booking_id, Booking.booking_number, Customer.customer_name
+FROM Booking
+LEFT OUTER JOIN Customer ON Booking.customer_id = Customer.customer_id;
+
+3.Right outer join
+
+SELECT Booking.booking_id, Booking.booking_number, Customer.customer_name
+FROM Booking
+RIGHT OUTER JOIN Customer ON Booking.customer_id = Customer.customer_id;
+
+
+Subquery:
+Get the booking details of customer whose customer name is 'Athira'.
+
+solution:
+
+select *
+from booking
+where customer_id IN(select customer_id
+                       from customer
+                       where customer_name='Athira');
+
