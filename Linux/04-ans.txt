@@ -1,1 +1,126 @@
+Solution:
+
+1. Basic File and Directory Management :
+
+   Create a directory for storing C++ project :
+   mkdir vi_cpp_project
+   it will create a new directory called "vi_cpp_project" .
+
+2. Change to the "vi_cpp_project" directory
+
+   cd vi_cpp_project
+   it will move you into the "vi_cpp_project" directory.
+
+3. Create a new C++ file using "vim editor".
+
+   touch welcome.cpp  - it will create a new file named "welcome.cpp" in the current directory.
+   vim welcome.cpp    - to edit this file using nano editor.
+
+4. Write a basic C++ program in vim.
+
+    write a simple C++ program that prints "Welcome to Linux programming!" in vim editor.
+
+     #include <iostream>
+     #include <cstdlib>
+     using std::cout;
+     using std::endl;
+
+     int main() {
+
+     cout << "Welcome to Linux programming! " << endl;
+
+	   return EXIT_SUCCESS;
+     }
+
+
+5. Save and exit the vim editor.
+
+    After writing the code, save the file and exit vim by using command
+    :wq
+
+6. Edit the program.
+
+   Open welcome.cpp again in vim , and modify the program to ask for the user's name and  greet them by name using insert mode and command mode.
+
+
+   #include <iostream>
+   #include <cstdlib>
+   using std::cout;
+   using std::cin;
+   using std::endl;
+
+     int main() {
+
+     char name[255];
+
+	   cout << "Enter name:";
+	   cin >> name;
+     cout << "Hello " << name << "Welcome to Linux programming ! " << endl;
+
+	   return EXIT_SUCCESS;
+     }
+
+7. Compile the C++ program.
+
+    Compile the program using the g++ compiler into an executable called "welcome".
+    g++ welcome.cpp
+
+8. Run the compiled program.
+
+    Run the executable to check if the program works as expected (asks for name and greets).
+    ./a.out
+
+9. View the contents of the C++ file.
+
+    Use the `cat` command to display the contents of welcome.cpp.
+    cat welcome.cpp
+
+10. Use vim to make further edits.
+    
+    Open `welcome.cpp` in `vi` and add an additional line to print "Goodbye!" at the end of the program.
+
+    vim welcome.cpp
+
+   #include <iostream>
+   #include <cstdlib>
+   using std::cout;
+   using std::cin;
+   using std::endl;
+
+     int main() {
+
+     char name[255];
+
+	   cout << "Enter name:";
+	   cin >> name;
+     cout << "Hello " << name << "Welcome to Linux programming ! " << endl;
+     cout << "Goodbye! " << endl;
+
+	   return EXIT_SUCCESS;
+     }
+
+11. Compile and run the updated program.
+
+    After editing, recompile and run the program to ensure it displays the welcome message followed by the goodbye message.
+    g++ welcome.cpp
+    ./a.out
+
+12. Delete the C++ file.
+
+    Once finished, remove the `welcome.cpp` file
+    rm welcome.cpp
+
+13. Remove the project directory.
+
+   Check if the directory is empty and remove it.
+   ls - to check empty or not.
+   rmdir vi_cpp_project - to remove directory.
+
+
+
+
+
+
+
+
 
