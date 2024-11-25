@@ -1,8 +1,8 @@
 Solution:
 
 1. Basic File and Directory Management :
-
    Create a  new directory  called "my_cpp_project" for storing C++ programs :
+
    mkdir my_cpp_project
    it will create a new directory called "my_cpp_project" .
 
@@ -14,7 +14,7 @@ Solution:
 3. Create a new C++ file called "greet.cpp" using "nano editor".
 
    touch greet.cpp  - it will create a new file named "greet.cpp" in the current directory.
-   nano greet.cpp    - to edit this file using vim editor.
+   nano greet.cpp    - to edit this file using nano editor.
 
 4. Write a C++ program inside `greet.cpp` that asks the user for their name and prints a greeting message.
     
@@ -30,14 +30,14 @@ Solution:
 
            char name[255];
 
-	         cout << "Enter name:";
-	         cin >> name;
+	   cout << "Enter name : ";
+	   cin >> name;
            cout << "Hello " << name << " !!" << endl;
 
 	   return EXIT_SUCCESS;
      }
 
-To save program  - ctrl x then y then Enter
+  To save program  - ctrl x then y then Enter
 
 5. Compile the `greet.cpp` program into an executable
 
@@ -46,6 +46,10 @@ To save program  - ctrl x then y then Enter
 6. Run the compiled executable and ensure that it prompts for the user’s name and displays the greeting.
 
       ./a.out
+
+      Output:
+      Enter name : Athira
+      
 
 7. Use a Linux command to display the contents of `greet.cpp`.
 
