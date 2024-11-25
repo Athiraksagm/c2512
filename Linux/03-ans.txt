@@ -1,1 +1,99 @@
+Solution:
 
+1. Basic File and Directory Management :
+
+   Create a  new directory  called "my_cpp_project" for storing C++ programs :
+   mkdir my_cpp_project
+   it will create a new directory called "my_cpp_project" .
+
+2. Change to the "my_cpp_project" directory
+
+   cd my_cpp_project
+   it will move you into the "my_cpp_project" directory.
+
+3. Create a new C++ file called "greet.cpp" using "nano editor".
+
+   touch greet.cpp  - it will create a new file named "greet.cpp" in the current directory.
+   nano greet.cpp    - to edit this file using vim editor.
+
+4. Write a C++ program inside `greet.cpp` that asks the user for their name and prints a greeting message.
+    
+    used 'i' (insert) to change into Insert Mode. 
+
+   #include <iostream>
+   #include <cstdlib>
+   using std::cout;
+   using std::cin;
+   using std::endl;
+
+   int main() {
+
+           char name[255];
+
+	         cout << "Enter name:";
+	         cin >> name;
+           cout << "Hello " << name << " !!" << endl;
+
+	   return EXIT_SUCCESS;
+     }
+
+To save program  - ctrl x then y then Enter
+
+5. Compile the `greet.cpp` program into an executable
+
+      g++ greet.cpp
+
+6. Run the compiled executable and ensure that it prompts for the user’s name and displays the greeting.
+
+      ./a.out
+
+7. Use a Linux command to display the contents of `greet.cpp`.
+
+      cat greet.cpp
+
+8. Modify the `greet.cpp` file to add a simple farewell message and save the changes.
+
+    nano greet.cpp
+
+   #include <iostream>
+   #include <cstdlib>
+   using std::cout;
+   using std::cin;
+   using std::endl;
+
+    int main() {
+
+           char name[255];
+
+	         cout << "Enter name:";
+	         cin >> name;
+           cout << "Hello " << name << " !!" << endl;
+           cout << "GoodBye " << "!!" << endl;
+
+	   return EXIT_SUCCESS;
+     }
+
+    
+9. Compile and run the modified program to ensure it works as expected.
+
+   g++ greet.cpp  - to compile
+   ./a.out        - to run
+
+10. Remove the `greet.cpp` file once you're done.
+
+    rm greet.cpp
+
+13.Check the contents of the `my_cpp_project` directory, and remove the directory if it’s empty.
+   
+   ls - to check empty or not.
+   rmdir my_cpp_project - to remove directory.
+
+
+
+Goals:
+practice using basic Linux commands such as 
+    directory creation, 
+    text file manipulation, 
+    compiling, and 
+    running programs, 
+helping you become more familiar with the Linux environment for C++ development.
