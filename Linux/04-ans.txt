@@ -14,11 +14,12 @@ Solution:
 3. Create a new C++ file using "vim editor".
 
    touch welcome.cpp  - it will create a new file named "welcome.cpp" in the current directory.
-   vim welcome.cpp    - to edit this file using nano editor.
+   vim welcome.cpp    - to edit this file using vim editor.
 
 4. Write a basic C++ program in vim.
 
     write a simple C++ program that prints "Welcome to Linux programming!" in vim editor.
+    used 'i' (insert) to change into Insert Mode. 
 
      #include <iostream>
      #include <cstdlib>
@@ -27,7 +28,7 @@ Solution:
 
      int main() {
 
-     cout << "Welcome to Linux programming! " << endl;
+           cout << "Welcome to Linux programming! " << endl;
 
 	   return EXIT_SUCCESS;
      }
@@ -51,11 +52,11 @@ Solution:
 
      int main() {
 
-     char name[255];
+           char name[255];
 
 	   cout << "Enter name:";
 	   cin >> name;
-     cout << "Hello " << name << "Welcome to Linux programming ! " << endl;
+           cout << "Hello " << name << "Welcome to Linux programming ! " << endl;
 
 	   return EXIT_SUCCESS;
      }
@@ -89,12 +90,12 @@ Solution:
 
      int main() {
 
-     char name[255];
-
-	   cout << "Enter name:";
+           char name[255];
+       
+           cout << "Enter name:";
 	   cin >> name;
-     cout << "Hello " << name << "Welcome to Linux programming ! " << endl;
-     cout << "Goodbye! " << endl;
+           cout << "Hello " << name << "Welcome to Linux programming ! " << endl;
+           cout << "Goodbye! " << endl;
 
 	   return EXIT_SUCCESS;
      }
@@ -115,6 +116,11 @@ Solution:
    Check if the directory is empty and remove it.
    ls - to check empty or not.
    rmdir vi_cpp_project - to remove directory.
+
+
+
+Goals:
+Gained hands-on experience with the vim editor for creating and editing C++ programs,navigating within files, and using `vim` commands like `i` (insert), `dd` (delete), `:wq` (save and quit), and more.
 
 
 
