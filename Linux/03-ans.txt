@@ -49,11 +49,29 @@ Solution:
 
       Output:
       Enter name : Athira
+      Hello Athira !!
       
 
 7. Use a Linux command to display the contents of `greet.cpp`.
 
       cat greet.cpp
+
+   #include <iostream>
+   #include <cstdlib>
+   using std::cout;
+   using std::cin;
+   using std::endl;
+
+   int main() {
+
+           char name[255];
+
+	   cout << "Enter name : ";
+	   cin >> name;
+           cout << "Hello " << name << " !!" << endl;
+
+	   return EXIT_SUCCESS;
+     }
 
 8. Modify the `greet.cpp` file to add a simple farewell message and save the changes.
 
@@ -77,6 +95,7 @@ Solution:
 	   return EXIT_SUCCESS;
      }
 
+     To save program  - ctrl x then y then Enter
     
 9. Compile and run the modified program to ensure it works as expected.
 
