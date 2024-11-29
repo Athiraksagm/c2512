@@ -86,7 +86,7 @@ COMMIT;
 
 Airlines Table:
 
-AirlineID	    AirlineName
+AirlineID	AirlineName
 ----------      -----------
 AI001	        Air India
 IN002	        IndiGo
@@ -96,26 +96,26 @@ Flights Table:
 
 FlightCode  AirlineID	Source	     Destination    DepartureTime   ArrivalTime	  DateOfFlight	Duration    PriceEconomy    PriceBusiness
 ---------   ---------   ------      -------------   --------------  ------------  ------------  ---------   ------------    --------------
-AI123	    AI001	    Delhi	     Chennai	    10:00 AM	    01:00 PM	  2024-12-15	3h	        4000	         8000
-IN456	    IN002	    Mumbai	     Kolkata	    06:00 PM	    09:30 PM	  2024-12-20	3h30m	    3500	         7500
-SG789	    SG003	    Bangalore    Hyderabad	    07:00 AM	    08:30 AM	  2024-12-25	1h30m	    2000	         5000
+AI123	    AI001	Delhi	     Chennai	    10:00 AM	    01:00 PM	  2024-12-15	3h	    4000	    8000
+IN456	    IN002	Mumbai	     Kolkata	    06:00 PM	    09:30 PM	  2024-12-20	3h30m	    3500	    7500
+SG789	    SG003	Bangalore    Hyderabad	    07:00 AM	    08:30 AM	  2024-12-25	1h30m	    2000	    5000
 
 Passengers Table:
 
 PassportNumber	FirstName   LastName	Age   Gender	Phone	      Address
 --------------  ---------   ---------   ----  ------    ----------    -------------
-P1234567	    Sachin	    Tendulkar	50     M	    9876543210    Mumbai, India
-P7654321	    Virat	    Kohli	    35     M	    8765432109    Delhi, India
-P1122334	    Smriti	    Mandhana	28     F	    7654321098    Bangalore, India
+P1234567	Sachin	    Tendulkar	50    M	        9876543210    Mumbai, India
+P7654321	Virat	    Kohli	35    M	        8765432109    Delhi, India
+P1122334	Smriti	    Mandhana	28    F	        7654321098    Bangalore, India
 
 
 Bookings Table:
 
 BookingID     PassportNumber    FlightCode  DateOfBooking   TicketClass	   Fare
 ----------    --------------    ----------  --------------  ------------   ------
-1	          P1234567	        AI123	    2024-12-01	    Economy	       4000
-2	          P7654321	        IN456	    2024-12-05	    Business	   7500
-3	          P1122334	        SG789	    2024-12-10	    Economy	       2000
+1	      P1234567	        AI123	    2024-12-01	    Economy	   4000
+2	      P7654321	        IN456	    2024-12-05	    Business	   7500
+3	      P1122334	        SG789	    2024-12-10	    Economy	   2000
 
 
 
