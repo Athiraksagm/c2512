@@ -1,372 +1,276 @@
-I have an UNF table
-tickets
-booking_id, booking_number, airline_id, airline_name,
-customer_id, customer_name, customer_city,
-flight_number, flight_date, departure_time, arrival_time,
-departure_city, arrival_city, ticket_price, seat_class,
-seat1_number, seat1_price,
-seat2_number, seat2_price,
-seat3_number, seat3_price,
-meal1_item_id, meal1_item_name, meal1_price, meal1_qty, meal1_amount,
-meal2_item_id, meal2_item_name, meal2_price, meal2_qty, meal2_amount,
-meal3_item_id, meal3_item_name, meal3_price, meal3_qty, meal3_amount
-
-I formed the below NF tables:
-
-customer: customer_id, customer_name, customer_city
-
-airline: airline_id, airline_name
-
-seat: seat_id, seat_number, seat_price
-
-meal: meal_id, meal_name, price
-
-booking: booking_id, booking_number, flight_number, flight_date,  
-    departure_time, arrival_time, departure_city, arrival_city,  
-    ticket_price, seat_class, customer_id, airline_id
-
-booking_meal: meal_id, meal_name, price, quantity, amount, booking_id  
-
-booking_seat: seat_id, seat_number, price, booking_id  
+My name is Sachin, and I set out to create a simplified Airline Booking Database Management System to manage flight bookings. The inspiration came from a real-life ticket booking experience.
+I booked a flight from Delhi to Chennai for myself on 15th December 2024 at 10:00 AM, traveling with AirIndia. I selected the economy class, checked the ticket fare, and confirmed my booking.
+Later, I helped my family book tickets, each capturing their names, passport numbers, and preferences for class and fare. To manage this efficiently, I designed a compact database structure focusing on the following essential components: Passengers, Flights, Bookings, and Airlines.
+This design ensured an efficient and normalized database to keep track of flights, passengers, and bookings.
 
 
-My data is going to be:
-I am Athira, and I have booked tickets for my family from Chennai to Delhi on flight AI102 operated by Air India.
-flight_date: 2024-11-20, departure_time: 10:00 AM, arrival_time: 1:00 PM
-seat_class: economy
-seat_numbers: [12A, 12B, 12C], each seat price is Rs.5000
-meals ordered: [Veg Meal @ Rs.300 x 2, Chicken Meal @ Rs.500 x 1, Coffee @ Rs.100 x 3]
-And
-I have booked tickets for my parents from Bangalore to Mumbai on flight SG345 operated by SpiceJet.
-flight_date: 2024-11-22, departure_time: 5:00 PM, arrival_time: 7:00 PM
-seat_class: business
-seat_numbers: [1A, 1B], each seat price is Rs.8000
-meals ordered: [Veg Meal @ Rs.300 x 1, Chicken Meal @ Rs.500 x 2]
-
-Now, I need the table scripts in Oracle with primary keys, not null, and foreign keys.
-I also need insert statements for the tables.
-And I need the data in tabular form for all NF tables.
-
-----------------solution--------------------------------
-
--- Customer Table
-CREATE TABLE customer (
-    customer_id NUMBER PRIMARY KEY,
-    customer_name VARCHAR2(100) NOT NULL,
-    customer_city VARCHAR2(100) NOT NULL
+CREATE TABLE Airlines (
+    AirlineID VARCHAR2(10) PRIMARY KEY,
+    AirlineName VARCHAR2(50) NOT NULL
 );
 
-Insert into customer
+SELECT * FROM Airlines;
 
-INSERT INTO customer(customer_id,customer_name,customer_city) VALUES (1, 'Athira','Chennai');
-INSERT INTO customer(customer_id,customer_name,customer_city) VALUES (2, 'Athii','Banglore');
-
-
-
--- Airline Table
-CREATE TABLE airline (
-    airline_id NUMBER PRIMARY KEY,
-    airline_name VARCHAR2(100) NOT NULL
+CREATE TABLE Flights (
+    FlightCode VARCHAR2(10) PRIMARY KEY,
+    AirlineID VARCHAR2(10) REFERENCES Airlines(AirlineID),
+    Source VARCHAR2(50) NOT NULL,
+    Destination VARCHAR2(50) NOT NULL,
+    DepartureTime VARCHAR2(20) NOT NULL,
+    ArrivalTime VARCHAR2(20) NOT NULL,
+    DateOfFlight DATE NOT NULL,
+    Duration VARCHAR2(5),
+    PriceEconomy NUMBER,
+    PriceBusiness NUMBER
 );
 
-Insert into airline
+SELECT * FROM Flights;
 
-INSERT INTO airline( airline_id, airline_name) VALUES (1, 'Air India');
-INSERT INTO airline( airline_id, airline_name) VALUES (2, 'SpiceJet');
-
-commit;
-
-
-
--- Seat Table
-CREATE TABLE seat (
-    seat_id NUMBER PRIMARY KEY,
-    seat_number VARCHAR2(10) NOT NULL,
-    seat_price NUMBER NOT NULL
+CREATE TABLE Passengers (
+    PassportNumber CHAR(8) PRIMARY KEY,
+    FirstName VARCHAR2(50) NOT NULL,
+    LastName VARCHAR2(50) NOT NULL,
+    Age NUMBER,
+    Gender VARCHAR2(1),
+    Phone VARCHAR2(10),
+    Address VARCHAR2(100)
 );
 
-Insert into seat
+SELECT * FROM Passengers;
 
-INSERT INTO seat(seat_id, seat_number, seat_price) VALUES (1, '12A', 5000);
-INSERT INTO seat(seat_id, seat_number, seat_price) VALUES (2, '12B', 5000);
-INSERT INTO seat(seat_id, seat_number, seat_price) VALUES (3, '12C', 5000);
-INSERT INTO seat(seat_id, seat_number, seat_price) VALUES (4, '1A', 8000);
-INSERT INTO seat(seat_id, seat_number, seat_price) VALUES (5, '1B', 8000);
-
-
-
--- Meal Table
-CREATE TABLE meal (
-    meal_id NUMBER PRIMARY KEY,
-    meal_name VARCHAR2(100) NOT NULL,
-    price NUMBER NOT NULL
+CREATE TABLE Bookings (
+    BookingID NUMBER PRIMARY KEY,
+    PassportNumber VARCHAR2(8) REFERENCES Passengers(PassportNumber),
+    FlightCode VARCHAR2(10) REFERENCES Flights(FlightCode),
+    DateOfBooking DATE NOT NULL,
+    TicketClass VARCHAR2(20) NOT NULL, -- Economy or Business
+    Fare NUMBER NOT NULL
 );
 
-Insert into meal
-
-INSERT INTO meal(meal_id, meal_name, price) VALUES (1, 'Veg Meal', 300);
-INSERT INTO meal(meal_id, meal_name, price) VALUES (2, 'Chicken Meal', 500);
-INSERT INTO meal(meal_id, meal_name, price) VALUES (3, 'Coffee', 100);
+SELECT * FROM Bookings;
 
 
 
--- Booking Table
-CREATE TABLE booking (
-    booking_id NUMBER PRIMARY KEY,
-    booking_number VARCHAR2(50) NOT NULL,
-    flight_number VARCHAR2(50) NOT NULL,
-    flight_date DATE NOT NULL,
-    departure_time VARCHAR2(20) NOT NULL,
-    arrival_time VARCHAR2(20) NOT NULL,
-    departure_city VARCHAR2(100) NOT NULL,
-    arrival_city VARCHAR2(100) NOT NULL,
-    ticket_price NUMBER NOT NULL,
-    seat_class VARCHAR2(20) NOT NULL,
-    customer_id NUMBER NOT NULL,
-    airline_id NUMBER NOT NULL,
-    FOREIGN KEY (customer_id) REFERENCES customer(customer_id),
-    FOREIGN KEY (airline_id) REFERENCES airline(airline_id)
+INSERT INTO Airlines (AirlineID, AirlineName) VALUES
+('AI001', 'Air India');
+INSERT INTO Airlines (AirlineID, AirlineName) VALUES
+('IN002', 'IndiGo');
+INSERT INTO Airlines (AirlineID, AirlineName) VALUES
+('SG003', 'SpiceJet');
+
+
+INSERT INTO Flights (FlightCode, AirlineID, Source, Destination, DepartureTime, ArrivalTime, DateOfFlight, Duration, PriceEconomy, PriceBusiness) VALUES
+('AI123', 'AI001', 'Delhi', 'Chennai', '10:00 AM', '01:00 PM', TO_DATE('2024-12-15', 'YYYY-MM-DD'), '3h', 4000, 8000);
+INSERT INTO Flights (FlightCode, AirlineID, Source, Destination, DepartureTime, ArrivalTime, DateOfFlight, Duration, PriceEconomy, PriceBusiness) VALUES
+('IN456', 'IN002', 'Mumbai', 'Kolkata', '06:00 PM', '09:30 PM', TO_DATE('2024-12-20', 'YYYY-MM-DD'), '3h30m', 3500, 7500);
+INSERT INTO Flights (FlightCode, AirlineID, Source, Destination, DepartureTime, ArrivalTime, DateOfFlight, Duration, PriceEconomy, PriceBusiness) VALUES
+('SG789', 'SG003', 'Bangalore', 'Hyderabad', '07:00 AM', '08:30 AM', TO_DATE('2024-12-25', 'YYYY-MM-DD'), '1h30m', 2000, 5000);
+
+INSERT INTO Passengers (PassportNumber, FirstName, LastName, Age, Gender, Phone, Address) VALUES
+('P1234567', 'Sachin', 'Tendulkar', 50, 'M', '9876543210', 'Mumbai, India');
+INSERT INTO Passengers (PassportNumber, FirstName, LastName, Age, Gender, Phone, Address) VALUES
+('P7654321', 'Virat', 'Kohli', 35, 'M', '8765432109', 'Delhi, India');
+INSERT INTO Passengers (PassportNumber, FirstName, LastName, Age, Gender, Phone, Address) VALUES
+('P1122334', 'Smriti', 'Mandhana', 28, 'F', '7654321098', 'Bangalore, India');
+
+
+INSERT INTO Bookings (BookingID, PassportNumber, FlightCode, DateOfBooking, TicketClass, Fare) VALUES
+(1, 'P1234567', 'AI123', TO_DATE('2024-12-01', 'YYYY-MM-DD'), 'Economy', 4000);
+INSERT INTO Bookings (BookingID, PassportNumber, FlightCode, DateOfBooking, TicketClass, Fare) VALUES
+(2, 'P7654321', 'IN456', TO_DATE('2024-12-05', 'YYYY-MM-DD'), 'Business', 7500);
+INSERT INTO Bookings (BookingID, PassportNumber, FlightCode, DateOfBooking, TicketClass, Fare) VALUES
+(3, 'P1122334', 'SG789', TO_DATE('2024-12-10', 'YYYY-MM-DD'), 'Economy', 2000);
+
+COMMIT;
+
+
+Airlines Table:
+
+AirlineID	    AirlineName
+----------      -----------
+AI001	        Air India
+IN002	        IndiGo
+SG003	        SpiceJet
+
+Flights Table:
+
+FlightCode  AirlineID	Source	     Destination    DepartureTime   ArrivalTime	  DateOfFlight	Duration    PriceEconomy    PriceBusiness
+---------   ---------   ------      -------------   --------------  ------------  ------------  ---------   ------------    --------------
+AI123	    AI001	    Delhi	     Chennai	    10:00 AM	    01:00 PM	  2024-12-15	3h	        4000	         8000
+IN456	    IN002	    Mumbai	     Kolkata	    06:00 PM	    09:30 PM	  2024-12-20	3h30m	    3500	         7500
+SG789	    SG003	    Bangalore    Hyderabad	    07:00 AM	    08:30 AM	  2024-12-25	1h30m	    2000	         5000
+
+Passengers Table:
+
+PassportNumber	FirstName   LastName	Age   Gender	Phone	      Address
+--------------  ---------   ---------   ----  ------    ----------    -------------
+P1234567	    Sachin	    Tendulkar	50     M	    9876543210    Mumbai, India
+P7654321	    Virat	    Kohli	    35     M	    8765432109    Delhi, India
+P1122334	    Smriti	    Mandhana	28     F	    7654321098    Bangalore, India
+
+
+Bookings Table:
+
+BookingID     PassportNumber    FlightCode  DateOfBooking   TicketClass	   Fare
+----------    --------------    ----------  --------------  ------------   ------
+1	          P1234567	        AI123	    2024-12-01	    Economy	       4000
+2	          P7654321	        IN456	    2024-12-05	    Business	   7500
+3	          P1122334	        SG789	    2024-12-10	    Economy	       2000
+
+
+
+
+
+update the economy fare for the flight AI123:
+
+UPDATE Flights
+SET PriceEconomy = 4500
+WHERE FlightCode = 'AI123';
+
+update the phone number for the passenger with PassportNumber = 'P1234567':
+
+UPDATE Passengers
+SET Phone = '9998887777'
+WHERE PassportNumber = 'P1234567';
+
+
+delete the passenger with PassportNumber = 'P1122334':
+
+DELETE FROM Passengers
+WHERE PassportNumber = 'P1122334';
+
+
+--IN
+ find all flights operated by 'Air India' (AI001) and 'IndiGo' (IN002):
+
+SELECT FlightCode, AirlineID, Source, Destination
+FROM Flights
+WHERE AirlineID IN ('AI001', 'IN002');
+
+--BETWEEN
+find all flights departing between 2024-12-01 and 2024-12-15:
+
+SELECT FlightCode, Source, Destination, DateOfFlight
+FROM Flights
+WHERE DateOfFlight BETWEEN TO_DATE('2024-12-01', 'YYYY-MM-DD') AND TO_DATE('2024-12-15', 'YYYY-MM-DD');
+
+--LIKE
+ find passengers with first names starting with 'S':
+
+SELECT FirstName, LastName, PassportNumber
+FROM Passengers
+WHERE FirstName LIKE 'S%';
+
+
+
+
+--Aggregates
+
+
+Total Number of Flights Operated by Each Airline
+
+SELECT AirlineID, COUNT(*) AS TotalFlights
+FROM Flights
+GROUP BY AirlineID;
+
+Average Fare for Economy Class Across All Flights
+
+SELECT AVG(PriceEconomy) AS AverageEconomyFare
+FROM Flights;
+
+Total Bookings for Each Flight
+
+SELECT FlightCode, COUNT(*) AS TotalBookings
+FROM Bookings
+GROUP BY FlightCode;
+
+Total Revenue Generated from Business Class Bookings
+
+SELECT SUM(Fare) AS TotalRevenueBusiness
+FROM Bookings
+WHERE TicketClass = 'Business';
+
+Oldest Passenger in the Database
+
+SELECT MAX(Age) AS OldestPassengerAge
+FROM Passengers;
+
+Number of Passengers by Gender
+
+SELECT Gender, COUNT(*) AS PassengerCount
+FROM Passengers
+GROUP BY Gender;
+
+Flights with the Highest Economy Class Fare
+
+SELECT FlightCode, MAX(PriceEconomy) AS HighestEconomyFare
+FROM Flights
+GROUP BY FlightCode
+ORDER BY HighestEconomyFare DESC
+FETCH FIRST 1 ROWS ONLY;
+
+
+
+--JOINS
+
+--Inner join
+
+to retrieve the FirstName, LastName, and FlightCode for all passengers who have made bookings:
+
+SELECT P.FirstName, P.LastName, B.FlightCode
+FROM Passengers P
+INNER JOIN Bookings B ON P.PassportNumber = B.PassportNumber;
+
+--Left Outer
+
+to retrieve the FirstName, LastName, and FlightCode for all passengers, including those who havent booked a flight:
+
+SELECT P.FirstName, P.LastName, B.FlightCode
+FROM Passengers P
+LEFT OUTER JOIN Bookings B ON P.PassportNumber = B.PassportNumber;
+
+--Right Outer
+
+to retrieve BookingID, FlightCode, and passenger details for all bookings, including those that may not have an associated passenger:
+
+SELECT B.BookingID, B.FlightCode, P.FirstName, P.LastName
+FROM Bookings B
+RIGHT OUTER JOIN Passengers P ON B.PassportNumber = P.PassportNumber;
+
+--Full Outer 
+
+to retrieve all passenger details and all bookings, including those that do not have a match:
+
+SELECT P.FirstName, P.LastName, B.BookingID, B.FlightCode
+FROM Passengers P
+FULL OUTER JOIN Bookings B ON P.PassportNumber = B.PassportNumber;
+
+
+--Sub Query
+
+to find all passengers who have booked flights where the PriceEconomy is greater than 5000:
+
+SELECT FirstName, LastName
+FROM Passengers
+WHERE PassportNumber IN (
+    SELECT PassportNumber
+    FROM Bookings
+    WHERE FlightCode IN (
+        SELECT FlightCode
+        FROM Flights
+        WHERE PriceEconomy > 1000
+    )
 );
 
-Insert into booking
-select * from booking;
-desc booking;
-INSERT INTO booking(booking_id, booking_number, flight_number, flight_date,departure_time, arrival_time, departure_city, arrival_city, ticket_price, seat_class, customer_id, airline_id) VALUES (2, 'B002', 'SG345', TO_DATE('2024-11-22', 'YYYY-MM-DD'), '5:00 PM', '7:00 PM', 'Bangalore', 'Mumbai', 16000, 'Business', 2, 2);
 
+--Corelated Query
 
-INSERT INTO booking(booking_id, booking_number, flight_number, flight_date, departure_time, arrival_time, departure_city, arrival_city,  ticket_price, seat_class, customer_id, airline_id) VALUES (1, 'B001', 'SG305', TO_DATE('2024-11-18', 'YYYY-MM-DD'), '4:00 PM', '8:00 PM', 'Bangalore', 'Kochi', 14000, 'Business', 1, 1);
+ to find all flights where the PriceEconomy is higher than the average PriceEconomy:
 
-
-
--- Booking Seat Table
-CREATE TABLE booking_seat (
-    seat_id NUMBER,
-    seat_number VARCHAR2(10) NOT NULL,
-    price NUMBER NOT NULL,
-    booking_id NUMBER NOT NULL,
-    PRIMARY KEY (seat_id, booking_id),
-    FOREIGN KEY (seat_id) REFERENCES seat(seat_id),
-    FOREIGN KEY (booking_id) REFERENCES booking(booking_id)
+SELECT FlightCode, AirlineID, Source, Destination, PriceEconomy
+FROM Flights
+WHERE PriceEconomy > (
+    SELECT AVG(PriceEconomy)
+    FROM Flights
 );
-
-Insert into booking_seat
-
-INSERT INTO booking_seat(seat_id, seat_number, price, booking_id) VALUES (1, '12A', 5000, 1);
-INSERT INTO booking_seat(seat_id, seat_number, price, booking_id) VALUES (2, '12B', 5000, 1);
-INSERT INTO booking_seat(seat_id, seat_number, price, booking_id) VALUES (3, '12C', 5000, 1);
-INSERT INTO booking_seat(seat_id, seat_number, price, booking_id) VALUES (4, '1A', 8000, 2);
-INSERT INTO booking_seat(seat_id, seat_number, price, booking_id) VALUES (5, '1B', 8000, 2);
-
-
-
--- Booking Meal Table
-CREATE TABLE booking_meal (
-    meal_id NUMBER,
-    meal_name VARCHAR2(100) NOT NULL,
-    price NUMBER NOT NULL,
-    quantity NUMBER NOT NULL,
-    amount NUMBER NOT NULL,
-    booking_id NUMBER NOT NULL,
-    PRIMARY KEY (meal_id, booking_id),
-    FOREIGN KEY (meal_id) REFERENCES meal(meal_id),
-    FOREIGN KEY (booking_id) REFERENCES booking(booking_id)
-);
-
-Insert into booking_meal
-
-INSERT INTO booking_meal(meal_id, meal_name, price, quantity, amount, booking_id) VALUES (1, 'Veg Meal', 300, 2, 600, 1);
-INSERT INTO booking_meal(meal_id, meal_name, price, quantity, amount, booking_id) VALUES (2, 'Chicken Meal', 500, 1, 500, 1);
-INSERT INTO booking_meal(meal_id, meal_name, price, quantity, amount, booking_id) VALUES (3, 'Coffee', 100, 3, 300, 1);
-INSERT INTO booking_meal(meal_id, meal_name, price, quantity, amount, booking_id) VALUES (1, 'Veg Meal', 300, 1, 300, 2);
-INSERT INTO booking_meal(meal_id, meal_name, price, quantity, amount, booking_id) VALUES (2, 'Chicken Meal', 500, 2, 1000, 2);
-
-
-
-
-Tabular Data Representation
-
-Customer Table
-
-customer_id	| customer_name |  customer_city
-1	        |  Athira	    |   Chennai
-2	        |  Athii	    |   Bangalore
-
-Airline Table
-
-airline_id	| airline_name
-1	        |  Air India
-2	        |  SpiceJet
-
-Seat Table
-
-seat_id	| seat_number |	seat_price
-1	    |  12A	      |   5000
-2	    |  12B	      |   5000
-3	    |  12C	      |   5000
-4	    |  1A	      |   8000
-5	    |  1B	      |   8000
-
-Meal Table
-
-meal_id	 | meal_name	 |   price
-1	     | Veg Meal	     |   300
-2	     | Chicken Meal  |   500
-3	     | Coffee	     |   100
-
-Booking Table
-
-booking_id|booking_number|flight_number|flight_date|departure_time|arrival_time|departure_city|arrival_city|ticket_price|seat_class|customer_id|airline_id|
-1	      |    B001	     |    AI102	   |2024-11-20 |   10:00 AM	  |  1:00 PM   |   Chennai	  |    Delhi   |     15000  |  Economy |  1	       |   1
-2	      |    B002	     |    SG345	   |2024-11-22 |   5:00 PM	  |  7:00 PM   |   Bangalore  |    Mumbai  |     16000	|  Business|  2	       |   2
-
-Booking Seat Table
-
-seat_id	| seat_number |	price  | booking_id
-1	    |  12A	      |  5000  | 1
-2	    |  12B	      |  5000  | 1
-3	    |  12C	      |  5000  | 1
-4	    |  1A	      |  8000  | 2
-5	    |  1B	      |  8000  | 2
-
-Booking Meal Table
-
-meal_id |	meal_name	 |   price  | quantity	| amount  |	booking_id
-1	    |   Veg Meal	 |   300	|   2	    |   600	  |  1
-2	    |   Chicken Meal |   500	|   1	    |   500	  |  1
-3	    |   Coffee	     |   100	|   3	    |   300	  |  1
-1	    |   Veg Meal	 |   300	|   1	    |   300	  |  2
-2	    |   Chicken Meal |	 500	|   2	    |   1000  |  2
-
-//--------------------------------------------------------------------------------------------
-
-Another prompt question:
-````````````````````````````````````````````````````````````````````````````````
-I have given my adhaar id for ticket booking.
-We taken a flight on 20-NOV-2024 10:00AM. 
-Also we taken a flight on 21-NOV-2024 13:00 PM.
-Please add flight date time column and adhaar id also.
-And give me tables 'alter' script and update script.
-
-
-````````````````````````````````````````````````````````````````````````````````
-prompt Solution 
-````````````````````````````````````````````````````````````````````````````````
-
-1. `ALTER TABLE Script` for `booking` Table
-
-```sql
-ALTER TABLE booking
-ADD (flight_date_time DATE);
-```
-
-`ALTER TABLE Script` for `customer` Table
-```sql
-ALTER TABLE customer
-ADD (adhaar_id VARCHAR2(16) NOT NULL UNIQUE);
-```
-
-2. `Customer Table Data Update` (Adding Aadhaar ID as a Unique Identifier)
-
-#Updating `adhaar_id` in the Customer Table
-
-```sql
--- Update Aadhaar ID for Aravind in Customer Table
-UPDATE customer
-SET adhaar_id = '1234-5678-9012'
-WHERE customer_id = 1;
-```
--- Update flight date and time for the booking flight on 20-NOV-2024.
-```
-UPDATE booking
-SET flight_date_time = TO_DATE('20-NOV-2024 10:00', 'DD-MON-YYYY HH24:MI')
-WHERE booking_id = 1;
-
--- Update flight date and time for the booking flight on 21-NOV-2024.
-UPDATE booking
-SET flight_date_time = TO_DATE('21-NOV-2024 13:00', 'DD-MON-YYYY HH24:MI')
-WHERE booking_id = 2;
-```
-
-3.
-Updated `Customer` Table Structure in Tabular Format
-
-| customer_id | customer_name | customer_city | adhaar_id       |
-|-------------|---------------|---------------|-----------------|
-| 1           |  Athira       | Trichy        | 1234-5678-9012  |
-
-Updated `Booking` Table Structure in Tabular Format
-
-booking_id booking_number flight_number  flight_date  departure_time  arrival_time  departure_city  arrival_city	ticket_price  seat_class  customer_id airline_id flight_date_time 
-1	          B001	           AI102	       2024-11-20	     10:00 AM	      1:00 PM	    Chennai	         Delhi	        15000      	Economy 	  1	     1  20-NOV-2024 10:00     
-2	          B002	           SG345	       2024-11-22	     5:00 PM	      7:00 PM	    Bangalore	       Mumbai	        16000	      Business	  2	     2   21-NOV-2024 13:00        
-
-
-````````````````````````````````````````````````````````````````````````````````
-Prompt 3
-
-I need to update my flight seat booking database to track Aadhaar ID for customers and flight date/time for bookings. Additionally, I would like to calculate the total cost of a booking, including both seat prices and meal costs.
-
-prompt solution:
-
-INSERT INTO booking_meal (meal_id, meal_name, price, quantity, amount, booking_id, meal_preference) 
-VALUES (1, 'Veg Meal', 300, 2, 600, 1, 'Vegetarian');
-
-INSERT INTO booking_meal (meal_id, meal_name, price, quantity, amount, booking_id, meal_preference) 
-VALUES (2, 'Chicken Meal', 500, 2, 1000, 2, 'Non-Vegetarian');
-
-
--- Update total meal cost for booking_id = 1
-UPDATE booking
-SET total_meal_cost = (SELECT SUM(amount) FROM booking_meal WHERE booking_id = 1)
-WHERE booking_id = 1;
-
--- Update total meal cost for booking_id = 2
-UPDATE booking
-SET total_meal_cost = (SELECT SUM(amount) FROM booking_meal WHERE booking_id = 2)
-WHERE booking_id = 2;
-
-
-Updated `Booking` Table Structure in Tabular Format
-
-booking_id booking_number flight_number  flight_date  departure_time  arrival_time  departure_city  arrival_city	ticket_price  seat_class  customer_id airline_id flight_date_time total_meal_cost 
-1	          B001	           AI102	       2024-11-20	     10:00 AM	   1:00 PM	    Chennai	       Delhi	      15000      Economy 	  1	             1   20-NOV-2024 10:00    1400 
-2	          B002	           SG345	       2024-11-22	     5:00 PM	   7:00 PM	    Bangalore	   Mumbai	      16000  	 Business	  2	  
-2   21-NOV-2024 13:00    1300
-
-
-
-Joins:
-find the booking details along with customer names for those customers who have made bookings by using customer and bookings table.
-
-solution:
-
-1.Inner join
-
-SELECT Booking.booking_id, Booking.booking_number, Customer.customer_name
-FROM Booking
-INNER JOIN Customer ON Booking.customer_id = Customer.customer_id;
-
-2.Left outer join
-
-SELECT Booking.booking_id, Booking.booking_number, Customer.customer_name
-FROM Booking
-LEFT OUTER JOIN Customer ON Booking.customer_id = Customer.customer_id;
-
-3.Right outer join
-
-SELECT Booking.booking_id, Booking.booking_number, Customer.customer_name
-FROM Booking
-RIGHT OUTER JOIN Customer ON Booking.customer_id = Customer.customer_id;
-
-
-Subquery:
-Get the booking details of customer whose customer name is 'Athira'.
-
-solution:
-
-select *
-from booking
-where customer_id IN(select customer_id
-                       from customer
-                       where customer_name='Athira');
 
