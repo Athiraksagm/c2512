@@ -1,7 +1,6 @@
 #include <iostream>
 #include <iomanip>
 
-
 using namespace std;
 
 const int MAX_LAB_TESTS = 100;
@@ -15,7 +14,6 @@ class LabTest {
 	bool GreaterThan(const LabTest& other);
 	bool LessThan(const LabTest& other);
        
-        
         string GetTestID();
         double GetResultValue();
 };
@@ -24,11 +22,9 @@ class LabTestManager {
     friend class LabTestAggregator;
     friend int main();
     private:
-        
         LabTest tests[MAX_LAB_TESTS];    
         int numLabTests;
     public:
-        
         int findIndexById(string TestID);
         void create();
         void displayAll();
@@ -47,8 +43,6 @@ class LabTestAggregator {
 };
 
 void printMenu();
-
-
 
 int main() {
     LabTestManager manager;
@@ -106,8 +100,10 @@ int main() {
     return 0;
 }
 
-void LabTestManager::create() {
-    if (numLabTests >= MAX_LAB_TESTS) {
+void LabTestManager::create()
+{
+    if (numLabTests >= MAX_LAB_TESTS) 
+    {
         cout << "Error: Maximum Lab test limit reached.\n";
         return;
     }
@@ -118,8 +114,8 @@ void LabTestManager::create() {
     cout << "Enter LabTest TestID: ";
     cin >> TestID;
 
-    
-    if (findIndexById(TestID) != -1) {
+     if (findIndexById(TestID) != -1) 
+     {
         cout << "Error: LabTest TestID already exists. Please use a unique TestID.\n";
         return;
     }
@@ -127,7 +123,6 @@ void LabTestManager::create() {
     cout << "Enter Result Value: ";
     cin >> ResultValue;
 
-    
     tests[numLabTests].TestID = TestID;
     tests[numLabTests].ResultValue = ResultValue;
     numLabTests++;
@@ -135,8 +130,10 @@ void LabTestManager::create() {
     cout << "Lab Test created successfully.\n";
 }
 
-void LabTestManager::displayAll() {
-    if (numLabTests == 0) {
+void LabTestManager::displayAll() 
+{
+    if (numLabTests == 0)
+    {
         cout << "No tests available to display.\n";
         return;
     }
@@ -152,9 +149,12 @@ void LabTestManager::displayAll() {
 }
 
 
-int LabTestManager::findIndexById(string TestID) {
-    for (int i = 0; i < numLabTests; i++) {
-        if (tests[i].TestID == TestID) {
+int LabTestManager::findIndexById(string TestID)
+{
+    for (int i = 0; i < numLabTests; i++) 
+    {
+        if (tests[i].TestID == TestID)
+	{
             return i;
         }
     }
@@ -162,13 +162,15 @@ int LabTestManager::findIndexById(string TestID) {
 }
 
 
-void LabTestManager::editById() {
+void LabTestManager::editById()
+{
     string TestID;
     cout << "Enter LabTest TestID to edit: ";
     cin >> TestID;
 
     int index = findIndexById(TestID);
-    if (index == -1) {
+    if (index == -1) 
+    {
         cout << "Error: LabTest TESTID not found.\n";
         return;
     }
@@ -182,31 +184,36 @@ void LabTestManager::editById() {
 }
 
 
-void LabTestManager::deleteById() {
+void LabTestManager::deleteById() 
+{
     string TestID;
     cout << "Enter LabTest TestID to delete: ";
     cin >> TestID;
 
     int index = findIndexById(TestID);
-    if (index == -1) {
+    if (index == -1) 
+    {
         cout << "Error: LabTest TestID not found.\n";
         return;
     }
 
     
-    for (int i = index; i < numLabTests - 1; i++) {
-        tests[i] = tests[i + 1];
-    }
+    for (int i = index; i < numLabTests - 1; i++)
+	    {
+             tests[i] = tests[i + 1];
+            }
     numLabTests--;
 
     cout << "LabTest deleted successfully.\n";
 }
 
-LabTestManager::LabTestManager() {
+LabTestManager::LabTestManager() 
+{
     numLabTests = 0;
 }
 
-void printMenu() {
+void printMenu()
+{
     cout << "\n=== Lab Test Management Module ===\n";
     cout << "1. Create Lab Test\n";
     cout << "2. Display All Lab Tests\n";
