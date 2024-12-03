@@ -37,11 +37,14 @@ Solution:
 5. Save and exit the vim editor.
 
     After writing the code, save the file and exit vim by using command
+    ESC - to change to command line mode.
     :wq
 
 6. Edit the program.
 
    Open welcome.cpp again in vim , and modify the program to ask for the user's name and  greet them by name using insert mode and command mode.
+
+   vim welcome.cpp
 
    #include <iostream>
    #include <cstdlib>
@@ -60,7 +63,8 @@ Solution:
 	   return EXIT_SUCCESS;
      }
 
-    	To save - :wq
+        ESC 
+    	To save and exit - :wq
 
 7. Compile the C++ program.
 
@@ -122,6 +126,7 @@ Solution:
 	   return EXIT_SUCCESS;
      }
 
+    ESC
     To save - :wq
 
 11. Compile and run the updated program.
