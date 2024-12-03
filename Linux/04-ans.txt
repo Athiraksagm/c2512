@@ -44,7 +44,8 @@ Solution:
 
    Open welcome.cpp again in vim , and modify the program to ask for the user's name and  greet them by name using insert mode and command mode.
 
-   vim welcome.cpp
+   vim welcome.cpp - To open in vim editor
+   i - To change into insert mode
 
    #include <iostream>
    #include <cstdlib>
