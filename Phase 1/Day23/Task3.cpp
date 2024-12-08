@@ -26,21 +26,24 @@ solution:
 using namespace std;
 
 // Base Class: Employee
-class Employee {
-protected:
+class Employee
+{
+private:
     char* name;
     int id;
 
 public:
     // Constructor
-    Employee(const char* empName, int empId) : id(empId) {
+    Employee(const char* empName, int empId) : id(empId)
+   {
         name = new char[strlen(empName) + 1];
         strcpy(name, empName);
         cout << "Employee constructor called for " << name << endl;
     }
 
     // Virtual Destructor
-    virtual ~Employee() {
+    virtual ~Employee() 
+    {
         cout << "Employee destructor called for " << name << endl;
         delete[] name;
     }
@@ -51,7 +54,8 @@ public:
 };
 
 // Derived Class: Developer
-class Developer : public Employee {
+class Developer : public Employee
+ {
 private:
     char* programmingLanguage;
     int projects;
@@ -59,30 +63,35 @@ private:
 public:
     // Constructor
     Developer(const char* devName, int devId, const char* lang, int proj) 
-        : Employee(devName, devId), projects(proj) {
+        : Employee(devName, devId), projects(proj)
+    {
         programmingLanguage = new char[strlen(lang) + 1];
         strcpy(programmingLanguage, lang);
         cout << "Developer constructor called for " << name << endl;
     }
 
     // Destructor
-    ~Developer() override {
+    ~Developer() override
+    {
         cout << "Developer destructor called for " << name << endl;
         delete[] programmingLanguage;
     }
 
     // Overridden Methods
-    void work() const override {
+    void work() const override
+    {
         cout << name << " (ID: " << id << ") is coding in " 
              << programmingLanguage << " on " << projects << " projects." << endl;
     }
 
-    void takeBreak() const override {
+    void takeBreak() const override
+    {
         cout << name << " (ID: " << id << ") is taking a coffee break." << endl;
     }
 };
 
-int main() {
+int main()
+ {
     cout << "=== Dynamic Binding Example ===" << endl;
 
     // Base class pointer to Derived class objects
