@@ -20,52 +20,61 @@ solution:
 using namespace std;
 
 // Base class
-class Player {
-protected:
+class Player
+{
+private:
     string name;
     int age;
 
 public:
     // Constructor
-    Player(const string& playerName, int playerAge) : name(playerName), age(playerAge) {
+    Player(const string& playerName, int playerAge) : name(playerName), age(playerAge) 
+    {
         cout << "Player constructor called for " << name << endl;
     }
 
     // Destructor
-    virtual ~Player() {
+    virtual ~Player()
+    {
         cout << "Player destructor called for " << name << endl;
     }
 
     // Method
-    void train() {
+    void train()
+    {
         cout << name << " is training at the age of " << age << "." << endl;
     }
 };
 
 // Derived class
-class CricketPlayer : public Player {
+class CricketPlayer : public Player 
+{
 private:
     double battingAverage;
 
 public:
     // Constructor
     CricketPlayer(const string& playerName, int playerAge, double average) 
-        : Player(playerName, playerAge), battingAverage(average) {
+        : Player(playerName, playerAge), battingAverage(average)
+    {
         cout << "CricketPlayer constructor called for " << name << endl;
     }
 
     // Destructor
-    ~CricketPlayer() {
+    ~CricketPlayer() 
+    {
         cout << "CricketPlayer destructor called for " << name << endl;
     }
 
     // Method
-    void playMatch() {
+    void playMatch()
+    {
         cout << name << " is playing a match with a batting average of " << battingAverage << "." << endl;
     }
 };
 
-int main() {
+int main()
+ {
     // Static objects
     cout << "=== Static Binding ===" << endl;
     Player staticPlayer("John", 25);
