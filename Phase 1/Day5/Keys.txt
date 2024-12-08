@@ -1,0 +1,44 @@
+  Key : Unique Identifier
+
+1. Super Key: 
+    a set of one or more columns (attributes) that, 
+    taken collectively, 
+    allow unique identification of a row in a table.
+
+2. Candidate Key:
+    a column, or a set of columns, 
+    that can uniquely identify any row 
+    in a table.
+    Candidate keys are minimal super keys ,
+    they contain no extra attributes 
+    beyond what is necessary 
+    to ensure uniqueness.
+
+3. Alternate Key:
+    An alternate key is any candidate key 
+    that is not selected as the primary key.
+
+4. Composite Key:
+    can be Candidate Key, Super Key, Alternate Key, 
+    Primary Key, Unique Key, Foreign Key. 
+    A composite key is a primary key 
+    that consists of two or more columns 
+    to uniquely identify each row.
+
+5. Primary Key     -- Constraint 
+    A primary key is a unique identifier 
+    for each record in a table.
+    -The primary key cannot contain `NULL` values.
+
+6. Unique Key [Other than the Primary Key, Nullable]   -- Constraint 
+    A unique key ensures that all values 
+    in a column or set of columns 
+    are distinct across row.
+
+Secondary Key:  -- Index 
+    A secondary key is 
+    an attribute or combination of attributes 
+    used for data retrieval purposes, 
+    not necessarily unique for each record.
+
+    like indexes 
