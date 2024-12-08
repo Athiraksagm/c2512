@@ -2,18 +2,19 @@
 #include <cstdlib>
 #include <ctime>
 using namespace std;
-const int MAX_SIZE = 6; 
+
+const int MAX_SIZE = 6;
+
 int giveMeNumber()
 {	
-	int num = rand() % MAX_SIZE + 1;
-	return num;
+    return rand() % MAX_SIZE + 1;
 }
 
 bool isExist(int nums[], int size, int num)
 {
-    for(int I = 1; I <= size; I++)
+    for(int i = 0; i < size; i++) // Loop from 0 to size - 1
     {
-        if(nums[I-1] == num){
+        if(nums[i] == num){
             return true;
         }
     }
@@ -22,26 +23,29 @@ bool isExist(int nums[], int size, int num)
 
 void giveMeNumbers(int nums[])
 {
-    srand(static_cast<unsigned>(time(0)));
-    for(int I = 1; I <= MAX_SIZE; I++)
+    for(int i = 0; i < MAX_SIZE; i++)
     {
         int num = giveMeNumber();
-        while(isExist(nums, I, num))
+        while(isExist(nums, i, num)) // Check for existing numbers
         {
             num = giveMeNumber();
         }
-        nums[I-1] = num;
+        nums[i] = num; // Assign the unique number
     }
 }
 
 int main()
 {
-	int numbers[MAX_SIZE];
-	giveMeNumbers(numbers);
-	for(int I = 1; I <= MAX_SIZE; I++)
-    {
-        cout << numbers[I-1] << " ";
-    }
+    srand(static_cast<unsigned>(time(0))); // Seed the RNG
+    int numbers[MAX_SIZE];
+    giveMeNumbers(numbers);
 
-	return 0;
+    for(int i = 0; i < MAX_SIZE; i++) // Loop from 0 to MAX_SIZE - 1
+    {
+        cout << numbers[i] << " ";
+    }
+    cout << endl;
+
+    return 0;
 }
+
