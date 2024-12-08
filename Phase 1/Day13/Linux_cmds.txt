@@ -1,0 +1,128 @@
+1. To disply working folder:
+    $ pwd
+
+2. To display contents of the current directory:
+    $ ls
+    use cases:
+    $ls         --lists the files and dirs 
+    $ls -l      --long listings ie in tabular column
+
+3. To change to directory "phase1":
+    $ cd phase1
+    use cases:
+    -- changed to child dir "phase1":
+        root@DESKTOP-E9TJ2O1:/mnt/c/mywork/source/c2512# cd phase1 
+        -- after the command 
+        root@DESKTOP-E9TJ2O1:/mnt/c/mywork/source/c2512/phase1#
+    -- changed to the relative path "phase1/learnings/Day13/cpp"
+        root@DESKTOP-E9TJ2O1:/mnt/c/mywork/source/c2512# cd phase1/learnings/Day13/cpp
+        --after the command 
+        root@DESKTOP-E9TJ2O1:/mnt/c/mywork/source/c2512/phase1/learnings/Day13/cpp# 
+    -- changed to parent dir 
+        root@DESKTOP-E9TJ2O1:/mnt/c/mywork/source/c2512/phase1/learnings/Day13/cpp# cd ..
+        --after the command 
+        root@DESKTOP-E9TJ2O1:/mnt/c/mywork/source/c2512/phase1/learnings/Day13# 
+        -- changed to grand parent dir (2 level up)
+        root@DESKTOP-E9TJ2O1:/mnt/c/mywork/source/c2512/phase1/learnings/Day13# cd ../..
+        -- after the command 
+        root@DESKTOP-E9TJ2O1:/mnt/c/mywork/source/c2512/phase1#
+        -- assume the below working dir: (change to parent, from parent change to 'Day12')
+        root@DESKTOP-E9TJ2O1:/mnt/c/mywork/source/c2512/phase1/learnings/Day13# cd ../Day12
+        -- after the command 
+        root@DESKTOP-E9TJ2O1:/mnt/c/mywork/source/c2512/phase1/learnings/Day12# 
+        
+4. To create directory "Day13" in the current dir:
+    $ mkdir Day13
+    use cases: 
+    -- create new dir "Day13"
+        root@DESKTOP-E9TJ2O1:/mnt/c/mywork/source/c2512/phase1/learnings/# mkdir Day13
+        -- after the command 
+        -- dir Day13 is created if not exists, otherwise we will get "File not Exist" error msg 
+    root@DESKTOP-E9TJ2O1:/mnt/c/mywork/source/c2512/phase1/learnings/# mkdir Day14/cpp 
+        -- after the command 
+        -- if dir "Day14" exists:
+            the dir "cpp" will be created under dir "Day14" which is child of dir "learnings" 
+        -- else if dir "Day14" doest not exists: 
+            "File not Exist" error msg 
+
+5. To delete empty directory "Day13" in the current dir:
+    $ rmdir Day13
+    -- after the command 
+    -- Directory not empty for the case if dir "Day13" contains files or dirs
+    -- dir "Day13" will be deleted if dir "Day13" has no file or dir 
+
+6. To query version of c compiler:
+    $ gcc --version
+
+7. To query version of c++ compiler:
+    $ g++ --version
+
+8. To query version of gdb (c/c++ debugger):
+    $ gdb --version
+
+9. To query version of make (c/c++ build tool):
+    $ make --version
+    
+10. To create file and type inside file to go to nano editor 
+    To open editor to create and edit file named "hello_world.cpp":
+$ nano hello_world.cpp
+
+    -- inside the nano editor 
+    #include <iostream>
+    #include <cstdlib>
+    using std::cout;
+    using std::endl;
+
+    int main() {
+            cout << "Hello World!!!" << endl;
+
+            return EXIT_SUCCESS;
+    }
+
+    ^X 
+    Accepted To Save [Enter]
+    :hello_world.cpp [Enter]
+    -- gettting out of the "nano" editor
+
+11. To display the content of the file "hello_world.cpp": 
+    $ cat hello_world.cpp
+
+12. To compile the program in the file "hello_world.cpp":
+    $ g++ hello_world.cpp 
+
+    -- a.out file is created. this is executable file also. 
+
+13. To run the output of (after compilation) our program in the file "hello_world.cpp":
+    $ ./a.out 
+    -- we got output the program in the file "hello_world.cpp".
+
+14. To clear the terminal: 
+    $ clear 
+
+    -- contents of the terminal is cleared, we have empty (content) terminal.
+
+15. To move file "hello_world.cpp" into dir "cpp":
+    $mv hello_world.cpp cpp 
+
+16. To copy file "hello_world.cpp" as "hello_name.cpp":
+    $cp hello_world.cpp hello_name.cpp
+
+17. To (detailed) list the current dir:
+    $ ls -l 
+    -- we can see when a.out is changed.
+
+18. To open the "hello_student.cpp" in vim editor:
+    $ vim hello_student.cpp 
+
+    -- modes, navigations, selections, copy, paste, indent, save, exit 
+
+19. To display first 15 lines of program in "hello_student.cpp" 
+    $ cat -n hello_student.cpp | head -n 15
+
+20. To dispaly after 15th line from the program in "hello_student.cpp":
+    --assume total lines are 40
+    $ cat -n hello_student.cpp | tail -n 25
+ 
+21. To dispaly between lines 16 and 23 from the program in "hello_student.cpp":
+    --assume total lines are 40. 
+    $ cat -n hello_student.cpp | tail -n 25 | head -n 18
