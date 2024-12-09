@@ -22,7 +22,7 @@ using namespace std;
 // Base class
 class Player
 {
-private:
+protected:
     string name;
     int age;
 
@@ -49,7 +49,7 @@ public:
 // Derived class
 class CricketPlayer : public Player 
 {
-private:
+protected:
     double battingAverage;
 
 public:
