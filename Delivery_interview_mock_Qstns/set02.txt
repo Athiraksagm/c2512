@@ -1,1 +1,19 @@
+1.What is ps and top commands in Linux ?
 
+2.How can you access user input in same line shell scripting?
+
+3.what is $$ and $! Command?
+
+4.buffers and also how to move to next buffer and previous buffer commands?
+
+5.sed, head and tail commands in Linux?
+
+6) commands that used to undo and redo in Linux?
+
+7) which command is used to see real time running processes of system resources?
+
+8) what are the different modes of the vim editor?
+
+9) about file permissions in Linux(chmod)?
+
+10) how to replace the old text with new text in a vim editor?
