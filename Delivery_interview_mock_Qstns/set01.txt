@@ -1,1 +1,19 @@
+    1.  Command to undo and redo in Vim editor.
 
+    2.  Which command provides a real-time view of system processes and resource usage?
+    
+    3.  Which command is used to change file permissions in Linux.
+    
+    4.  Different modes in Vim editor 
+    
+    5.  Replace all occurrences of the word  with another word in a file in vim editor. 
+
+    6.  Open multiple files in vim and navigate bw different files.
+
+    7.  How to copy and paste some lines in vim. (add on: copy number of lines from current position)
+
+    8.  How to vertically split windows and navigate between splits.
+
+    9.  How to create user and set password together. 
+
+    10. How to create and assign a user to a group.
