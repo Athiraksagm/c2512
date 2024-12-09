@@ -36,19 +36,19 @@ public:
     // Constructor of Device
    Device(const string& b) : brand(b)  
     {
-       cout << "Device constructor called for brand: " << brand << endl;
+       cout << "Device constructor called ! " << endl;
     }
 
-    // Virtual destructor of Bird (important for polymorphic deletion)
+    // Virtual destructor 
     virtual ~Device() 
     {
-        cout << "Device destructor called for brand: " << brand << endl;
+        cout << "Device destructor called !" << endl;
     }
 
-    // Virtual function for brand
+    // Behavior
      void connect() 
        {
-        cout << "Device (" << brand << ") is now connected." << endl;
+        cout << "Device " << brand << " is now connected." << endl;
        }
 };
 
@@ -60,18 +60,18 @@ private:
 
 public:
     // Constructor of  LightingSystem (calls the constructor of Device)
-   LightingSystem(const string& b, const string& c) : Device(b), color(c) 
+   LightingSystem(const string& b , const string& c) : Device(b), color(c) 
     {
-        cout << "LightingSystem constructor called with color: " << color << endl;
+        cout << "LightingSystem constructor called ! "  << endl;
     }
 
     // Destructor of LightingSystem (calls the constructor of Device)
     ~LightingSystem() 
     {
-        cout << "LightingSystem destructor called." << endl;
+        cout << "LightingSystem destructor called !" << endl;
     }
 
-    // Override Sound function for Crow
+    // behavior
    void adjustBrightness()
    {
         cout << "Adjusting brightness for color: " << color << endl;
@@ -83,13 +83,20 @@ private:
     int temperature;
 
 public:
-    ClimateControl(const string& b, int temp) : Device(b), temperature(temp) {
-        cout << "ClimateControl constructor called with temperature: " << temperature << endl;
+    //constructor
+    ClimateControl(const string& b, int temp) : Device(b), temperature(temp)
+    {
+        cout << "ClimateControl constructor called ! " << endl;
     }
-    ~ClimateControl() {
+    //destructor
+    ~ClimateControl()
+    {
         cout << "ClimateControl destructor called." << endl;
+    
     }
-    void setTemperature() {
+    //behavior
+    void setTemperature() 
+    {
         cout << "Setting temperature to: " << temperature << " degrees." << endl;
     }
 };
@@ -99,14 +106,20 @@ private:
     int integrationCount;
 
 public:
+    //constructor
     SmartHomeHub(const string& b, const string& c, int temp, int count)
-        : Device(b), LightingSystem(b, c), ClimateControl(b, temp), integrationCount(count) {
-        cout << "SmartHomeHub constructor called with integration count: " << integrationCount << endl;
+        : Device(b), LightingSystem(b, c), ClimateControl(b, temp), integrationCount(count) 
+    {
+        cout << "SmartHomeHub constructor called! "  << endl;
     }
-    ~SmartHomeHub() {
+    //destructor
+    ~SmartHomeHub()
+    {
         cout << "SmartHomeHub destructor called." << endl;
     }
-    void automate() {
+    //behavior
+    void automate()
+    {
         cout << "Automating " << integrationCount << " devices." << endl;
     }
 };
@@ -114,19 +127,19 @@ public:
 
 int main() {
     cout << "Creating static object:" << endl;
-    SmartHomeHub staticHub("BrandX", "Warm White", 24, 5);
-    staticHub.connect();
-    staticHub.adjustBrightness();
-    staticHub.setTemperature();
-    staticHub.automate();
+    SmartHomeHub sh1("BrandX", "Warm White", 24, 5);
+    sh1.connect();
+    sh1.adjustBrightness();
+    sh1.setTemperature();
+    sh1.automate();
 
     cout << "\nCreating dynamic object:" << endl;
-    SmartHomeHub* dynamicHub = new SmartHomeHub("BrandY", "Cool Blue", 22, 3);
-    dynamicHub->connect();
-    dynamicHub->adjustBrightness();
-    dynamicHub->setTemperature();
-    dynamicHub->automate();
-    delete dynamicHub;
+    SmartHomeHub* sh2 = new SmartHomeHub("BrandY", "Cool Blue", 22, 3);
+    sh2->connect();
+    sh2->adjustBrightness();
+    sh2->setTemperature();
+    sh2->automate();
+    delete sh2;
 
     return 0;
 }
