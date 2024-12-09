@@ -1,1 +1,19 @@
+1) How we can give file permissions using numericals?
 
+2) How to delete a particular line in Vim? 
+
+3) Explain different modes in vim editor?
+
+4) Two commands to save and exit from vim? 
+
+5) How to select range of lines from a file and write it to a file? 
+
+6) How is sed command used to send data to a file using line numbers? 
+
+7) For what purpose we use Ctrl + w w ? 
+
+8) Numerical notations for assigning permissions to a file? 
+
+9) What are all the commands associated with regard to tabs in vim editor? 
+
+10) What are buffers and what are all the commands we use in buffer? 
