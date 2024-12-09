@@ -38,17 +38,17 @@ public:
    {
         name = new char[strlen(empName) + 1];
         strcpy(name, empName);
-        cout << "Employee constructor called for " << name << endl;
+        cout << "Employee constructor called ! " << endl;
     }
 
     // Virtual Destructor
     virtual ~Employee() 
     {
-        cout << "Employee destructor called for " << name << endl;
+        cout << "Employee destructor called ! "  << endl;
         delete[] name;
     }
 
-    // Pure Virtual Methods
+    // Pure Virtual function
     virtual void work() const = 0;
     virtual void takeBreak() const = 0;
 };
@@ -77,7 +77,7 @@ public:
         delete[] programmingLanguage;
     }
 
-    // Overridden Methods
+    // Overridden function
     void work() const override
     {
         cout << name << " (ID: " << id << ") is coding in " 
@@ -92,7 +92,7 @@ public:
 
 int main()
  {
-    cout << "=== Dynamic Binding Example ===" << endl;
+    cout << "=== Dynamic  object ===" << endl;
 
     // Base class pointer to Derived class objects
     Employee* emp1 = new Developer("Alice", 101, "C++", 3);
