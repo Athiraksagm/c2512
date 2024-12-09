@@ -29,7 +29,7 @@ using namespace std;
 // Base class Device
 class Device {
 
-private:
+protected:
      string brand;
 
 public:
@@ -55,7 +55,7 @@ public:
 // Derived class LightingSystem
 class LightingSystem: virtual public Device
 {
-private:
+protected:
      string color;
 
 public:
@@ -79,7 +79,7 @@ public:
 };
 
 class ClimateControl : virtual public Device {
-private:
+protected:
     int temperature;
 
 public:
@@ -102,7 +102,7 @@ public:
 };
 
 class SmartHomeHub : public LightingSystem, public ClimateControl {
-private:
+protected:
     int integrationCount;
 
 public:
