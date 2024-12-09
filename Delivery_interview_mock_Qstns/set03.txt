@@ -1,1 +1,19 @@
+1. What does chmod 664 file.cpp  mean?
 
+2. How do I display lines 10 to 20 of the file file.cpp?
+
+3. What is the command to copy and paste a line in the Vim editor?
+
+4. What is the grep command to find the occurrences of a particular word in a file?
+
+5. What are all the commands used to navigate through a buffer?
+
+6. Command to replace text in vim editor
+ 
+7. Command to grant permission to all users.
+ 
+8. Name any 3 special variables in shell script.
+ 
+9. Difference between $$ and $! commands in shell scripting. 
+
+10. Command to search for a string in vim editor.
