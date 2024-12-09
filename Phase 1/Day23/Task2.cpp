@@ -39,7 +39,7 @@ public:
         cout << "Player destructor called for " << name << endl;
     }
 
-    // Method
+    // Behavior
     void train()
     {
         cout << name << " is training at the age of " << age << "." << endl;
@@ -66,7 +66,7 @@ public:
         cout << "CricketPlayer destructor called for " << name << endl;
     }
 
-    // Method
+    // Behavior
     void playMatch()
     {
         cout << name << " is playing a match with a batting average of " << battingAverage << "." << endl;
@@ -76,18 +76,18 @@ public:
 int main()
  {
     // Static objects
-    cout << "=== Static Binding ===" << endl;
-    Player staticPlayer("John", 25);
-    CricketPlayer staticCricketPlayer("Steve", 28, 55.3);
+    cout << "=== Static object ===" << endl;
+    Player staticPlayer("Rahul", 25);
+    CricketPlayer staticCricketPlayer("Adarsh", 28, 55.3);
 
     staticPlayer.train();
     staticCricketPlayer.train();
     staticCricketPlayer.playMatch();
 
     // Dynamic objects
-    cout << "\n=== Dynamic Binding ===" << endl;
-    Player* dynamicPlayer = new Player("Alice", 22);
-    Player* dynamicCricketPlayer = new CricketPlayer("David", 30, 45.7);
+    cout << "\n=== Dynamic object ===" << endl;
+    Player* dynamicPlayer = new Player("Athira", 23);
+    Player* dynamicCricketPlayer = new CricketPlayer("Aish", 30, 45.7);
 
     dynamicPlayer->train();
     dynamicCricketPlayer->train();
