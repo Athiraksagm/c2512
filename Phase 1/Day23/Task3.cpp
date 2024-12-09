@@ -28,7 +28,7 @@ using namespace std;
 // Base Class: Employee
 class Employee
 {
-private:
+protected:
     char* name;
     int id;
 
@@ -56,7 +56,7 @@ public:
 // Derived Class: Developer
 class Developer : public Employee
  {
-private:
+protected:
     char* programmingLanguage;
     int projects;
 
