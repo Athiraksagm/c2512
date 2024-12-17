@@ -1,6 +1,8 @@
 #include <iostream>
 #include <iomanip>
-#include <deque>  // Include deque library
+#include <deque>     // Include deque library
+#include <algorithm> // Include algorithm for std::find_if
+
 using namespace std;
 
 class LabTest {
@@ -15,14 +17,13 @@ public:
 
 class LabTestManager {
 private:
-    deque<LabTest> tests;  // Use deque instead of vector
+    deque<LabTest> tests; // Use deque instead of vector
 public:
     int findIndexById(const string& TestID);
     void create();
     void displayAll();
     void editById();
     void deleteById();
-    
     LabTestManager();
 };
 
@@ -71,7 +72,7 @@ void LabTestManager::create() {
     LabTest newTest;
     newTest.TestID = TestID;
     newTest.ResultValue = ResultValue;
-    tests.push_back(newTest);  // Insert at the end of the deque
+    tests.push_back(newTest); // Insert at the end of the deque
 
     cout << "Lab Test created successfully.\n";
 }
@@ -83,22 +84,27 @@ void LabTestManager::displayAll() {
     }
 
     cout << "------------------------------------------------\n";
-    cout << "|   TESTID | Result Values                     |\n";
+    cout << "|   TESTID   |   Result Values                 |\n";
     cout << "------------------------------------------------\n";
+
+    // Modern range-based for loop
     for (const auto& test : tests) {
         cout << "| " << setw(10) << test.TestID << " | "
              << setw(13) << test.ResultValue << " |\n";
     }
+
     cout << "------------------------------------------------\n";
 }
 
 int LabTestManager::findIndexById(const string& TestID) {
-    for (int i = 0; i < tests.size(); i++) {
-        if (tests[i].TestID == TestID) {
-            return i;
-        }
+    auto it = find_if(tests.begin(), tests.end(), [&](const LabTest& test) {
+        return test.TestID == TestID;
+    });
+
+    if (it != tests.end()) {
+        return distance(tests.begin(), it); // Return the index position
     }
-    return -1;
+    return -1; // Return -1 if not found
 }
 
 void LabTestManager::editById() {
@@ -108,7 +114,7 @@ void LabTestManager::editById() {
 
     int index = findIndexById(TestID);
     if (index == -1) {
-        cout << "Error: LabTest TESTID not found.\n";
+        cout << "Error: LabTest TestID not found.\n";
         return;
     }
 
@@ -117,7 +123,7 @@ void LabTestManager::editById() {
     cout << "Enter New Result Value: ";
     cin >> tests[index].ResultValue;
 
-    cout << "ResultValue updated successfully.\n";
+    cout << "Result Value updated successfully.\n";
 }
 
 void LabTestManager::deleteById() {
@@ -125,15 +131,17 @@ void LabTestManager::deleteById() {
     cout << "Enter LabTest TestID to delete: ";
     cin >> TestID;
 
-    int index = findIndexById(TestID);
-    if (index == -1) {
+    // Use find_if to directly locate and delete the matching LabTest
+    auto it = find_if(tests.begin(), tests.end(), [&](const LabTest& test) {
+        return test.TestID == TestID;
+    });
+
+    if (it != tests.end()) {
+        tests.erase(it); // Erase the found element
+        cout << "LabTest deleted successfully.\n";
+    } else {
         cout << "Error: LabTest TestID not found.\n";
-        return;
     }
-
-    tests.erase(tests.begin() + index);  // Remove the element at the specified index
-
-    cout << "LabTest deleted successfully.\n";
 }
 
 LabTestManager::LabTestManager() {
