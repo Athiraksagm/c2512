@@ -13,7 +13,7 @@ public:
     Employee(int id, int age, const string& name) : id(id), age(age), name(name) {}
 
     // Friend function to overload the << operator
-    friend ostream& operator<<(ostream& os, const Employee& emp) {
+    friend ostream& operator<<(ostream& output, const Employee& emp) {
         output << emp.id << " " << emp.age << " " << emp.name;
         return output;
     }
