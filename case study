@@ -1,0 +1,303 @@
+#include <iostream>
+#include <vector>
+#include <fstream>
+#include <string>
+#include <iomanip>
+
+using namespace std;
+
+// Patient Class
+class Patient {
+public:
+    int patientID;
+    string name;
+    int age;
+    string contactInfo;
+    string medicalHistory;
+
+    void addPatient();
+    void viewPatientDetails();
+};
+
+// Doctor Class
+class Doctor {
+public:
+    int doctorID;
+    string name;
+    string specialization;
+    string contactInfo;
+
+    void addDoctor();
+    void viewDoctorDetails();
+};
+
+// Appointment Class
+class Appointment {
+public:
+    int appointmentID;
+    int patientID;
+    int doctorID;
+    string date;
+    string time;
+
+    void scheduleAppointment();
+    void viewAppointments();
+    void cancelAppointment();
+};
+
+// Global Data Structures
+vector<Patient> patients;
+vector<Doctor> doctors;
+vector<Appointment> appointments;
+
+// File Handling Functions
+void loadPatients();
+void savePatients();
+void loadDoctors();
+void saveDoctors();
+void loadAppointments();
+void saveAppointments();
+
+// Utility Functions
+void displayMenu();
+int generateID();
+
+// Patient Class Implementation
+void Patient::addPatient() {
+    patientID = generateID();
+    cout << "Enter Patient Name: ";
+    cin.ignore();
+    getline(cin, name);
+    cout << "Enter Age: ";
+    cin >> age;
+    cout << "Enter Contact Info: ";
+    cin.ignore();
+    getline(cin, contactInfo);
+    medicalHistory = "No history yet.";
+    patients.push_back(*this);
+    cout << "Patient added successfully. ID: " << patientID << endl;
+    savePatients();
+}
+
+void Patient::viewPatientDetails() {
+    cout << setw(10) << "ID" << setw(20) << "Name" << setw(10) << "Age"
+         << setw(20) << "Contact Info" << setw(30) << "Medical History" << endl;
+    cout << string(90, '-') << endl;
+    for (const auto &p : patients) {
+        cout << setw(10) << p.patientID << setw(20) << p.name << setw(10) << p.age
+             << setw(20) << p.contactInfo << setw(30) << p.medicalHistory << endl;
+    }
+}
+
+// Doctor Class Implementation
+void Doctor::addDoctor() {
+    doctorID = generateID();
+    cout << "Enter Doctor Name: ";
+    cin.ignore();
+    getline(cin, name);
+    cout << "Enter Specialization: ";
+    getline(cin, specialization);
+    cout << "Enter Contact Info: ";
+    getline(cin, contactInfo);
+    doctors.push_back(*this);
+    cout << "Doctor added successfully. ID: " << doctorID << endl;
+    saveDoctors();
+}
+
+void Doctor::viewDoctorDetails() {
+    cout << setw(10) << "ID" << setw(20) << "Name" << setw(20) << "Specialization"
+         << setw(20) << "Contact Info" << endl;
+    cout << string(70, '-') << endl;
+    for (const auto &d : doctors) {
+        cout << setw(10) << d.doctorID << setw(20) << d.name << setw(20)
+             << d.specialization << setw(20) << d.contactInfo << endl;
+    }
+}
+
+// Appointment Class Implementation
+void Appointment::scheduleAppointment() {
+    appointmentID = generateID();
+    cout << "Enter Patient ID: ";
+    cin >> patientID;
+    cout << "Enter Doctor ID: ";
+    cin >> doctorID;
+    cout << "Enter Appointment Date (YYYY-MM-DD): ";
+    cin >> date;
+    cout << "Enter Appointment Time (HH:MM): ";
+    cin >> time;
+
+    // Save appointment
+    appointments.push_back(*this);
+    cout << "Appointment scheduled successfully. ID: " << appointmentID << endl;
+    saveAppointments();
+}
+
+void Appointment::viewAppointments() {
+    cout << setw(15) << "Appointment ID" << setw(15) << "Patient ID"
+         << setw(15) << "Doctor ID" << setw(15) << "Date" << setw(15) << "Time" << endl;
+    cout << string(75, '-') << endl;
+    for (const auto &a : appointments) {
+        cout << setw(15) << a.appointmentID << setw(15) << a.patientID
+             << setw(15) << a.doctorID << setw(15) << a.date << setw(15) << a.time << endl;
+    }
+}
+
+void Appointment::cancelAppointment() {
+    int id;
+    cout << "Enter Appointment ID to cancel: ";
+    cin >> id;
+
+    for (auto it = appointments.begin(); it != appointments.end(); ++it) {
+        if (it->appointmentID == id) {
+            appointments.erase(it);
+            cout << "Appointment canceled successfully." << endl;
+            saveAppointments();
+            return;
+        }
+    }
+    cout << "Appointment not found!" << endl;
+}
+
+// Utility Functions
+void displayMenu() {
+    cout << "\nHospital Management System\n";
+    cout << "1. Add Patient\n";
+    cout << "2. View Patients\n";
+    cout << "3. Add Doctor\n";
+    cout << "4. View Doctors\n";
+    cout << "5. Schedule Appointment\n";
+    cout << "6. View Appointments\n";
+    cout << "7. Cancel Appointment\n";
+    cout << "8. Exit\n";
+    cout << "Enter your choice: ";
+}
+
+int generateID() {
+    static int id = 1000;
+    return ++id;
+}
+
+// File Handling Implementations
+void loadPatients() {
+    ifstream file("patients.txt");
+    if (file.is_open()) {
+        Patient p;
+        while (file >> p.patientID >> ws && getline(file, p.name) && file >> p.age >> ws &&
+               getline(file, p.contactInfo) && getline(file, p.medicalHistory)) {
+            patients.push_back(p);
+        }
+        file.close();
+    }
+}
+
+void savePatients() {
+    ofstream file("patients.txt");
+    for (const auto &p : patients) {
+        file << p.patientID << endl
+             << p.name << endl
+             << p.age << endl
+             << p.contactInfo << endl
+             << p.medicalHistory << endl;
+    }
+    file.close();
+}
+
+void loadDoctors() {
+    ifstream file("doctors.txt");
+    if (file.is_open()) {
+        Doctor d;
+        while (file >> d.doctorID >> ws && getline(file, d.name) &&
+               getline(file, d.specialization) && getline(file, d.contactInfo)) {
+            doctors.push_back(d);
+        }
+        file.close();
+    }
+}
+
+void saveDoctors() {
+    ofstream file("doctors.txt");
+    for (const auto &d : doctors) {
+        file << d.doctorID << endl
+             << d.name << endl
+             << d.specialization << endl
+             << d.contactInfo << endl;
+    }
+    file.close();
+}
+
+void loadAppointments() {
+    ifstream file("appointments.txt");
+    if (file.is_open()) {
+        Appointment a;
+        while (file >> a.appointmentID >> a.patientID >> a.doctorID >> a.date >> a.time) {
+            appointments.push_back(a);
+        }
+        file.close();
+    }
+}
+
+void saveAppointments() {
+    ofstream file("appointments.txt");
+    for (const auto &a : appointments) {
+        file << a.appointmentID << " " << a.patientID << " " << a.doctorID << " "
+             << a.date << " " << a.time << endl;
+    }
+    file.close();
+}
+
+// Main Function
+int main() {
+    loadPatients();
+    loadDoctors();
+    loadAppointments();
+
+    int choice;
+    do {
+        displayMenu();
+        cin >> choice;
+        switch (choice) {
+            case 1: {
+                Patient p;
+                p.addPatient();
+                break;
+            }
+            case 2: {
+                Patient p;
+                p.viewPatientDetails();
+                break;
+            }
+            case 3: {
+                Doctor d;
+                d.addDoctor();
+                break;
+            }
+            case 4: {
+                Doctor d;
+                d.viewDoctorDetails();
+                break;
+            }
+            case 5: {
+                Appointment a;
+                a.scheduleAppointment();
+                break;
+            }
+            case 6: {
+                Appointment a;
+                a.viewAppointments();
+                break;
+            }
+            case 7: {
+                Appointment a;
+                a.cancelAppointment();
+                break;
+            }
+            case 8:
+                cout << "Exiting the system..." << endl;
+                break;
+            default:
+                cout << "Invalid choice! Please try again." << endl;
+        }
+    } while (choice != 8);
+
+    return 0;
+}
