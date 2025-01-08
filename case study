@@ -1,12 +1,28 @@
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <string>
-#include <fstream>
 #include <iomanip>
 #include <map>
+
 using namespace std;
 
-// Classes Definition
+// Global Variables
+vector<class Patient> patients;
+vector<class Doctor> doctors;
+vector<class Appointment> appointments;
+map<int, vector<string>> medicalHistories;
+int patientIDCounter = 1;
+int doctorIDCounter = 1;
+int appointmentIDCounter = 1;
+
+// Utility Functions
+int generateID() {
+    static int id = 1;
+    return id++;
+}
+
+// Patient Class
 class Patient {
 public:
     int patientID;
@@ -20,17 +36,21 @@ public:
     void updatePatientDetails();
 };
 
+// Doctor Class
 class Doctor {
 public:
     int doctorID;
     string name;
     string specialization;
     string contactInfo;
+    bool availability; // Availability of the doctor (true for available, false for unavailable)
 
     void addDoctor();
     void viewDoctorDetails();
+    void assignPatient();
 };
 
+// Appointment Class
 class Appointment {
 public:
     int appointmentID;
@@ -44,6 +64,7 @@ public:
     void viewAppointments();
 };
 
+// Medical History Class
 class MedicalHistory {
 public:
     int patientID;
@@ -54,32 +75,6 @@ public:
     void addNotes();
     void viewNotes();
 };
-
-// Global Variables
-vector<Patient> patients;
-vector<Doctor> doctors;
-vector<Appointment> appointments;
-vector<MedicalHistory> medicalHistories;
-
-// Utility Functions
-int generateID();
-void loadData();
-void saveData();
-bool isSlotAvailable(int doctorID, string date, string time);
-
-// File Handling
-void loadPatients();
-void savePatients();
-void loadDoctors();
-void saveDoctors();
-void loadAppointments();
-void saveAppointments();
-void loadMedicalHistory();
-void saveMedicalHistory();
-
-// Error Handling & Validation
-bool validatePatientID(int id);
-bool validateDoctorID(int id);
 
 // Patient Implementation
 void Patient::addPatient() {
@@ -92,18 +87,18 @@ void Patient::addPatient() {
     cout << "Enter Contact Info: ";
     cin.ignore();
     getline(cin, contactInfo);
-    medicalHistory = "No history yet.";
+    medicalHistory = "";
     patients.push_back(*this);
     cout << "Patient added successfully. ID: " << patientID << endl;
 }
 
 void Patient::viewPatientDetails() {
-    cout << setw(10) << "ID" << setw(20) << "Name" << setw(10) << "Age"
-         << setw(20) << "Contact Info" << setw(30) << "Medical History" << endl;
-    cout << string(90, '-') << endl;
+    cout << setw(10) << "ID" << setw(20) << "Name" << setw(5) << "Age" << setw(20)
+         << "Contact Info" << endl;
+    cout << string(60, '-') << endl;
     for (const auto& p : patients) {
-        cout << setw(10) << p.patientID << setw(20) << p.name << setw(10) << p.age
-             << setw(20) << p.contactInfo << setw(30) << p.medicalHistory << endl;
+        cout << setw(10) << p.patientID << setw(20) << p.name << setw(5) << p.age
+             << setw(20) << p.contactInfo << endl;
     }
 }
 
@@ -121,7 +116,7 @@ void Patient::updatePatientDetails() {
             cout << "Enter Updated Contact Info: ";
             cin.ignore();
             getline(cin, p.contactInfo);
-            cout << "Patient details updated successfully!" << endl;
+            cout << "Patient details updated successfully." << endl;
             return;
         }
     }
@@ -138,18 +133,38 @@ void Doctor::addDoctor() {
     getline(cin, specialization);
     cout << "Enter Contact Info: ";
     getline(cin, contactInfo);
+    availability = true; // New doctors are available by default
     doctors.push_back(*this);
     cout << "Doctor added successfully. ID: " << doctorID << endl;
 }
 
 void Doctor::viewDoctorDetails() {
     cout << setw(10) << "ID" << setw(20) << "Name" << setw(20) << "Specialization"
-         << setw(20) << "Contact Info" << endl;
-    cout << string(70, '-') << endl;
+         << setw(20) << "Contact Info" << setw(15) << "Availability" << endl;
+    cout << string(85, '-') << endl;
     for (const auto& d : doctors) {
         cout << setw(10) << d.doctorID << setw(20) << d.name << setw(20)
-             << d.specialization << setw(20) << d.contactInfo << endl;
+             << d.specialization << setw(20) << d.contactInfo
+             << setw(15) << (d.availability ? "Available" : "Unavailable") << endl;
     }
+}
+
+void Doctor::assignPatient() {
+    int id;
+    cout << "Enter Doctor ID: ";
+    cin >> id;
+    for (auto& d : doctors) {
+        if (d.doctorID == id) {
+            if (!d.availability) {
+                cout << "Doctor is currently unavailable." << endl;
+                return;
+            }
+            d.availability = false; // Assigning patient sets availability to false
+            cout << "Doctor assigned successfully!" << endl;
+            return;
+        }
+    }
+    cout << "Doctor not found!" << endl;
 }
 
 // Appointment Implementation
@@ -157,191 +172,100 @@ void Appointment::scheduleAppointment() {
     appointmentID = generateID();
     cout << "Enter Patient ID: ";
     cin >> patientID;
-    if (!validatePatientID(patientID)) {
-        cout << "Invalid Patient ID!" << endl;
-        return;
-    }
-
     cout << "Enter Doctor ID: ";
     cin >> doctorID;
-    if (!validateDoctorID(doctorID)) {
-        cout << "Invalid Doctor ID!" << endl;
-        return;
-    }
-
-    cout << "Enter Appointment Date (YYYY-MM-DD): ";
+    cout << "Enter Appointment Date (DD-MM-YYYY): ";
     cin >> date;
     cout << "Enter Appointment Time (HH:MM): ";
     cin >> time;
-
-    if (!isSlotAvailable(doctorID, date, time)) {
-        cout << "Doctor is already booked for this time slot!" << endl;
-        return;
-    }
-
     appointments.push_back(*this);
     cout << "Appointment scheduled successfully. ID: " << appointmentID << endl;
-}
-
-void Appointment::viewAppointments() {
-    cout << setw(15) << "Appointment ID" << setw(15) << "Patient ID"
-         << setw(15) << "Doctor ID" << setw(15) << "Date" << setw(15) << "Time" << endl;
-    cout << string(75, '-') << endl;
-    for (const auto& a : appointments) {
-        cout << setw(15) << a.appointmentID << setw(15) << a.patientID
-             << setw(15) << a.doctorID << setw(15) << a.date << setw(15) << a.time << endl;
-    }
 }
 
 void Appointment::cancelAppointment() {
     int id;
     cout << "Enter Appointment ID to cancel: ";
     cin >> id;
-
     for (auto it = appointments.begin(); it != appointments.end(); ++it) {
         if (it->appointmentID == id) {
             appointments.erase(it);
-            cout << "Appointment canceled successfully." << endl;
+            cout << "Appointment cancelled successfully." << endl;
             return;
         }
     }
     cout << "Appointment not found!" << endl;
 }
 
+void Appointment::viewAppointments() {
+    cout << setw(10) << "ID" << setw(10) << "Patient ID" << setw(10) << "Doctor ID"
+         << setw(15) << "Date" << setw(10) << "Time" << endl;
+    cout << string(60, '-') << endl;
+    for (const auto& a : appointments) {
+        cout << setw(10) << a.appointmentID << setw(10) << a.patientID
+             << setw(10) << a.doctorID << setw(15) << a.date << setw(10)
+             << a.time << endl;
+    }
+}
+
 // Medical History Implementation
 void MedicalHistory::addNotes() {
+    int id;
     cout << "Enter Patient ID: ";
-    cin >> patientID;
-    if (!validatePatientID(patientID)) {
-        cout << "Invalid Patient ID!" << endl;
-        return;
-    }
-
-    cout << "Enter Doctor ID: ";
-    cin >> doctorID;
-    if (!validateDoctorID(doctorID)) {
-        cout << "Invalid Doctor ID!" << endl;
-        return;
-    }
-
+    cin >> id;
     cout << "Enter Notes: ";
     cin.ignore();
     getline(cin, notes);
-    cout << "Enter Date (YYYY-MM-DD): ";
-    cin >> date;
-
-    medicalHistories.push_back(*this);
-    cout << "Medical notes added successfully!" << endl;
+    cout << "Enter Date (DD-MM-YYYY): ";
+    getline(cin, date);
+    medicalHistories[id].push_back(notes + " (" + date + ")");
+    cout << "Medical history updated successfully." << endl;
 }
 
 void MedicalHistory::viewNotes() {
-    cout << setw(10) << "Patient ID" << setw(10) << "Doctor ID"
-         << setw(30) << "Notes" << setw(15) << "Date" << endl;
-    cout << string(70, '-') << endl;
-    for (const auto& m : medicalHistories) {
-        cout << setw(10) << m.patientID << setw(10) << m.doctorID
-             << setw(30) << m.notes << setw(15) << m.date << endl;
+    int id;
+    cout << "Enter Patient ID: ";
+    cin >> id;
+    if (medicalHistories.find(id) != medicalHistories.end()) {
+        cout << "Medical History for Patient ID " << id << ":" << endl;
+        for (const auto& note : medicalHistories[id]) {
+            cout << "- " << note << endl;
+        }
+    } else {
+        cout << "No medical history found for this patient." << endl;
     }
-}
-
-// Helper Functions
-int generateID() {
-    static int id = 1000;
-    return ++id;
-}
-
-bool validatePatientID(int id) {
-    for (const auto& p : patients)
-        if (p.patientID == id) return true;
-    return false;
-}
-
-bool validateDoctorID(int id) {
-    for (const auto& d : doctors)
-        if (d.doctorID == id) return true;
-    return false;
-}
-
-bool isSlotAvailable(int doctorID, string date, string time) {
-    for (const auto& a : appointments) {
-        if (a.doctorID == doctorID && a.date == date && a.time == time)
-            return false;
-    }
-    return true;
 }
 
 // Main Function
 int main() {
-    loadData();
     int choice;
-
-    do {
+    while (true) {
         cout << "\nHospital Management System\n";
-        cout << "1. Add Patient\n2. View Patients\n3. Update Patient\n4. Add Doctor\n"
-             << "5. View Doctors\n6. Schedule Appointment\n7. View Appointments\n"
-             << "8. Cancel Appointment\n9. Add Medical Notes\n10. View Medical Notes\n11. Exit\n";
+        cout << "1. Add Patient\n2. View Patients\n3. Update Patient\n";
+        cout << "4. Add Doctor\n5. View Doctors\n6. Assign Doctor to Patient\n";
+        cout << "7. Schedule Appointment\n8. Cancel Appointment\n9. View Appointments\n";
+        cout << "10. Add Medical History\n11. View Medical History\n12. Exit\n";
         cout << "Enter your choice: ";
         cin >> choice;
 
-        switch (choice) {
-            case 1: {
-                Patient p;
-                p.addPatient();
-                break;
-            }
-            case 2: {
-                Patient p;
-                p.viewPatientDetails();
-                break;
-            }
-            case 3: {
-                Patient p;
-                p.updatePatientDetails();
-                break;
-            }
-            case 4: {
-                Doctor d;
-                d.addDoctor();
-                break;
-            }
-            case 5: {
-                Doctor d;
-                d.viewDoctorDetails();
-                break;
-            }
-            case 6: {
-                Appointment a;
-                a.scheduleAppointment();
-                break;
-            }
-            case 7: {
-                Appointment a;
-                a.viewAppointments();
-                break;
-            }
-            case 8: {
-                Appointment a;
-                a.cancelAppointment();
-                break;
-            }
-            case 9: {
-                MedicalHistory m;
-                m.addNotes();
-                break;
-            }
-            case 10: {
-                MedicalHistory m;
-                m.viewNotes();
-                break;
-            }
-            case 11:
-                saveData();
-                cout << "Exiting the system..." << endl;
-                break;
-            default:
-                cout << "Invalid choice! Try again." << endl;
-        }
-    } while (choice != 11);
+        Patient p;
+        Doctor d;
+        Appointment a;
+        MedicalHistory mh;
 
-    return 0;
+        switch (choice) {
+            case 1: p.addPatient(); break;
+            case 2: p.viewPatientDetails(); break;
+            case 3: p.updatePatientDetails(); break;
+            case 4: d.addDoctor(); break;
+            case 5: d.viewDoctorDetails(); break;
+            case 6: d.assignPatient(); break;
+            case 7: a.scheduleAppointment(); break;
+            case 8: a.cancelAppointment(); break;
+            case 9: a.viewAppointments(); break;
+            case 10: mh.addNotes(); break;
+            case 11: mh.viewNotes(); break;
+            case 12: return 0;
+            default: cout << "Invalid choice! Try again.\n";
+        }
+    }
 }
