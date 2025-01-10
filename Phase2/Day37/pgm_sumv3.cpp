@@ -17,7 +17,7 @@
 #define MAX_CONNS 5
 
 void server(int port);
-void serveClient(int&);
+void serveClient(int);
 void client(std::string server_ip, int port);
 void requestServer(int&);
 
@@ -52,7 +52,8 @@ while(true)
     {
     // Accept a connection
     int client_socket_fd;
-    int addrlen = sizeof(address);
+    sockaddr_in client_address;
+    int addrlen = sizeof(client_address);
     if ((client_socket_fd = accept(server_socket_fd, (sockaddr*)&address, (socklen_t*)&addrlen)) < 0) { //blocked
         perror("Accept failed");
         close(server_socket_fd);
@@ -61,14 +62,14 @@ while(true)
 
     //serve the client
     //serveClient(client_socket_fd);
-    std::thread thrServe(serveClient, std::ref(client_socket_fd));
+    std::thread thrServe(serveClient, client_socket_fd);
     thrServe.join();
     // Close server socket
     }
     close(server_socket_fd);
 }
 
-void serveClient(int& client_socket_fd) {
+void serveClient(int client_socket_fd) {
     char buffer[BUFFER_SIZE];
 
     long first;
