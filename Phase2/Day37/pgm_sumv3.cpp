@@ -43,7 +43,7 @@ void server(int port) {
     }
 
     // Listen for connections
-    if (listen(server_socket_fd, MAX_CONNS) < 0) { 
+    if (listen(server_socket_fd, 1) < 0) { 
         perror("Listen failed");
         close(server_socket_fd);
         exit(EXIT_FAILURE);
