@@ -52,8 +52,8 @@ while(true)
     {
     // Accept a connection
     int client_socket_fd;
-    sockaddr_in client_address;
-    int addrlen = sizeof(client_address);
+    
+    int addrlen = sizeof(address);
     if ((client_socket_fd = accept(server_socket_fd, (sockaddr*)&address, (socklen_t*)&addrlen)) < 0) { //blocked
         perror("Accept failed");
         close(server_socket_fd);
@@ -63,7 +63,7 @@ while(true)
     //serve the client
     //serveClient(client_socket_fd);
     std::thread thrServe(serveClient, client_socket_fd);
-    thrServe.join();
+    thrServe.detach();
     // Close server socket
     }
     close(server_socket_fd);
@@ -76,10 +76,10 @@ void serveClient(int client_socket_fd) {
     long second;
     // receive first number
     read(client_socket_fd, buffer, BUFFER_SIZE);
-    memcpy((void*)buffer, (void*)&first, sizeof(long));
+    memcpy((void*)&first, (void*)buffer,sizeof(long));
     // receive second number 
     read(client_socket_fd, buffer, BUFFER_SIZE);
-    memcpy((void*)buffer, (void*)&second, sizeof(long));
+    memcpy((void*)&second,(void*)buffer, sizeof(long));
     // process numbers
     long sum = first + second;
 
