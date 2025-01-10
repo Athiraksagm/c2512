@@ -24,7 +24,7 @@ void requestServer(int&);
 void server(int port) {
     int server_socket_fd;
     // Create socket
-    if ((server_socket_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
+    if ((server_socket_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         perror("Socket failed");
         exit(EXIT_FAILURE);
     }
@@ -48,7 +48,8 @@ void server(int port) {
         close(server_socket_fd);
         exit(EXIT_FAILURE);
     }
-
+while(true)
+    {
     // Accept a connection
     int client_socket_fd;
     int addrlen = sizeof(address);
@@ -63,6 +64,7 @@ void server(int port) {
     std::thread thrServe(serveClient, std::ref(client_socket_fd));
     thrServe.join();
     // Close server socket
+    }
     close(server_socket_fd);
 }
 
