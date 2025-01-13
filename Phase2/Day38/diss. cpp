@@ -1,0 +1,47 @@
+#include <iostream>
+#include <memory> // For smart pointers
+
+// Abstract Product Interface
+class Product {
+public:
+    virtual void display() const = 0; // Pure virtual function
+    virtual ~Product() = default;    // Virtual destructor
+};
+
+// Concrete Product Implementation
+class ConcreteProduct : public Product {
+public:
+    void display() const override {
+        std::cout << "This is a ConcreteProduct." << std::endl;
+    }
+};
+
+// Abstract Creator Interface
+class InterfaceCreator {
+public:
+    virtual std::unique_ptr<Product> createProduct() const = 0; // Pure virtual function
+    virtual ~InterfaceCreator() = default;                     // Virtual destructor
+};
+
+// Concrete Creator Implementation
+class ConcreteCreator : public InterfaceCreator {
+public:
+    std::unique_ptr<Product> createProduct() const override {
+        // Create and return a unique_ptr to a ConcreteProduct
+        return std::make_unique<ConcreteProduct>();
+    }
+};
+
+// Main function to test the implementation
+int main() {
+    // Create an instance of the concrete creator
+    std::unique_ptr<InterfaceCreator> creator = std::make_unique<ConcreteCreator>();
+
+    // Use the creator to create a product
+    std::unique_ptr<Product> product = creator->createProduct();
+
+    // Use the product
+    product->display(); // Output: This is a ConcreteProduct.
+
+    return 0;
+}
