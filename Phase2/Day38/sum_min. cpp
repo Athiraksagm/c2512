@@ -1,0 +1,82 @@
+#include <iostream>
+#include <thread>
+#include <vector>
+
+// two threads
+void findSum(std::vector<int> &vec);
+void findMin(std::vector<int> &vec);
+
+int main()
+{
+    std::vector<int> numbers = {3, 5, 2, 6, 1, 9, 10, 7};
+
+    std::thread threadSum(findSum, std::ref(numbers));
+    std::thread threadMin(findMin, std::ref(numbers));
+
+    threadSum.join();
+    threadMin.join();
+
+    return 0;
+}
+
+void findSum(std::vector<int> &vec)
+{
+    int sum = 0;
+    for (int i = 0; i < vec.size(); i++)
+    {
+        sum+=vec[i];
+    }
+    std::cout << "The sum of values of the vector is: " << sum << std::endl;
+}
+
+void findMin(std::vector<int> &vec)
+{
+    int min = vec[0];
+    for (int i = 1; i < vec.size(); i++)
+    {
+        if (vec[i] < min)
+        {
+            min = vec[i];
+        }
+    }
+    std::cout << "The minimum value from the values of the vector is: " << min << std::endl;
+}
+
+
+-----------------------------------------
+
+
+#include <iostream>
+#include <vector>
+#include <thread>
+#include <climits>
+
+using namespace std;
+
+vector<int> input = {5, 2, 1, 4, 3};
+
+void findSum(const vector<int> &input,int &sum){
+    for (int element : input){
+        sum += element;
+    }
+}
+
+void findMin(const vector<int> &input, int &min){
+    for (int element : input){
+        min = (element < min) ? element : min; 
+    }
+}
+
+int main(){
+    int sum = 0, min = INT_MAX;
+    thread thrFindSum(findSum, ref(input), ref(sum));
+    thread thrFindMin(findMin, ref(input), ref(min));
+
+    thrFindMin.join();
+    thrFindSum.join();
+
+    cout << "Sum: " << sum << endl;
+    cout << "Min: " << min << endl;
+
+    return 0;
+}
