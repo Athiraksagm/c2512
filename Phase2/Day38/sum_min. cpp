@@ -1,82 +1,79 @@
-#include <iostream>
-#include <thread>
-#include <vector>
+#include<iostream>
+#include<thread>
+#include<vector>
+#include<string>
+class LabTest{
 
-// two threads
-void findSum(std::vector<int> &vec);
-void findMin(std::vector<int> &vec);
+     private:
+          std::string testId;
+          double resultValue;
+     public:
+          LabTest(std::string id, double result) : testId(id), resultValue(result) {};
+          double findSum(std::vector<double> &vec);
+          void findMinOfFirstHalf(std::vector<double> &vec);
+          void findMaxOfSecondHalf(std::vector<double> &vec);
+};
 
-int main()
+// double findSum(std::vector<double> &vec);
+// void findMinOfFirstHalf(std::vector<double> &vec);
+// void findMaxOfSecondHalf(std::vector<double> &vec);
+
+//findSum of ResultValues
+double findSum(std::vector<double> &vec)
 {
-    std::vector<int> numbers = {3, 5, 2, 6, 1, 9, 10, 7};
-
-    std::thread threadSum(findSum, std::ref(numbers));
-    std::thread threadMin(findMin, std::ref(numbers));
-
-    threadSum.join();
-    threadMin.join();
-
-    return 0;
+    double sum = 0;
+    for(int i = 0; i < vec.size(); i++)
+{
+   sum+=vec[i];
+}
+    return sum;
 }
 
-void findSum(std::vector<int> &vec)
-{
-    int sum = 0;
-    for (int i = 0; i < vec.size(); i++)
-    {
-        sum+=vec[i];
-    }
-    std::cout << "The sum of values of the vector is: " << sum << std::endl;
-}
+//findmin in 1st half ,find max in 2nd half
 
-void findMin(std::vector<int> &vec)
+void findMinOfFirstHalf(std::vector<double> &vec)
 {
     int min = vec[0];
-    for (int i = 1; i < vec.size(); i++)
+    int half =( (vec.size()-1)/2);
+    for (int i = 1; i < half; i++)
     {
         if (vec[i] < min)
         {
             min = vec[i];
         }
     }
-    std::cout << "The minimum value from the values of the vector is: " << min << std::endl;
+    std::cout << "The minimum value is: " << min << std::endl;
+
 }
 
 
------------------------------------------
-
-
-#include <iostream>
-#include <vector>
-#include <thread>
-#include <climits>
-
-using namespace std;
-
-vector<int> input = {5, 2, 1, 4, 3};
-
-void findSum(const vector<int> &input,int &sum){
-    for (int element : input){
-        sum += element;
+void findMaxOfSecondHalf(std::vector<double> &vec)
+{
+     int max = vec[0];
+    
+    for (int i = ( (vec.size()-1)/2); i < (vec.size())-1; i++)
+    {
+        if (vec[i] > max)
+        {
+            max = vec[i];
+        }
     }
+    std::cout << "The maximum value is: " << max << std::endl;
 }
 
-void findMin(const vector<int> &input, int &min){
-    for (int element : input){
-        min = (element < min) ? element : min; 
-    }
-}
+int main()
+{
+std::string id;
+double result;
+double sum;
+//create vector add 5 objects
 
-int main(){
-    int sum = 0, min = INT_MAX;
-    thread thrFindSum(findSum, ref(input), ref(sum));
-    thread thrFindMin(findMin, ref(input), ref(min));
+std::vector<double> tests = {10.0,20.0,30.0,40.0,50.0};
 
-    thrFindMin.join();
-    thrFindSum.join();
-
-    cout << "Sum: " << sum << endl;
-    cout << "Min: " << min << endl;
-
-    return 0;
+LabTest test(id,result);
+test.findSum(tests);
+std::cout << "sum is " << sum << std::endl;
+test.findMinOfFirstHalf(tests);
+test.findMaxOfSecondHalf(tests);
+return 0;
 }
