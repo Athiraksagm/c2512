@@ -8,30 +8,28 @@ class LabTest{
           std::string testId;
           double resultValue;
      public:
-          LabTest(std::string id, double result) : testId(id), resultValue(result) {};
+          LabTest(std::string id, double result) : testId(id), resultValue(result) {}
           double findSum(std::vector<double> &vec);
           void findMinOfFirstHalf(std::vector<double> &vec);
           void findMaxOfSecondHalf(std::vector<double> &vec);
 };
 
-// double findSum(std::vector<double> &vec);
-// void findMinOfFirstHalf(std::vector<double> &vec);
-// void findMaxOfSecondHalf(std::vector<double> &vec);
+
 
 //findSum of ResultValues
-double findSum(std::vector<double> &vec)
+double findSum(const std::vector<double> &vec)
 {
     double sum = 0;
-    for(int i = 0; i < vec.size(); i++)
+    for(double res : vec)
 {
-   sum+=vec[i];
+   sum+=res;
 }
     return sum;
 }
 
 //findmin in 1st half ,find max in 2nd half
 
-void findMinOfFirstHalf(std::vector<double> &vec)
+void LabTest::findMinOfFirstHalf(const std::vector<double> &vec)
 {
     int min = vec[0];
     int half =( (vec.size()-1)/2);
@@ -47,7 +45,7 @@ void findMinOfFirstHalf(std::vector<double> &vec)
 }
 
 
-void findMaxOfSecondHalf(std::vector<double> &vec)
+void LabTest::findMaxOfSecondHalf(const std::vector<double> &vec)
 {
      int max = vec[0];
     
@@ -71,7 +69,7 @@ double sum;
 std::vector<double> tests = {10.0,20.0,30.0,40.0,50.0};
 
 LabTest test(id,result);
-test.findSum(tests);
+sum=test.findSum(tests);
 std::cout << "sum is " << sum << std::endl;
 test.findMinOfFirstHalf(tests);
 test.findMaxOfSecondHalf(tests);
