@@ -11,7 +11,9 @@ class LabTest{
           double findSum(const std::vector<double> &vec);
           void findMinOfFirstHalf(const std::vector<double> &vec);
           void findMaxOfSecondHalf(const std::vector<double> &vec);
-          
+          double getResult() const{
+              return resultValue;
+          }
 };
 
 
@@ -20,7 +22,7 @@ class LabTest{
 double LabTest::findSum(const std::vector<double> &vec)
 {
     double sum = 0;
-    for(double res : vec)
+    for(auto &res : vec)
 {
    sum+=res;
 }
@@ -31,13 +33,13 @@ double LabTest::findSum(const std::vector<double> &vec)
 
 void LabTest::findMinOfFirstHalf(const std::vector<double> &vec)
 {
-    int min = vec[0];
+    int min = vec[0].getResult();
     int half =( (vec.size()-1)/2);
     for (int i = 1; i < half; i++)
     {
-        if (vec[i] < min)
+        if (vec[i].getResult() < min)
         {
-            min = vec[i];
+            min = vec[i].getResult();
         }
     }
     std::cout << "The minimum value is: " << min << std::endl;
@@ -47,13 +49,13 @@ void LabTest::findMinOfFirstHalf(const std::vector<double> &vec)
 
 void LabTest::findMaxOfSecondHalf(const std::vector<double> &vec)
 {
-     int max = vec[0];
+     int max = vec[0].getResult();
     
     for (int i = ( (vec.size()-1)/2); i < (vec.size())-1; i++)
     {
-        if (vec[i] > max)
+        if (vec[i].getResult() > max)
         {
-            max = vec[i];
+            max = vec[i].getResult();
         }
     }
     std::cout << "The maximum value is: " << max << std::endl;
@@ -66,17 +68,17 @@ double result;
 double sum;
 //create vector add 5 objects
 
-//std::vector<double> tests={10.0,20.0,30.0,40.0,50.0};
+std::vector<double> tests;
  tests.emplace_back("T001",10.0);
  tests.emplace_back("T002",20.0);
  tests.emplace_back("T003",30.0);
  tests.emplace_back("T004",40.0);
  tests.emplace_back("T005",50.0);
 
-LabTest test("id",result);
-sum = test.findSum(tests);
+
+sum = LabTest::findSum(tests);
 std::cout << "sum is " << sum << std::endl;
-test.findMinOfFirstHalf(tests);
-test.findMaxOfSecondHalf(tests);
+LabTest::findMinOfFirstHalf(tests);
+LabTest::findMaxOfSecondHalf(tests);
 return 0;
 }
