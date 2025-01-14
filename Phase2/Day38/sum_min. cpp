@@ -1,5 +1,4 @@
 #include<iostream>
-#include<thread>
 #include<vector>
 #include<string>
 class LabTest{
@@ -9,15 +8,16 @@ class LabTest{
           double resultValue;
      public:
           LabTest(std::string id, double result) : testId(id), resultValue(result) {}
-          double findSum(std::vector<double> &vec);
-          void findMinOfFirstHalf(std::vector<double> &vec);
-          void findMaxOfSecondHalf(std::vector<double> &vec);
+          double findSum(const std::vector<double> &vec);
+          void findMinOfFirstHalf(const std::vector<double> &vec);
+          void findMaxOfSecondHalf(const std::vector<double> &vec);
+          
 };
 
 
 
 //findSum of ResultValues
-double findSum(const std::vector<double> &vec)
+double LabTest::findSum(const std::vector<double> &vec)
 {
     double sum = 0;
     for(double res : vec)
@@ -66,10 +66,15 @@ double result;
 double sum;
 //create vector add 5 objects
 
-std::vector<double> tests = {10.0,20.0,30.0,40.0,50.0};
+//std::vector<double> tests={10.0,20.0,30.0,40.0,50.0};
+ tests.emplace_back("T001",10.0);
+ tests.emplace_back("T002",20.0);
+ tests.emplace_back("T003",30.0);
+ tests.emplace_back("T004",40.0);
+ tests.emplace_back("T005",50.0);
 
-LabTest test(id,result);
-sum=test.findSum(tests);
+LabTest test("id",result);
+sum = test.findSum(tests);
 std::cout << "sum is " << sum << std::endl;
 test.findMinOfFirstHalf(tests);
 test.findMaxOfSecondHalf(tests);
