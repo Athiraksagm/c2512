@@ -1,0 +1,115 @@
+This `Makefile` is a build script for compiling a C++ project using GNU Make. Here's a detailed breakdown:
+
+---
+
+`1. Variables`
+- ``CXX``: Specifies the compiler (`g++` for C++).
+- ``CXXFLAGS``: Compiler flags for the C++ compiler:
+  - `-std=c++17`: Enables the C++17 standard.
+  - `-Wall`: Shows all warnings.
+  - `-g`: Generates debugging information.
+  - `-Iinclude`: Adds the `include` directory to the compiler's include path.
+- ``DEBUG_OPTIONS``: Additional options for debugging (e.g., `-tui` for the text user interface in GDB).
+- ``TARGET``: Name of the target executable (`app.out`).
+
+---
+
+`2. Directories`
+- ``SRCDIR``: Directory containing source files (`source`).
+- ``OBJDIR``: Directory for compiled object files (`build`).
+- ``HEADDIR``: Directory for header files (`include`).
+
+---
+
+`3. Files`
+- ``SRCS``: Automatically detects all `.cpp` files in the `source` directory and includes `main.cpp`.
+- ``OBJS``: Generates object file paths corresponding to the source files using `patsubst`.
+
+---
+
+`4. Targets`
+#`Default Target: `all``
+- Builds the `TARGET` executable.
+```makefile
+all: $(TARGET)
+```
+
+#`Build the Executable`
+- Links all object files (`$(OBJS)`) into the final executable (`$(TARGET)`).
+```makefile
+$(TARGET): $(OBJS) 
+	$(CXX) $(CXXFLAGS) $^ -o $@
+```
+- `$^`: Refers to all prerequisites (in this case, `$(OBJS)`).
+- `$@`: Refers to the target (in this case, `$(TARGET)`).
+
+#`Build Object Files`
+- Compiles `.cpp` files in `$(SRCDIR)` to `.o` files in `$(OBJDIR)`:
+```makefile
+$(OBJDIR)/%.o: $(SRCDIR)/%.cpp | $(OBJDIR)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+```
+- `$<`: Refers to the first prerequisite (the source file).
+- `| $(OBJDIR)`: Ensures the `$(OBJDIR)` directory exists before building.
+
+#`Ensure Build Directory Exists`
+- Creates the `$(OBJDIR)` directory if it doesn’t exist:
+```makefile
+$(OBJDIR):
+	@mkdir -p $(OBJDIR)
+```
+
+---
+
+`5. Clean Target`
+- Removes compiled files and directories:
+```makefile
+clean:
+	@echo "\nCleaning up..."
+	@rm -rf $(OBJDIR)
+	@rm -f $(TARGET)
+```
+
+---
+
+`6. Debugging and Running`
+- `Print Source and Object Files`:
+  - Useful for debugging the `Makefile`.
+```makefile
+print:
+	@echo "Source files: $(SRCS)"
+	@echo "Object files: $(OBJS)"
+```
+- `Run the Executable`:
+  - Builds and then runs the `TARGET`:
+```makefile
+run: all
+	@echo "\nRunning $(TARGET)..."
+	./$(TARGET)
+```
+- `Debug the Executable`:
+  - Launches GDB for the `TARGET`:
+```makefile
+debug: all
+	@echo "\nDebugging $(TARGET)..."
+	gdb $(DEBUG_OPTIONS) ./$(TARGET)
+```
+
+---
+
+`How It Works`
+1. ``make``:
+   - Invokes the `all` target, which builds the executable from source files.
+2. ``make clean``:
+   - Cleans up compiled files.
+3. ``make run``:
+   - Compiles the project and runs the executable.
+4. ``make debug``:
+   - Compiles the project and launches the debugger.
+
+---
+
+`Benefits`
+- Automates the build process.
+- Supports modular compilation (compiling only changed files).
+- Includes debugging and cleaning utilities.
