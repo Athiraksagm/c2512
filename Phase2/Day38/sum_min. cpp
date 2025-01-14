@@ -1,6 +1,7 @@
 #include<iostream>
 #include<vector>
 #include<string>
+#include<thread>
 class LabTest{
 
      private:
@@ -8,9 +9,6 @@ class LabTest{
           double resultValue;
      public:
           LabTest(std::string id, double result) : testId(id), resultValue(result) {}
-          double findSum(const std::vector<double> &vec);
-          void findMinOfFirstHalf(const std::vector<double> &vec);
-          void findMaxOfSecondHalf(const std::vector<double> &vec);
           double getResult() const{
               return resultValue;
           }
@@ -19,66 +17,75 @@ class LabTest{
 
 
 //findSum of ResultValues
-double LabTest::findSum(const std::vector<double> &vec)
+void findSum(const std::vector<LabTest> &tests,double& sum)
 {
-    double sum = 0;
-    for(auto &res : vec)
+    
+    for(auto &e : tests)
 {
-   sum+=res;
+   sum += e.getResult();
 }
-    return sum;
+    // return sum;
 }
 
 //findmin in 1st half ,find max in 2nd half
 
-void LabTest::findMinOfFirstHalf(const std::vector<double> &vec)
+void findMinOfFirstHalf(const std::vector<LabTest> &tests,int& min)
 {
-    int min = vec[0].getResult();
-    int half =( (vec.size()-1)/2);
+    // int min = tests[0].getResult();
+    int half =( (tests.size()-1)/2);
     for (int i = 1; i < half; i++)
     {
-        if (vec[i].getResult() < min)
+        if (tests[i].getResult() < min)
         {
-            min = vec[i].getResult();
+            min = tests[i].getResult();
         }
     }
-    std::cout << "The minimum value is: " << min << std::endl;
+
 
 }
 
 
-void LabTest::findMaxOfSecondHalf(const std::vector<double> &vec)
+void findMaxOfSecondHalf(const std::vector<LabTest> &tests,int& max)
 {
-     int max = vec[0].getResult();
+    //  int max = tests[0].getResult();
     
-    for (int i = ( (vec.size()-1)/2); i < (vec.size())-1; i++)
+    for (int i = ( (tests.size()-1)/2); i < (tests.size())-1; i++)
     {
-        if (vec[i].getResult() > max)
+        if (tests[i].getResult() > max)
         {
-            max = vec[i].getResult();
+            max = tests[i].getResult();
         }
     }
-    std::cout << "The maximum value is: " << max << std::endl;
+
 }
 
 int main()
 {
-std::string id;
-double result;
-double sum;
 //create vector add 5 objects
 
-std::vector<double> tests;
+std::vector<LabTest> tests;
  tests.emplace_back("T001",10.0);
  tests.emplace_back("T002",20.0);
  tests.emplace_back("T003",30.0);
  tests.emplace_back("T004",40.0);
  tests.emplace_back("T005",50.0);
 
+ double sum = 0;
+ int min = tests[0].getResult();
+ int max = tests[0].getResult();
 
-sum = LabTest::findSum(tests);
+std::thread threadSum(findSum, std::ref(tests),std::ref(sum));
+std::thread threadMin(findMinOfFirstHalf, std::ref(tests),std::ref(min));
+std::thread threadMax(findMaxOfSecondHalf, std::ref(tests),std::ref(max));
+threadSum.join();
+threadMin.join();
+threadMax.join();
+
+//sum = findSum(tests);
 std::cout << "sum is " << sum << std::endl;
-LabTest::findMinOfFirstHalf(tests);
-LabTest::findMaxOfSecondHalf(tests);
+//int min=findMinOfFirstHalf(tests);
+std::cout << "The minimum value is: " << min << std::endl;
+//int max=findMaxOfSecondHalf(tests);
+std::cout << "The maximum value is: " << max << std::endl;
 return 0;
 }
