@@ -1,0 +1,53 @@
+Vendor: {id:id_t, name:string, ratings: short int}
+VendorRepo: Create, ReadById, ReadAll 
+
+VendorController : user of VendorRepo
+----------------------------SOLID--------------------------------------
+using id_t = int;
+class VendorController; 
+    void Create();
+    void DisplayOne();
+    void DisplayAll();
+class VendorUI;
+    void Create(Vendor& vendor);
+    void DisplayOne(Vendor& vendor);
+    void DisplayAll(vector<Vendor>& vendors);
+                    //class VendorFileRepo;   //    
+class Vendor;           //POJO | OLD-CLR | JSON | plain object 
+        // class FileVendor;
+
+template<class T>
+class ICreatable;
+    void Create(T& entity);
+
+template<class T>
+class IReadableOne;
+    T ReadById(id_t id);
+
+template<class T>
+class IHCrud : public ICreatable<T>, public IReadableOne<T> ;       // C R-1 R-A 
+    vector<T> ReadAll();
+
+//class IVendorRepo; // C R-1 R-A 
+using IVendorRepo = IHCrud<Vendor>;
+
+class VendorFileRepo : public IVendorRepo;
+    {
+        // void Create(Vendor& vendor) { }
+        // Vendor ReadById(id_t id) { }
+        // vector<Vendor> ReadAll() { }
+    }
+
+class App {
+    public:
+        void do() {
+            // CODE HERE 
+        }
+}
+
+int main() {
+    App app;
+    app.do();
+
+    return 0;
+}
