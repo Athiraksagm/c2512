@@ -19,7 +19,7 @@ public:
     double getResultValues() const { return ResultValues; }
 };
 
-void client(double write_to_server, double read_from_server) {
+void client(int write_to_server, int read_from_server) {
     vector<LabTest> tests = {
         LabTest("T001", 10.0), 
         LabTest("T001", 20.0), 
@@ -55,7 +55,7 @@ void client(double write_to_server, double read_from_server) {
     close(read_from_server);
 }
 
-void server(double read_from_client, double write_to_client) {
+void server(int read_from_client, int write_to_client) {
     double buffer[100];
     int size;
     double sum = 0;
