@@ -7,12 +7,13 @@
 
 using namespace std;
 
-class LabTest {
+class LabTest 
+{
 private:
     string TestId;
     double ResultValues;
 public:
-    LabTest(string id, int result) : TestId(id), ResultValues(result) {}
+    LabTest(string id, double value) : TestId(id), ResultValues(value) {}
 
     string getTestId() const { return TestId; }
     double getResultValues() const { return ResultValues; }
@@ -28,9 +29,9 @@ void client(int write_to_server, int read_from_server) {
     };
 
     int size = tests.size();
-    int arr[100];
+    double arr[100];
 
-    // Filling the array with test data
+    // Filling the array with Result value  data
     for (int i = 0; i < size; ++i) {
         arr[i] = tests[i].getResultValues();
     }
@@ -43,10 +44,10 @@ void client(int write_to_server, int read_from_server) {
 
     // Send data to server
     write(write_to_server, &size, sizeof(size));
-    write(write_to_server, arr, sizeof(int) * size);
+    write(write_to_server, arr, sizeof(double) * size);
 
     // Read result from server
-    int sum;
+    double sum;
     read(read_from_server, &sum, sizeof(sum));
     cout << "Client received sum from server: " << sum << endl;
 
@@ -55,16 +56,17 @@ void client(int write_to_server, int read_from_server) {
 }
 
 void server(int read_from_client, int write_to_client) {
-    int buffer[100];
+    double buffer[100];
     int size;
-    int sum = 0;
+    double sum = 0;
 
     // Read size and data from client
     read(read_from_client, &size, sizeof(size));
-    read(read_from_client, buffer, sizeof(int) * size);
+    read(read_from_client, buffer, sizeof(double) * size);
 
     cout << "Server received Result Values: ";
-    for (int i = 0; i < size; ++i) {
+    for (int i = 0; i < size; ++i)
+    {
         cout << buffer[i] << " ";
         sum += buffer[i];
     }
@@ -79,23 +81,27 @@ void server(int read_from_client, int write_to_client) {
     close(write_to_client);
 }
 
-int main() {
+int main()
+{
     int pipe_client_to_server[2];
     int pipe_server_to_client[2];
 
     // Create pipes
-    if (pipe(pipe_client_to_server) == -1 || pipe(pipe_server_to_client) == -1) {
+    if (pipe(pipe_client_to_server) == -1 || pipe(pipe_server_to_client) == -1) 
+    {
         perror("Pipe creation failed");
         return 1;
     }
 
     pid_t pid = fork();
-    if (pid == -1) {
+    if (pid == -1) 
+    {
         perror("Fork failed");
         return 1;
     }
 
-    if (pid == 0) {  // Child process (Client)
+    if (pid == 0) 
+    {  // Child process (Client)
         close(pipe_client_to_server[0]);
         close(pipe_server_to_client[1]);
         client(pipe_client_to_server[1], pipe_server_to_client[0]);
@@ -106,6 +112,6 @@ int main() {
         server(pipe_client_to_server[0], pipe_server_to_client[1]);
         wait(nullptr);  // Wait for child process
     }
-
+    wait(nullptr);
     return 0;
 }
