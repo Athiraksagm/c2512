@@ -20,14 +20,13 @@ public:
 };
 
 void client(int write_to_server, int read_from_server) {
-    vector<LabTest> tests = {
-        LabTest("T001", 10.0), 
-        LabTest("T001", 20.0), 
-        LabTest("T003", 30.0), 
-        LabTest("T004", 40.0), 
-        LabTest("T005", 50.0)
-    };
-
+    vector<LabTest> tests;
+        tests.emplace_back("T001",10.15);
+        tests.emplace_back("T002",20.25);
+        tests.emplace_back("T003",30.35);
+        tests.emplace_back("T004",40.45);
+        tests.emplace_back("T005",50.55);
+    
     int size = tests.size();
     double arr[100];
 
@@ -112,6 +111,5 @@ int main()
         server(pipe_client_to_server[0], pipe_server_to_client[1]);
         wait(nullptr);  // Wait for child process
     }
-    wait(nullptr);
     return 0;
 }
