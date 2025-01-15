@@ -134,114 +134,145 @@ int main() {
 
 #include <iostream>
 #include <vector>
-#include <unistd.h>
+#include <sys/msg.h>
 #include <sys/wait.h>
 #include <cstring>
-#include <string>
+#include <cstdlib>
+
+#define MSG_KEY 1234
 
 using namespace std;
 
-class LabTest 
-{
+// Define message structure
+struct msgbuf_t {
+    long mtype;             // Message type
+    char mtext[1024];       // Message text
+};
+
+class LabTest {
 private:
     string TestId;
     double ResultValues;
+
 public:
     LabTest(string id, double value) : TestId(id), ResultValues(value) {}
     double getResultValues() const { return ResultValues; }
 };
 
-void client(int write_to_server, int read_from_server) {
-    vector<LabTest> tests;
-        tests.emplace_back("T001",10.15);
-        tests.emplace_back("T002",20.25);
-        tests.emplace_back("T003",30.35);
-        tests.emplace_back("T004",40.45);
-        tests.emplace_back("T005",50.55);
-    
+void client(int& msgid) {
+    // Prepare test data
+    vector<LabTest> tests = {
+        LabTest("T001", 10.15),
+        LabTest("T002", 20.25),
+        LabTest("T003", 30.35),
+        LabTest("T004", 40.45),
+        LabTest("T005", 50.55)
+    };
+
     int size = tests.size();
     double resultsArray[100];
 
-    // Filling the array with Result value  data
+    // Populate the results array
     for (int i = 0; i < size; ++i) {
         resultsArray[i] = tests[i].getResultValues();
     }
 
-    cout << "Client sending Result Values: ";
-    for (int i = 0; i < size; ++i) {
-        cout << resultsArray[i] << " ";
+    // Send data to the server
+    msgbuf_t message;
+    message.mtype = 1;
+
+    // Send size
+    memcpy(message.mtext, &size, sizeof(size));
+    if (msgsnd(msgid, &message, sizeof(size), 0) == -1) {
+        perror("Client: Failed to send size");
+        exit(1);
     }
-    cout << endl;
 
-    // Send data to server
-    write(write_to_server, &size, sizeof(size));
-    write(write_to_server, resultsArray, sizeof(double) * size);
+    // Send data
+    memcpy(message.mtext, resultsArray, sizeof(double) * size);
+    if (msgsnd(msgid, &message, sizeof(double) * size, 0) == -1) {
+        perror("Client: Failed to send data");
+        exit(1);
+    }
 
-    // Read result from server
+    // Wait for sum from server
+    if (msgrcv(msgid, &message, sizeof(message.mtext), 2, 0) == -1) {
+        perror("Client: Failed to receive sum");
+        exit(1);
+    }
+
     double sum;
-    read(read_from_server, &sum, sizeof(sum));
+    memcpy(&sum, message.mtext, sizeof(sum));
     cout << "Client received sum from server: " << sum << endl;
-
-    close(write_to_server);
-    close(read_from_server);
 }
 
-void server(int read_from_client, int write_to_client) {
-    double buffer[100];
-    int size;
-    double sum = 0;
+void server(int& msgid) {
+    msgbuf_t message;
 
-    // Read size and data from client
-    read(read_from_client, &size, sizeof(size));
-    read(read_from_client, buffer, sizeof(double) * size);
+    // Receive size
+    if (msgrcv(msgid, &message, sizeof(message.mtext), 1, 0) == -1) {
+        perror("Server: Failed to receive size");
+        exit(1);
+    }
+
+    int size;
+    memcpy(&size, message.mtext, sizeof(size));
+
+    // Receive data
+    if (msgrcv(msgid, &message, sizeof(message.mtext), 1, 0) == -1) {
+        perror("Server: Failed to receive data");
+        exit(1);
+    }
+
+    double resultsArray[100];
+    memcpy(resultsArray, message.mtext, sizeof(double) * size);
 
     cout << "Server received Result Values: ";
-    for (int i = 0; i < size; ++i)
-    {
-        cout << buffer[i] << " ";
-        sum += buffer[i];
+    double sum = 0;
+    for (int i = 0; i < size; ++i) {
+        cout << resultsArray[i] << " ";
+        sum += resultsArray[i];
     }
     cout << endl;
 
     cout << "Server calculated sum: " << sum << endl;
 
-    // Send sum back to client
-    write(write_to_client, &sum, sizeof(sum));
-
-    close(read_from_client);
-    close(write_to_client);
+    // Send sum back to the client
+    message.mtype = 2;
+    memcpy(message.mtext, &sum, sizeof(sum));
+    if (msgsnd(msgid, &message, sizeof(sum), 0) == -1) {
+        perror("Server: Failed to send sum");
+        exit(1);
+    }
 }
 
-int main()
-{
-    int pipe_client_to_server[2];
-    int pipe_server_to_client[2];
-
-    // Create pipes
-    if (pipe(pipe_client_to_server) == -1 || pipe(pipe_server_to_client) == -1) 
-    {
-        perror("Pipe creation failed");
+int main() {
+    int msgid = msgget(MSG_KEY, 0666 | IPC_CREAT);
+    if (msgid == -1) {
+        perror("Failed to create message queue");
         return 1;
     }
 
     pid_t pid = fork();
-    if (pid == -1) 
-    {
+    if (pid == -1) {
         perror("Fork failed");
         return 1;
     }
 
-    if (pid == 0) 
-    {  // Child process (Client)
-        close(pipe_client_to_server[0]);
-        close(pipe_server_to_client[1]);
-        client(pipe_client_to_server[1], pipe_server_to_client[0]);
+    if (pid == 0) {
+        // Child process - Client
+        client(msgid);
         exit(0);
-    } else {  // Parent process (Server)
-        close(pipe_client_to_server[1]);
-        close(pipe_server_to_client[0]);
-        server(pipe_client_to_server[0], pipe_server_to_client[1]);
-        wait(nullptr);  // Wait for child process
     }
+
+    // Parent process - Server
+    server(msgid);
+    wait(nullptr); // Wait for client process to finish
+
+    // Cleanup message queue
+    if (msgctl(msgid, IPC_RMID, nullptr) == -1) {
+        perror("Failed to remove message queue");
+    }
+
     return 0;
 }
