@@ -7,35 +7,35 @@
 
 using namespace std;
 
-class Vaccination {
+class LabTest {
 private:
-    string VaccinationId;
-    int DoseAdministered;
+    string TestId;
+    double ResultValues;
 public:
-    Vaccination(string id, int dose) : VaccinationId(id), DoseAdministered(dose) {}
+    LabTest(string id, int result) : TestId(id), ResultValues(result) {}
 
-    string getVaccinationId() const { return VaccinationId; }
-    int getDoseAdministered() const { return DoseAdministered; }
+    string getTestId() const { return TestId; }
+    double getResultValues() const { return ResultValues; }
 };
 
 void client(int write_to_server, int read_from_server) {
-    vector<Vaccination> vacc = {
-        Vaccination("P001", 4), 
-        Vaccination("P002", 5), 
-        Vaccination("P003", 6), 
-        Vaccination("P004", 15), 
-        Vaccination("P005", 1)
+    vector<LabTest> tests = {
+        LabTest("T001", 10.0), 
+        LabTest("T001", 20.0), 
+        LabTest("T003", 30.0), 
+        LabTest("T004", 40.0), 
+        LabTest("T005", 50.0)
     };
 
-    int size = vacc.size();
+    int size = tests.size();
     int arr[100];
 
-    // Filling the array with dose data
+    // Filling the array with test data
     for (int i = 0; i < size; ++i) {
-        arr[i] = vacc[i].getDoseAdministered();
+        arr[i] = tests[i].getResultValues();
     }
 
-    cout << "Client sending doses: ";
+    cout << "Client sending Result Values: ";
     for (int i = 0; i < size; ++i) {
         cout << arr[i] << " ";
     }
@@ -63,7 +63,7 @@ void server(int read_from_client, int write_to_client) {
     read(read_from_client, &size, sizeof(size));
     read(read_from_client, buffer, sizeof(int) * size);
 
-    cout << "Server received doses: ";
+    cout << "Server received Result Values: ";
     for (int i = 0; i < size; ++i) {
         cout << buffer[i] << " ";
         sum += buffer[i];
