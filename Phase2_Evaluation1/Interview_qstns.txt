@@ -1,21 +1,227 @@
 
 1.What is function pointer ?
 
+A function pointer is a variable that holds the address of a function. It allows functions to be called indirectly, enabling dynamic function invocation or passing functions as arguments to other functions.
+
+Example of Function Pointer
+#include <iostream>
+using namespace std;
+
+// A simple function
+void greet() {
+    cout << "Hello, World!" << endl;
+}
+
+// Function accepting a function pointer
+void execute(void (*func)()) {
+    func(); // Call the function via pointer
+}
+
+int main() {
+    void (*funcPtr)() = greet;  // Assign function address to pointer
+    funcPtr();                 // Call the function using pointer
+
+    execute(greet);            // Pass function pointer to another function
+    return 0;
+}
 
 2. Create a default constructor
+
+A constructor with no parameters, used to initialize default values.
+class Demo {
+public:
+    int x;
+    Demo() : x(0) { cout << "Default Constructor" << endl; }
+};
+
+
 3. Parameterized constructor
+
+A constructor with parameters to initialize variables.
+class Demo {
+public:
+    int x;
+    Demo(int val) : x(val) { cout << "Parameterized Constructor" << endl; }
+};
+
 4. Copy constructor for the same
+
+A constructor that initializes an object using another object of the same class.
+class Demo {
+public:
+    int x;
+    Demo(int val) : x(val) {}
+    Demo(const Demo &d) : x(d.x) { cout << "Copy Constructor" << endl; }
+};
+
 5. Operator overloading (- and +)
+
+Custom behavior for + and - operators.
+
+class Demo {
+public:
+    int x;
+    Demo(int val) : x(val) {}
+    Demo operator+(const Demo &d) { return Demo(x + d.x); }
+    Demo operator-(const Demo &d) { return Demo(x - d.x); }
+};
+
 6. Call by value and Call by reference
+
+Call by Value: Pass a copy of the variable.
+Call by Reference: Pass the actual variable using references.
+void callByValue(int val) { val += 10; }
+void callByReference(int &val) { val += 10; }
+
 7. Find the output qns of Pointers.
+
+int x = 10;
+int *ptr = &x;
+cout << *ptr; // Output: 10
+
 8. Inheritance Questions
+
+Inheritance allows one class to derive properties and methods from another.
+class Parent {
+public:
+    void show() { cout << "Parent" << endl; }
+};
+class Child : public Parent {
+public:
+    void show() { cout << "Child" << endl; }
+};
+
 9. Function override code
+
+Override a base class function in a derived class.
+class Parent {
+public:
+    virtual void display() { cout << "Parent" << endl; }
+};
+class Child : public Parent {
+public:
+    void display() override { cout << "Child" << endl; }
+};
+
 10. Virtual functions
+
+A virtual function ensures runtime polymorphism.
+class Base {
+public:
+    virtual void display() { cout << "Base" << endl; }
+};
+
 11. What is virtual function and add virtual function to above example , declare object using new 
-12. what is copy constructor and show an  example  
+
+class Base {
+public:
+    virtual void display() { cout << "Base" << endl; }
+};
+int main() {
+    Base *obj = new Base();
+    obj->display();
+    delete obj;
+    return 0;
+}
+
+12. what is copy constructor and show an  example
+
+class Demo {
+public:
+    int x;
+    Demo(int val) : x(val) {}
+    Demo(const Demo &d) { x = d.x; }
+};
+
 13. what is STL,write syntax for vector with some functions
+
+STL (Standard Template Library):
+A collection of classes and functions in C++ for data structures (e.g., vectors, lists) and algorithms (e.g., sort, search).
+
+Vector: A dynamic array that can grow or shrink in size.
+
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+using namespace std;
+
+int main() {
+    vector<int> v = {10, 20, 30};  // Initialize a vector
+    v.push_back(40);              // Add element
+    v.pop_back();                 // Remove last element
+    cout << "Size: " << v.size() << endl; // Output size
+
+    cout << "Elements: ";
+    for (int x : v) cout << x << " "; // Traverse vector
+    cout << endl;
+
+    sort(v.begin(), v.end());     // Sort elements
+    return 0;
+}
+
 14. What is stack and queue 
+
+Stack:
+A container following LIFO (Last In, First Out).
+Queue:
+A container following FIFO (First In, First Out).
+#include <iostream>
+#include <stack>
+#include <queue>
+
+using namespace std;
+
+int main() {
+    // Stack example
+    stack<int> s;
+    s.push(10); s.push(20); s.push(30);
+    cout << "Top of stack: " << s.top() << endl; // 30
+    s.pop(); // Removes 30
+
+    // Queue example
+    queue<int> q;
+    q.push(10); q.push(20); q.push(30);
+    cout << "Front of queue: " << q.front() << endl; // 10
+    q.pop(); // Removes 10
+
+    return 0;
+}
+
 15. Oops concepts with real world example.
+
+
+OOP Concepts:
+
+Encapsulation: Data hiding using classes.
+Inheritance: Deriving properties of a parent class.
+Polymorphism: Same interface, different implementations.
+Abstraction: Exposing only necessary details.
+Example:
+#include <iostream>
+#include <string>
+using namespace std;
+
+class Vehicle { // Abstraction
+protected:
+    string brand;
+public:
+    Vehicle(string b) : brand(b) {}
+    virtual void start() { cout << "Vehicle starts." << endl; } // Polymorphism
+};
+
+class Car : public Vehicle { // Inheritance
+public:
+    Car(string b) : Vehicle(b) {}
+    void start() override { cout << brand << " car starts." << endl; } // Polymorphism
+};
+
+int main() {
+    Vehicle *v = new Car("Toyota");
+    v->start(); // Polymorphic call
+    delete v;
+    return 0;
+}
 
 16. Implement all types of constructors.
 
@@ -182,5 +388,73 @@ int main() {
 --------------------------------------------------------------------------------------------
 
 17. Demonstrate  polymorphism and inheritance for a given scenario.
+
+Polymorphism allows a single interface to represent different behaviors.
+
+#include <iostream>
+using namespace std;
+
+class Shape {
+public:
+    virtual void draw() { cout << "Drawing Shape\n"; }
+};
+
+class Circle : public Shape {
+public:
+    void draw() override { cout << "Drawing Circle\n"; }
+};
+
+class Square : public Shape {
+public:
+    void draw() override { cout << "Drawing Square\n"; }
+};
+
+int main() {
+    Shape *s1 = new Circle();
+    Shape *s2 = new Square();
+
+    s1->draw(); // Drawing Circle
+    s2->draw(); // Drawing Square
+
+    delete s1;
+    delete s2;
+    return 0;
+}
+
 18. Types of inheritance.
+
+Single Inheritance: One parent, one child.
+Multiple Inheritance: One child inherits from multiple parents.
+Multilevel Inheritance: Derived class inherits from another derived class.
+Hierarchical Inheritance: One parent, multiple children.
+Hybrid Inheritance: Combination of the above.
+Example:
+#include <iostream>
+using namespace std;
+
+class A { public: void showA() { cout << "Class A\n"; } };
+class B : public A { public: void showB() { cout << "Class B\n"; } }; // Single
+class C : public A, public B { public: void showC() { cout << "Class C\n"; } }; 
+
 19. Pointer with example, dynamic memory allocation and object creation.
+
+Pointer Example:
+
+int x = 10;
+int *ptr = &x;
+cout << *ptr << endl; // 10
+Dynamic Memory Allocation:
+
+int *p = new int(20); // Allocate memory
+cout << *p << endl;   // 20
+delete p;             // Free memory
+Object Creation:
+
+class Demo {
+public:
+    int x;
+    Demo(int val) : x(val) {}
+};
+
+Demo *obj = new Demo(10); // Dynamically allocate object
+delete obj; // Free object
