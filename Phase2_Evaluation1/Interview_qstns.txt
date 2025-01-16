@@ -1,1 +1,186 @@
 
+1.What is function pointer ?
+
+
+2. Create a default constructor
+3. Parameterized constructor
+4. Copy constructor for the same
+5. Operator overloading (- and +)
+6. Call by value and Call by reference
+7. Find the output qns of Pointers.
+8. Inheritance Questions
+9. Function override code
+10. Virtual functions
+11. What is virtual function and add virtual function to above example , declare object using new 
+12. what is copy constructor and show an  example  
+13. what is STL,write syntax for vector with some functions
+14. What is stack and queue 
+15. Oops concepts with real world example.
+
+16. Implement all types of constructors.
+
+class Rectangle {
+    private: 
+        int length;
+        int breadth;
+    public: 
+        Rectangle();
+        Rectangle(int p_length, int p_breath);
+        Rectangle(Rectangle& other);
+        Rectangle& operator=(Rectangle& other);
+        Rectangle(Rectangle&& other);
+        Rectangle& operator=(Rectangle&& other);
+};
+
+-----------------------------------------------------
+class Rectangle {
+    private: 
+        int length;
+        int breadth;
+    public: 
+        Rectangle() : Rectangle(0,0){};
+        Rectangle(int p_length, int p_breath):length(p_length), breadth(p_breath) {}
+        Rectangle(const Rectangle& other):Rectangle(other.length, other.breadth){}
+        Rectangle& operator=(const Rectangle& other){ this->length = other.length; this->breadth = other.breath; return *this; }
+        Rectangle(Rectangle&& other) : Rectangle(other.length, other.breadth){other.length=0; other.breadth=0;}
+        Rectangle& operator=(Rectangle&& other){ 
+            this->length = other.length; 
+            this->breadth = other.breath; 
+            other.length=0; other.breadth=0;
+            return *this; }
+        ~Rectangle() {}
+};
+
+
+//if((r2 = move(r1)).getLength() != 0)
+
+
+-----------------------------------------------------
+usages: 
+    Rectangle r1; //0,0                     no-arg 
+    
+    Rectangle r2(2,3); //2,3                arg 
+    Rectangle r3(r2); //r3=2,3 | r2=2,3     copy consr
+    Rectangle r6;     //r6=0,0                      no-arg 
+    r6 = r2;                                copy =      :: r6=2,3 | r2 = 2,3 
+
+    Rectangle r4(1,4); //r4=2,4             arg 
+    Rectangle r5(move(r4)); //r5=1,4|r4=0,0 move consr 
+
+    Rectangle r7(4,7); //r7=4,7             arg 
+    Rectange r8;       //r8 = 0,0           no-arg 
+    r8 = move(r7);     //r8=4,7|r7=0,0      move =
+
+-----------------------------------------------------
+
+95.02. Implement all types of constructors.
+Rectangle class with dynamic length and breadth fields 
+
+#include<iostream>
+
+class Rectangle {
+    private: 
+        int *length;
+        int *breadth;
+    public: 
+        Rectangle() : Rectangle(0,0) {};
+        Rectangle(int p_length, int p_breath) {
+            length = new int(p_length);
+            breadth = new int(p_breath);
+        }
+        Rectangle(const Rectangle& other){
+            //base cond 
+            if(other.length == nullptr) {
+                this->length = nullptr;
+                this->breadth = nullptr;
+                return;
+            }
+            length = new int((*other.length));
+            breadth = new int((*other.breadth));
+        }
+        Rectangle& operator=(const Rectangle& other){ 
+            //base cond 
+            if(other.length == nullptr) {
+                this->length = nullptr;
+                this->breadth = nullptr;
+                return *this;
+            }
+            
+            
+            //copy logic 
+            if(this->length == nullptr) {
+                this->length = new int;
+            }
+            
+            (*this->length) = (*other.length); 
+            
+            if(this->breadth == nullptr) {
+                this->breadth = new int;
+            }
+            (*this->breadth) = (*other.breadth); 
+            return *this; 
+        }
+        Rectangle(Rectangle&& other) {
+            this->length = other.length;
+            this->breadth = other.breadth;
+            other.length = nullptr; 
+            other.breadth = nullptr;
+        }
+        Rectangle& operator=(Rectangle&& other){ 
+            this->length = other.length; 
+            this->breadth = other.breadth;
+            other.length = nullptr;
+            other.breadth = nullptr;
+            return *this; 
+        }
+        ~Rectangle() {
+            if(this->length != nullptr) {
+                delete length;
+            }
+            if(this->breadth != nullptr) {
+                delete breadth;
+            }
+        }
+        friend std::ostream& operator<<(std::ostream& output, const Rectangle& other) {
+            if(other.length != nullptr && other.breadth != nullptr)
+            {
+                output << "[" << (*other.length) 
+                    << "," << (*other.breadth) << "]";
+            } else { 
+                output << "[undefined Rectangle]";
+            }
+            return output;
+        }
+};
+
+int main() {
+    Rectangle r1; //0,0                     no-arg 
+    
+    Rectangle r2(2,3); //2,3                arg 
+    Rectangle r3(r2); //r3=2,3 | r2=2,3     copy consr
+    Rectangle r6;     //r6=0,0                      no-arg 
+    r6 = r2;          //                      copy =      :: r6=2,3 | r2 = 2,3 
+
+    Rectangle r4(1,4); //r4=2,4             arg 
+    Rectangle r5(std::move(r4)); //r5=1,4|r4=0,0 move consr 
+
+    Rectangle r7(4,7); //r7=4,7             arg 
+    Rectangle r8;       //r8 = 0,0           no-arg 
+    r8 = std::move(r7);     //r8=4,7|r7=0,0      move =
+    
+    std::cout << "r1=" << r1 << std::endl; // [0,0]
+    std::cout << "r2=" << r2 << std::endl; // [2,3]
+    std::cout << "r3=" << r3 << std::endl; // [2,3]
+    std::cout << "r4=" << r4 << std::endl; // [undefined Rectangle]
+    std::cout << "r5=" << r5 << std::endl; // [1,4]
+    std::cout << "r6=" << r6 << std::endl; // [2,3]
+    std::cout << "r7=" << r7 << std::endl; // [undefined Rectangle]
+    std::cout << "r8=" << r8 << std::endl; // [4,7]
+    
+    return 0;
+}
+--------------------------------------------------------------------------------------------
+
+17. Demonstrate  polymorphism and inheritance for a given scenario.
+18. Types of inheritance.
+19. Pointer with example, dynamic memory allocation and object creation.
