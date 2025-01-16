@@ -1,7 +1,9 @@
+
 #include <iostream>
 #include <vector>
 #include <unistd.h>
 #include <sys/socket.h>
+#include <sys/wait.h>
 #include <cstring>
 #include <string>
 
@@ -111,4 +113,3 @@ int main()
 
     return 0;
 }
-
