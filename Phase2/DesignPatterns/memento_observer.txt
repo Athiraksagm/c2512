@@ -1,0 +1,225 @@
+BEHAVIORAL PATTERN
+
+1. MEMENTO
+
+- Also known as Snapshot.
+- Lets you save and restore the previous state of an object without revealing the details of its implementation.
+
+Memento:
+
+Captures and stores the current state of an object, allowing it to be restored later.
+Example: Saving game progress.
+
+Observer:
+
+Defines a one-to-many dependency where multiple observers are notified of changes in the subject.
+Example: Event listeners, stock market monitoring.
+
+Memento Pattern
+Definition:
+The Memento Pattern is a behavioral design pattern that allows capturing an object's internal state without exposing its implementation, so it can be restored later. It is commonly used for undo/redo functionality or saving checkpoints in applications.
+
+Key Components:
+Originator: The object whose state needs to be saved or restored.
+Memento: A snapshot of the Originator's state.
+Caretaker: Manages the saved Mementos and ensures that they are used appropriately.
+Example: Text Editor with Undo
+Imagine a text editor where you want to implement an undo feature.
+
+java
+Copy
+Edit
+// Memento: Stores the state of the text.
+class Memento {
+    private String state;
+
+    public Memento(String state) {
+        this.state = state;
+    }
+
+    public String getState() {
+        return state;
+    }
+}
+
+// Originator: The editor that maintains the current state.
+class TextEditor {
+    private String text;
+
+    public void setText(String text) {
+        this.text = text;
+    }
+
+    public String getText() {
+        return text;
+    }
+
+    // Saves the current state into a Memento.
+    public Memento save() {
+        return new Memento(text);
+    }
+
+    // Restores the state from a Memento.
+    public void restore(Memento memento) {
+        this.text = memento.getState();
+    }
+}
+
+// Caretaker: Manages Mementos.
+import java.util.Stack;
+
+class Caretaker {
+    private Stack<Memento> history = new Stack<>();
+
+    public void save(Memento memento) {
+        history.push(memento);
+    }
+
+    public Memento undo() {
+        if (!history.isEmpty()) {
+            return history.pop();
+        }
+        return null;
+    }
+}
+
+// Demo
+public class MementoExample {
+    public static void main(String[] args) {
+        TextEditor editor = new TextEditor();
+        Caretaker caretaker = new Caretaker();
+
+        editor.setText("Version 1");
+        caretaker.save(editor.save());
+
+        editor.setText("Version 2");
+        caretaker.save(editor.save());
+
+        editor.setText("Version 3");
+
+        System.out.println("Current Text: " + editor.getText());
+        
+        editor.restore(caretaker.undo());
+        System.out.println("After Undo: " + editor.getText());
+
+        editor.restore(caretaker.undo());
+        System.out.println("After Undo: " + editor.getText());
+    }
+}
+Output:
+mathematica
+Copy
+Edit
+Current Text: Version 3
+After Undo: Version 2
+After Undo: Version 1
+Observer Pattern
+Definition:
+The Observer Pattern defines a one-to-many dependency where multiple objects (observers) are notified whenever the state of a single object (subject) changes. It is commonly used for event handling and publish-subscribe systems.
+
+Key Components:
+Subject: Maintains a list of observers and notifies them of state changes.
+Observer: Defines an interface for objects that need to be notified.
+ConcreteSubject: Implements the Subject and contains the actual state.
+ConcreteObserver: Implements the Observer and updates its state based on notifications from the Subject.
+Example: Weather Monitoring System
+Imagine a weather station that broadcasts temperature changes to multiple display devices.
+
+java
+Copy
+Edit
+// Observer Interface
+interface Observer {
+    void update(float temperature);
+}
+
+// Subject Interface
+interface Subject {
+    void registerObserver(Observer o);
+    void removeObserver(Observer o);
+    void notifyObservers();
+}
+
+// ConcreteSubject: WeatherStation
+import java.util.ArrayList;
+import java.util.List;
+
+class WeatherStation implements Subject {
+    private List<Observer> observers = new ArrayList<>();
+    private float temperature;
+
+    public void setTemperature(float temperature) {
+        this.temperature = temperature;
+        notifyObservers();
+    }
+
+    public float getTemperature() {
+        return temperature;
+    }
+
+    @Override
+    public void registerObserver(Observer o) {
+        observers.add(o);
+    }
+
+    @Override
+    public void removeObserver(Observer o) {
+        observers.remove(o);
+    }
+
+    @Override
+    public void notifyObservers() {
+        for (Observer observer : observers) {
+            observer.update(temperature);
+        }
+    }
+}
+
+// ConcreteObservers: Displays
+class PhoneDisplay implements Observer {
+    @Override
+    public void update(float temperature) {
+        System.out.println("Phone Display: Temperature updated to " + temperature + "°C");
+    }
+}
+
+class TVDisplay implements Observer {
+    @Override
+    public void update(float temperature) {
+        System.out.println("TV Display: Temperature updated to " + temperature + "°C");
+    }
+}
+
+// Demo
+public class ObserverExample {
+    public static void main(String[] args) {
+        WeatherStation station = new WeatherStation();
+
+        Observer phoneDisplay = new PhoneDisplay();
+        Observer tvDisplay = new TVDisplay();
+
+        station.registerObserver(phoneDisplay);
+        station.registerObserver(tvDisplay);
+
+        station.setTemperature(25.5f);
+        station.setTemperature(30.0f);
+
+        station.removeObserver(phoneDisplay);
+        station.setTemperature(35.0f);
+    }
+}
+Output:
+mathematica
+Copy
+Edit
+Phone Display: Temperature updated to 25.5°C
+TV Display: Temperature updated to 25.5°C
+Phone Display: Temperature updated to 30.0°C
+TV Display: Temperature updated to 30.0°C
+TV Display: Temperature updated to 35.0°C
+Comparison
+Aspect	Memento Pattern	Observer Pattern
+Purpose	Save and restore object state.	Notify multiple objects of state changes.
+Focus	Internal state preservation.	Communication between objects.
+Common Usage	Undo/redo, checkpoints.	Event listeners, publish-subscribe.
+Components	Originator, Memento, Caretaker.	Subject, Observer, Concrete implementations.
