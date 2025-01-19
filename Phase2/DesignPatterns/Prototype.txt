@@ -1,0 +1,178 @@
+DESIGN PATTERN
+
+1.CREATIONAL DESIGN PATTERN
+
+I) PROTOTYPE
+
+- Also called clone.
+- it lets you copy existing objects without making your code dependent on their classes.
+- The pattern declares a common interface for all objects that support cloning.
+-  Usually, such an interface contains just a single clone method.
+-The Clone method creates an object of the current class and carries over all of the field values of the old object into the new one. 
+- An object that supports cloning is called a prototype.
+
+i. The Prototype interface declares the cloning methods. In most cases, it’s a single clone method.
+
+ii. The Concrete Prototype class implements the cloning method. In addition to copying the original object’s data to the clone, this method may also handle some edge cases of the cloning process related to cloning linked objects, untangling recursive dependencies, etc.
+
+iii. The Client can produce a copy of any object that follows the prototype interface. 
+
+The Prototype Registry provides an easy way to access frequently-used prototypes. It stores a set of pre-built objects that are ready to be copied. The simplest prototype registry is a name → prototype hash map.
+
+How to Implement
+
+Create the prototype interface and declare the clone method in it. Or just add the method to all classes of an existing class hierarchy, if you have one.
+
+A prototype class must define the alternative constructor that accepts an object of that class as an argument. The constructor must copy the values of all fields defined in the class from the passed object into the newly created instance. If you’re changing a subclass, you must call the parent constructor to let the superclass handle the cloning of its private fields.
+
+If your programming language doesn’t support method overloading, you won’t be able to create a separate “prototype” constructor. Thus, copying the object’s data into the newly created clone will have to be performed within the clone method. Still, having this code in a regular constructor is safer because the resulting object is returned fully configured right after you call the new operator.
+
+The cloning method usually consists of just one line: running a new operator with the prototypical version of the constructor. Note, that every class must explicitly override the cloning method and use its own class name along with the new operator. Otherwise, the cloning method may produce an object of a parent class.
+
+Optionally, create a centralized prototype registry to store a catalog of frequently used prototypes.
+
+You can implement the registry as a new factory class or put it in the base prototype class with a static method for fetching the prototype. This method should search for a prototype based on search criteria that the client code passes to the method. The criteria might either be a simple string tag or a complex set of search parameters. After the appropriate prototype is found, the registry should clone it and return the copy to the client.
+
+Finally, replace the direct calls to the subclasses’ constructors with calls to the factory method of the prototype registry.
+
+
+
+
+
+Prototype Pattern
+Definition:
+The Prototype Pattern is a creational design pattern that allows objects to be cloned. Instead of creating new instances of a class from scratch, the Prototype Pattern creates objects by copying (or cloning) an existing object (the prototype). This is especially useful when the cost of creating an object is expensive (e.g., computationally or memory-intensive).
+
+Key Features:
+It enables cloning of objects without coupling the code to their specific classes.
+New objects are created by copying an existing prototype.
+Works well when creating objects with similar properties.
+Key Components:
+Prototype Interface: Defines a method for cloning the object (usually named clone()).
+Concrete Prototype: Implements the cloning method to duplicate itself.
+Client: Uses the clone() method to create new objects based on the prototype.
+Example: Cloning Shapes
+Imagine a drawing application where different shapes (e.g., Circle, Rectangle) need to be cloned frequently to create similar shapes.
+
+java
+Copy
+Edit
+// Prototype Interface
+interface Prototype {
+    Prototype clone();
+}
+
+// Concrete Prototype: Circle
+class Circle implements Prototype {
+    private int radius;
+
+    public Circle(int radius) {
+        this.radius = radius;
+    }
+
+    public int getRadius() {
+        return radius;
+    }
+
+    public void setRadius(int radius) {
+        this.radius = radius;
+    }
+
+    @Override
+    public Prototype clone() {
+        return new Circle(this.radius);
+    }
+
+    @Override
+    public String toString() {
+        return "Circle with radius: " + radius;
+    }
+}
+
+// Concrete Prototype: Rectangle
+class Rectangle implements Prototype {
+    private int width;
+    private int height;
+
+    public Rectangle(int width, int height) {
+        this.width = width;
+        this.height = height;
+    }
+
+    public int getWidth() {
+        return width;
+    }
+
+    public void setWidth(int width) {
+        this.width = width;
+    }
+
+    public int getHeight() {
+        return height;
+    }
+
+    public void setHeight(int height) {
+        this.height = height;
+    }
+
+    @Override
+    public Prototype clone() {
+        return new Rectangle(this.width, this.height);
+    }
+
+    @Override
+    public String toString() {
+        return "Rectangle with width: " + width + " and height: " + height;
+    }
+}
+
+// Client
+public class PrototypeExample {
+    public static void main(String[] args) {
+        // Original Objects
+        Circle originalCircle = new Circle(10);
+        Rectangle originalRectangle = new Rectangle(20, 30);
+
+        // Cloning Objects
+        Circle clonedCircle = (Circle) originalCircle.clone();
+        Rectangle clonedRectangle = (Rectangle) originalRectangle.clone();
+
+        // Modifying Cloned Objects
+        clonedCircle.setRadius(15);
+        clonedRectangle.setWidth(25);
+
+        // Display Results
+        System.out.println("Original " + originalCircle);
+        System.out.println("Cloned " + clonedCircle);
+        System.out.println("Original " + originalRectangle);
+        System.out.println("Cloned " + clonedRectangle);
+    }
+}
+Output:
+arduino
+Copy
+Edit
+Original Circle with radius: 10
+Cloned Circle with radius: 15
+Original Rectangle with width: 20 and height: 30
+Cloned Rectangle with width: 25 and height: 30
+Advantages:
+Reduces Object Creation Costs:
+Avoids the need to initialize objects repeatedly, especially for expensive creations.
+Decouples Code:
+No need to depend on the concrete class to create new instances.
+Simplifies Complex Objects:
+Complex objects can be duplicated without knowing their internals.
+Disadvantages:
+Shallow Copy vs. Deep Copy:
+Cloning may need to be implemented carefully if the object contains references to other objects (nested structures).
+Shallow Copy: Duplicates only the top-level object.
+Deep Copy: Duplicates the entire object hierarchy.
+When to Use the Prototype Pattern:
+When object creation is resource-intensive.
+When creating identical or slightly modified objects is frequent.
+When the number of classes is large, and creating objects via new increases complexity.
+Shallow Copy vs. Deep Copy in Prototype Pattern
+Shallow Copy: Only the references of the nested objects are copied, not the actual objects themselves.
+Deep Copy: A complete duplication, including all nested objects.
+For example, to perform a deep copy in Java, you may need to use serialization or manually clone all fields.
