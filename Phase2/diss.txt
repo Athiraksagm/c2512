@@ -1,0 +1,99 @@
+::Consultation Management::
+                -Nav Pages: 
+                    [1] View
+                    [99] Exit
+                ::Consultation Management > View::
+                    - page title
+                    - form : Patient_Number  
+                        - fields: (caption, error message(s))
+                            Patient_Number  {required}
+                            
+                    - on form submit:
+                        - OR Confirm  
+                        - OR Exit  
+                    - after form submit:
+                        - successful message 
+                            - View patient medical history details.
+
+                ::Consultation Management > Exit::
+                     - LogOut successfully
+
+
+::Payment Management::
+              -Nav Pages: 
+                    [1] View Payment Details
+                    [99] Exit
+
+             ::Payment Management > View Payment Details::
+                    - page title
+                    - form : Payment_Id 
+                        - fields: (caption, error message(s))
+                            Payment_Id  {required}
+                            
+                    - on form submit:
+                        - OR Confirm  
+                        - OR Exit  
+                    - after form submit:
+                        - Displays Payment details of patient
+                            - Displays Payment_Id, Patient Number, Status
+                              Amount paid, Date and time
+
+             ::Payment Management > Exit::
+                     - LogOut successfully
+
+::Department Management::
+              -Nav Pages: 
+                    [1] Create Department [2] Edit Department
+                    [4] View Department [8] Delete Department
+                    [99] Exit
+
+             ::Department Management > Create Department::
+                    -Nav Pages
+                          [1] Add Department [2] Add Doctor
+                          [3] Assign Head    [99] Exit
+
+                    ::Department Management > Create Department > Add Department::
+                          - page title
+                          - form : name, description
+                               - fields: (caption, error message(s))
+                                 name  {required}
+                                 description  {Optional}
+                            
+                          - on form submit:
+                               - OR Confirm  
+                               - OR Exit  
+                          - after form submit:
+                               - successful message 
+                                   - Department Cardiology(Department Number) created successfully.
+
+                    ::Department Management > Create Department > Add Doctor::
+                           - page title
+                           - form : Department_Number, Doctor_Code
+                               - fields: (caption, error message(s))
+                                 Department_Number  {required}
+                                 Doctor_Code        {required}
+                            
+                           - on form submit:
+                               - OR Confirm  
+                               - OR Exit  
+                           - after form submit:
+                               - successful message 
+                                   - Doctor DOC2001 added successfully to department 
+                                     Cardiology(Department Number).
+
+                    ::Department Management > Create Department > Assign Head::
+                           - page title
+                           - form : Department_Number, Doctor_Code
+                               - fields: (caption, error message(s))
+                                 Department_Number  {required}
+                                 Doctor_Code        {required}
+                            
+                           - on form submit:
+                               - OR Confirm  
+                               - OR Exit  
+                           - after form submit:
+                               - successful message 
+                                   - Department Head created successfully.
+
+                    ::Department Management > Create Department > Exit::
+                          - LogOut successfully
