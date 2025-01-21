@@ -1,0 +1,43 @@
+#include <iostream>
+#include "validation.h"
+
+using namespace std;
+
+extern vector<Department> departments;
+
+void viewDepartment() {
+    string dept_code = getValidatedString("Enter Department Code to View: ");
+    bool found = false;
+    for (const auto& dept : departments) {
+        if (dept.department_code == dept_code) {
+            found = true;
+            cout << "\nDepartment Number: " << dept.department_code << "\n";
+            cout << "Department Name: " << dept.department_name << "\n";
+            cout << "Department Description: " << dept.department_description << "\n";
+            cout << "Department Head: " << dept.department_head << "\n";
+            cout << "Doctor Code: " << dept.doctor_code << "\n";
+            break;
+        }
+    }
+    if (!found) {
+        cout << "Department Number not found. Please verify the Department Number.\n";
+    }
+}
+
+void doctorApp() {
+    while (true) {
+        cout << "\nDoctor >> Department Management\n";
+        cout << "[1] View Department\n";
+        cout << "[99] Exit\n";
+        int choice = getValidatedInteger("Choice: ");
+
+        if (choice == 1) {
+            viewDepartment();
+        } else if (choice == 99) {
+            cout << "LogOut......\n";
+            break;
+        } else {
+            cout << "Invalid choice!\n";
+        }
+    }
+}
