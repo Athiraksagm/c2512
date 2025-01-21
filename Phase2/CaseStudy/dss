@@ -1,43 +1,141 @@
-#include <iostream>
-#include "validation.h"
+#include<iostream>
+#include<sstream>
+#include<string>
 
-using namespace std;
+#include "./../headers/department_main.h"
+#include "./../headers/ui_common.h"
 
-extern vector<Department> departments;
-
-void viewDepartment() {
-    string dept_code = getValidatedString("Enter Department Code to View: ");
-    bool found = false;
-    for (const auto& dept : departments) {
-        if (dept.department_code == dept_code) {
-            found = true;
-            cout << "\nDepartment Number: " << dept.department_code << "\n";
-            cout << "Department Name: " << dept.department_name << "\n";
-            cout << "Department Description: " << dept.department_description << "\n";
-            cout << "Department Head: " << dept.department_head << "\n";
-            cout << "Doctor Code: " << dept.doctor_code << "\n";
-            break;
+class DepartmentController { 
+    public: 
+        static void Read(std::string& name,std::string& description,std::string& head, int flags = 3) {
+            if((flags & 1) != 0) {
+                std::cout << "Department name:"; std::cin >> name;
+                std::cout << "Department Head:"; std::cin >> head;
+                std::cout << "Department description:"; std::cin >> description;
+            }
         }
-    }
-    if (!found) {
-        cout << "Department Number not found. Please verify the Department Number.\n";
-    }
+
+        void Create() {
+            uiCommon.TitleBar("Admin App > Department Management > Create Department");
+            int flags = 3;
+            std::string name;
+            std::string description;
+            std::string head;
+            
+            do {
+                Read(name, description, head, flags);
+                int proceedOption; 
+
+                std::stringstream soutput;  
+                soutput << "91 - Proceed to create department." << std::endl;
+                soutput << "\tYour choice:"; 
+                proceedOption = uiCommon.in.Int(soutput.str());
+
+                if(91 == proceedOption) {
+                    //set to biz object
+                    break;
+                }
+                flags = proceedOption;
+            } while(true);
+            std::cout << "Department DPT5001 created successfully." << std::endl;
+            uiCommon.PressAnyKey(true);        
+        }
+
+        void Edit() {
+            uiCommon.TitleBar("Admin App >Department Management > Edit Department");
+            std::cout << "Search the Department number to be edited : DPT5001 " << std::endl;
+
+
+            int flags = 3;
+            std::string name;
+            std::string description;
+            std::string head;
+
+              do {
+                Read(name, description, head, flags);
+                int proceedOption; 
+
+                std::stringstream soutput; 
+                soutput << "1 - Edit description" << std::endl;
+                soutput << "2 - Edit head" << std::endl;
+                soutput << "3 - Edit sum of choices for multiple fields editing" << std::endl;
+                soutput << "91 - Proceed to edit  department details." << std::endl;
+                soutput << "\tYour choice:"; 
+                proceedOption = uiCommon.in.Int(soutput.str());
+
+                if(91 == proceedOption) {
+                    //set to biz object
+                    break;
+                }
+                flags = proceedOption;
+            } while(true);
+
+            std::cout << "Department DPT5001 has been edited successfully." << std::endl;
+            uiCommon.PressAnyKey(true); 
+        }
+        void View() {
+            uiCommon.TitleBar("Admin App > Department Management > View Department");
+            std::cout << "Department details are listed below : " << std::endl;
+
+            std::cout << "Department Number\tName\tHead\tDescription\n";
+            std::cout << "DPT5001\tCardiology\tDOC2001\tDeals with Heart and Blood vessels\n";
+
+            std::cout << "Department Details Viewed successfully." << std::endl;
+            uiCommon.PressAnyKey(true); 
+        }
+
+        void Delete() {
+            uiCommon.TitleBar("Admin App > Department Management > Delete Department");
+            std::cout << "Search the Department Number to be deleted : " << std::endl;
+
+             std::cout << "Department DPT5001 Deleted successfully." << std::endl;
+            uiCommon.PressAnyKey(true); 
+        }
+        
+};
+
+static int ReadDepartmentMenu() {
+    int choice;
+    
+    uiCommon.TitleBar("Admin App > Department Management");
+
+    std::stringstream soutput;
+    soutput << "1 - Create Department" << std::endl;
+    soutput << "2 - Edit Department" << std::endl;
+    soutput << "4 - View Department" << std::endl;
+    soutput << "8 - Delete Department" << std::endl;
+    soutput << "99 - Exit" << std::endl;
+    soutput << "Your choice:"; 
+    choice = uiCommon.in.Int(soutput.str()); //std::cin >> choice;
+    
+    uiCommon.Line('~');
+    uiCommon.PressAnyKey(true); 
+    return choice;
 }
 
-void doctorApp() {
-    while (true) {
-        cout << "\nDoctor >> Department Management\n";
-        cout << "[1] View Department\n";
-        cout << "[99] Exit\n";
-        int choice = getValidatedInteger("Choice: ");
+void ManageDepartment() { 
+    DepartmentController controller;
+    
+    int choice;
 
-        if (choice == 1) {
-            viewDepartment();
-        } else if (choice == 99) {
-            cout << "LogOut......\n";
-            break;
-        } else {
-            cout << "Invalid choice!\n";
+    do { 
+        choice = ReadDepartmentMenu();
+        switch(choice) {
+            case 99: {
+                std::cout << std::endl;
+            } break;
+            case 1: {
+                controller.Create();
+            } break;
+            case 2: {
+                controller.Edit();
+            } break;
+            case 4: {
+                controller.View();
+            } break;
+            case 8: {
+                controller.Delete();
+            } break;
         }
-    }
+    } while(99 != choice);
 }
