@@ -270,13 +270,12 @@ int getValidatedInteger(const string& prompt) {
     int value;
     while (true) {
         cout << prompt;
-        cin >> value;
-        if (!cin.fail()) {
-            cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Clear buffer
+        if (cin >> value) {
+            cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Clear input buffer
             return value;
         }
-        cin.clear();
-        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        cin.clear(); // Clear error flag
+        cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Ignore invalid input
         cout << "Invalid input. Please enter a valid number.\n";
     }
 }
