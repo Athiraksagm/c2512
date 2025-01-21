@@ -289,7 +289,7 @@ void addMedicalHistory(int patient_number) {
     }
 
     MedicalHistory history;
-    cin.ignore();
+    cin.ignore(); // To clear out the newline character from previous input
     cout << "Enter Initial Ailment: ";
     getline(cin, history.initial_ailment);
     cout << "Enter Diagnosis: ";
@@ -319,7 +319,12 @@ void viewMedicalHistory(int patient_number, bool is_doctor) {
 
     int index = 0;
     while (true) {
-        // Display the current medical history
+        // Check if there is any history to show
+        if (patient->history.empty()) {
+            cout << "No medical history available.\n";
+            break;
+        }
+
         const auto& history = patient->history[index];
         cout << "\nMedical History for Patient Number " << patient_number << ":\n";
         cout << "Initial Ailment: " << history.initial_ailment << "\n";
@@ -354,6 +359,13 @@ void viewMedicalHistory(int patient_number, bool is_doctor) {
             break;
         } else {
             cout << "Invalid choice! Please select a valid option.\n";
+        }
+
+        // If there are no more records (prev or next), we show no history message
+        if (index == 0 && patient->history.size() == 1) {
+            cout << "No more previous history available.\n";
+        } else if (index == patient->history.size() - 1) {
+            cout << "No more next history available.\n";
         }
     }
 }
@@ -456,3 +468,4 @@ int main() {
 
     return 0;
 }
+
