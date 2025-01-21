@@ -5,22 +5,50 @@
 #include "./../headers/payment_main.h"
 #include "./../headers/ui_common.h"
 
-class PaymentController { 
+class PaymentController 
+{ 
     public: 
-        static void Read(std::string& payment_Id, int flags = 3) {
+        static void Read(std::string& appointment_Number, int flags = 3) {
             if((flags & 1) != 0) {
-                std::cout << "Payment Id : "; std::cin >> payment_Id;
+                std::cout << "Appointment Number  : "; std::cin >> appointment_Number;
             }
         }
-
-        void View() {
-            uiCommon.TitleBar("Admin App > Payment Management > View Payment Details");
+        void makePayment(){
+          uiCommon.TitleBar("Admin App > Payment Management > Make Payment");
             int flags = 3;
-            std::string payment_Id;
+            std::string appointment_Number;
             
             
             do {
-                Read(payment_Id, flags);
+                Read(appointment_Number, flags);
+                int proceedOption; 
+
+                std::stringstream soutput;
+                soutput << "Your consultation fee is : 500 "<< std::endl;
+                soutput << "91 - Continue Payment." << std::endl;
+                soutput << "\tYour choice:"; 
+                proceedOption = uiCommon.in.Int(soutput.str());
+
+                if(91 == proceedOption) {
+                    //set to biz object
+                    break;
+                }
+                flags = proceedOption;
+            } while(true);
+            std::cout << "Payment mode : UPI" << std::endl;
+            std::cout << "Payment completed successfully." << std::endl;
+            uiCommon.PressAnyKey(true);        
+        }
+
+        
+        void View() {
+            uiCommon.TitleBar("Admin App > Payment Management > View Payment Details");
+            int flags = 3;
+            std::string appointment_Number;
+            
+            
+            do {
+                Read(appointment_Number, flags);
                 int proceedOption; 
 
                 std::stringstream soutput;   
@@ -38,6 +66,7 @@ class PaymentController {
             std::cout << "Payment amount : 500" << std::endl;
             std::cout << "Payment mode : UPI" << std::endl;
             std::cout << "Payment status : Paid" << std::endl;
+            std::cout << "Payment Date and time : 2025-01-22 10:00" << std::endl;
             std::cout << "Payment details viewed successfully." << std::endl;
             uiCommon.PressAnyKey(true);        
         }
@@ -50,7 +79,8 @@ static int ReadPaymentMenu() {
     uiCommon.TitleBar("Admin App > Payment Management");
 
     std::stringstream soutput;
-    soutput << "1 - View Payment Details" << std::endl;
+    soutput << "1 - Make Payment " << std::endl;
+    soutput << "2 - View Payment Details" << std::endl;
     soutput << "99 - Exit" << std::endl;
     soutput << "Your choice:"; 
     choice = uiCommon.in.Int(soutput.str()); //std::cin >> choice;
@@ -72,6 +102,9 @@ void ManagePayment() {
                 std::cout << "Exited successfully.." <<std::endl;
             } break;
             case 1: {
+                controller.makePayment();
+            } break;
+             case 2: {
                 controller.View();
             } break;
         }
