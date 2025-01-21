@@ -2,31 +2,32 @@
 #include<sstream>
 #include<string>
 
-#include "./../headers/department_main.h"
+#include "./../headers/medical_History_main.h"
 #include "./../headers/ui_common.h"
 
-class DepartmentController { 
+class MedicalHistoryController { 
     public: 
-        static void Read(std::string& name,std::string& description,std::string& head, int flags = 3) {
+        static void Read(std::string& patient_Number, std::string& diagnosis, std::string& treatment , std::string& prescription, int flags = 3) {
             if((flags & 1) != 0) {
-                std::cout << "Department name:"; std::cin >> name;
-                std::cout << "Department Head:"; std::cin >> head;
-                std::cout << "Department description:"; std::cin >> description;
+                std::cout << "Diagnosis:"; std::cin >> diagnosis;
+                std::cout << "Treatment:"; std::cin >> treatment;
+                std::cout << "Prescription:"; std::cin >> prescription;
             }
         }
 
         void Create() {
-            uiCommon.TitleBar("Admin App > Department Management > Create Department");
+            uiCommon.TitleBar("Admin App > Department Management > Create Medical History");
             int flags = 3;
-            std::string name;
-            std::string description;
-            std::string head;
+            std::string patient_Number;
+            std::string diagnosis;
+            std::string treatment;
+            std::string prescription;
             
             do {
-                Read(name, description, head, flags);
+                Read(patient_Number, diagnosis, treatment, prescription, flags);
                 int proceedOption; 
 
-                std::stringstream soutput;  
+                std::stringstream soutput; 
                 soutput << "91 - Proceed to create department." << std::endl;
                 soutput << "\tYour choice:"; 
                 proceedOption = uiCommon.in.Int(soutput.str());
@@ -37,29 +38,46 @@ class DepartmentController {
                 }
                 flags = proceedOption;
             } while(true);
-            std::cout << "Department DPT5001 created successfully." << std::endl;
+            std::cout << "Medical History of patient(PAT1001) is created successfully." << std::endl;
             uiCommon.PressAnyKey(true);        
         }
 
-        void Edit() {
-            uiCommon.TitleBar("Admin App >Department Management > Edit Department");
-            std::cout << "Search the Department number to be edited : DPT5001 " << std::endl;
+        void View() {
+            uiCommon.TitleBar("Admin App > Medical History Management > View Medical History");
+            std::cout << "Enter the patient number : PAT1001" << std::endl;
 
+             std::cout << "Patient Number\tDiagnosis\tTreatment\tPriscription\t\tDate_Time\n";
+            std::cout << "PAT1001\tFever\tMonitored Temperature\tParacetamol\t\t2025-01-22 10:00\n";
+
+             std::cout << "Medical History of patient(PAT1001) Viewed successfully." << std::endl;
+            uiCommon.PressAnyKey(true); 
+        }
+        void Edit() {
+            uiCommon.TitleBar("Admin App > Medical History Management > Edit  Current Medical History");
+            std::cout << "Enter the patient number to be edited : PAT1001" << std::endl;
+
+            std::cout << "patient_Number\tdiagnosis\t\ttreatment\tprescription\n";
+            std::cout << "PAT1001\tFever\t\tMonitored Temperature\tParacetamol\n";
+
+            int updateChoice;
+            std::cout << "Enter your choice : ";
+            std::cin >> updateChoice;
 
             int flags = 3;
-            std::string name;
-            std::string description;
-            std::string head;
+            std::string patient_Number;
+            std::string diagnosis;
+            std::string treatment;
+            std::string prescription;
 
-              do {
-                Read(name, description, head, flags);
+            do {
+                Read(patient_Number, diagnosis, treatment, prescription, flags);
                 int proceedOption; 
 
                 std::stringstream soutput; 
-                soutput << "1 - Edit description" << std::endl;
-                soutput << "2 - Edit head" << std::endl;
-                soutput << "3 - Edit sum of choices for multiple fields editing" << std::endl;
-                soutput << "91 - Proceed to edit  department details." << std::endl;
+                soutput << "1- Edit diagnosis" << std::endl;
+                soutput << "2- Edit treatment" << std::endl;
+                soutput << "4- Edit prescription" << std::endl;
+                soutput << "Note - Edit sum of choices for multiple fields editing" << std::endl;
                 soutput << "\tYour choice:"; 
                 proceedOption = uiCommon.in.Int(soutput.str());
 
@@ -70,40 +88,22 @@ class DepartmentController {
                 flags = proceedOption;
             } while(true);
 
-            std::cout << "Department DPT5001 has been edited successfully." << std::endl;
-            uiCommon.PressAnyKey(true); 
-        }
-        void View() {
-            uiCommon.TitleBar("Admin App > Department Management > View Department");
-            std::cout << "Department details are listed below : " << std::endl;
-
-            std::cout << "Department Number\tName\tHead\tDescription\n";
-            std::cout << "DPT5001\tCardiology\tDOC2001\tDeals with Heart and Blood vessels\n";
-
-            std::cout << "Department Details Viewed successfully." << std::endl;
+             std::cout << "Medical History Edited successfully." << std::endl;
             uiCommon.PressAnyKey(true); 
         }
 
-        void Delete() {
-            uiCommon.TitleBar("Admin App > Department Management > Delete Department");
-            std::cout << "Search the Department Number to be deleted : " << std::endl;
-
-             std::cout << "Department DPT5001 Deleted successfully." << std::endl;
-            uiCommon.PressAnyKey(true); 
-        }
         
 };
 
-static int ReadDepartmentMenu() {
+static int ReadMedicalHistoryMenu() {
     int choice;
     
-    uiCommon.TitleBar("Admin App > Department Management");
+    uiCommon.TitleBar("Admin App > Medical History Management");
 
     std::stringstream soutput;
-    soutput << "1 - Create Department" << std::endl;
-    soutput << "2 - Edit Department" << std::endl;
-    soutput << "4 - View Department" << std::endl;
-    soutput << "8 - Delete Department" << std::endl;
+    soutput << "1 - Create Medical History" << std::endl;
+    soutput << "2 - View Medical History" << std::endl;
+    soutput << "3 - Edit Medical History" << std::endl;
     soutput << "99 - Exit" << std::endl;
     soutput << "Your choice:"; 
     choice = uiCommon.in.Int(soutput.str()); //std::cin >> choice;
@@ -113,28 +113,25 @@ static int ReadDepartmentMenu() {
     return choice;
 }
 
-void ManageDepartment() { 
-    DepartmentController controller;
+void ManageMedicalHistory() { 
+    MedicalHistoryController controller;
     
     int choice;
 
     do { 
-        choice = ReadDepartmentMenu();
+        choice = ReadMedicalHistoryMenu();
         switch(choice) {
             case 99: {
-                std::cout << std::endl;
+                std::cout <<"Exited successfully.." << std::endl;
             } break;
             case 1: {
                 controller.Create();
             } break;
             case 2: {
-                controller.Edit();
-            } break;
-            case 4: {
                 controller.View();
             } break;
-            case 8: {
-                controller.Delete();
+             case 3: {
+                controller.Edit();
             } break;
         }
     } while(99 != choice);
