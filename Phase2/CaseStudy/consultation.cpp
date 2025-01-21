@@ -2,6 +2,8 @@
 #include <vector>
 #include <string>
 #include <ctime>
+#include <limits>
+
 using namespace std;
 
 struct MedicalHistory {
@@ -17,7 +19,7 @@ struct Patient {
     vector<MedicalHistory> history;
 };
 
-// Function to get current date and time
+// Function to get the current date and time
 string getCurrentDateTime() {
     time_t now = time(0);
     tm *ltm = localtime(&now);
@@ -28,6 +30,7 @@ string getCurrentDateTime() {
 
 vector<Patient> patients;
 
+// Function to find a patient by their patient number
 Patient* findPatient(int patient_number) {
     for (auto& patient : patients) {
         if (patient.patient_number == patient_number) {
@@ -37,6 +40,22 @@ Patient* findPatient(int patient_number) {
     return nullptr;
 }
 
+// Input validation function
+int getValidatedInteger(const string& prompt) {
+    int value;
+    while (true) {
+        cout << prompt;
+        cin >> value;
+        if (!cin.fail()) {
+            return value;
+        }
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        cout << "Invalid input. Please enter a valid number.\n";
+    }
+}
+
+// Add medical history
 void addMedicalHistory(int patient_number) {
     Patient* patient = findPatient(patient_number);
     if (!patient) {
@@ -45,8 +64,8 @@ void addMedicalHistory(int patient_number) {
     }
 
     MedicalHistory history;
-    cout << "Enter Initial Ailment: ";
     cin.ignore();
+    cout << "Enter Initial Ailment: ";
     getline(cin, history.initial_ailment);
     cout << "Enter Diagnosis: ";
     getline(cin, history.diagnosis);
@@ -57,10 +76,11 @@ void addMedicalHistory(int patient_number) {
     history.date_and_time = getCurrentDateTime();
 
     patient->history.push_back(history);
-    cout << "Medical history of patient(" << patient_number << ") added successfully!\n";
+    cout << "Medical history of patient (" << patient_number << ") added successfully!\n";
 }
 
-void viewMedicalHistory(int patient_number, int& index) {
+// View medical history with navigation and add option for Doctor
+void viewMedicalHistory(int patient_number, bool is_doctor) {
     Patient* patient = findPatient(patient_number);
     if (!patient) {
         cout << "Patient Number not found. Please verify Patient Number ..Thank You\n";
@@ -72,34 +92,38 @@ void viewMedicalHistory(int patient_number, int& index) {
         return;
     }
 
-    const auto& history = patient->history[index];
-    cout << "Medical History for Patient Number " << patient_number << ":\n";
-    cout << "Initial Ailment: " << history.initial_ailment << "\n";
-    cout << "Diagnosis: " << history.diagnosis << "\n";
-    cout << "Treatment: " << history.treatment << "\n";
-    cout << "Prescription: " << history.prescription << "\n";
-    cout << "Date and Time: " << history.date_and_time << "\n";
+    int index = 0;
+    while (true) {
+        const auto& history = patient->history[index];
+        cout << "\nMedical History for Patient Number " << patient_number << ":\n";
+        cout << "Initial Ailment: " << history.initial_ailment << "\n";
+        cout << "Diagnosis: " << history.diagnosis << "\n";
+        cout << "Treatment: " << history.treatment << "\n";
+        cout << "Prescription: " << history.prescription << "\n";
+        cout << "Date and Time: " << history.date_and_time << "\n";
 
-    cout << "\n[1] Prev  [2] Next  [3] Enter Medical History  [99] Back\n";
-    cout << "Choice: ";
-    int choice;
-    cin >> choice;
+        cout << "\n[1] Prev  [2] Next";
+        if (is_doctor) {
+            cout << "  [3] Enter Medical History";
+        }
+        cout << "  [99] Back\nChoice: ";
 
-    if (choice == 1 && index > 0) {
-        index--;
-        viewMedicalHistory(patient_number, index);
-    } else if (choice == 2 && index < patient->history.size() - 1) {
-        index++;
-        viewMedicalHistory(patient_number, index);
-    } else if (choice == 3) {
-        addMedicalHistory(patient_number);
-    } else if (choice == 99) {
-        return;
-    } else {
-        cout << "Invalid choice!\n";
+        int choice = getValidatedInteger("");
+        if (choice == 1 && index > 0) {
+            index--;
+        } else if (choice == 2 && index < patient->history.size() - 1) {
+            index++;
+        } else if (is_doctor && choice == 3) {
+            addMedicalHistory(patient_number);
+        } else if (choice == 99) {
+            break;
+        } else {
+            cout << "Invalid choice!\n";
+        }
     }
 }
 
+// Doctor App Menu
 void doctorApp() {
     while (true) {
         cout << "\nDoctor App >> Consultation Management\n";
@@ -107,18 +131,14 @@ void doctorApp() {
         cout << "[2] View Medical History Details\n";
         cout << "[99] Exit\n";
         cout << "Choice: ";
-        int choice, patient_number;
-        cin >> choice;
+        int choice = getValidatedInteger("");
 
         if (choice == 1) {
-            cout << "Enter Patient Number: ";
-            cin >> patient_number;
+            int patient_number = getValidatedInteger("Enter Patient Number: ");
             addMedicalHistory(patient_number);
         } else if (choice == 2) {
-            cout << "Enter Patient Number: ";
-            cin >> patient_number;
-            int index = 0;
-            viewMedicalHistory(patient_number, index);
+            int patient_number = getValidatedInteger("Enter Patient Number: ");
+            viewMedicalHistory(patient_number, true);
         } else if (choice == 99) {
             cout << "LogOut.......\n";
             break;
@@ -128,20 +148,18 @@ void doctorApp() {
     }
 }
 
+// Patient App Menu
 void patientApp() {
     while (true) {
         cout << "\nPatient App >> Consultation Management\n";
         cout << "[1] View Medical History Details\n";
         cout << "[99] Exit\n";
         cout << "Choice: ";
-        int choice, patient_number;
-        cin >> choice;
+        int choice = getValidatedInteger("");
 
         if (choice == 1) {
-            cout << "Enter Patient Number: ";
-            cin >> patient_number;
-            int index = 0;
-            viewMedicalHistory(patient_number, index);
+            int patient_number = getValidatedInteger("Enter Patient Number: ");
+            viewMedicalHistory(patient_number, false);
         } else if (choice == 99) {
             cout << "LogOut.......\n";
             break;
@@ -151,20 +169,18 @@ void patientApp() {
     }
 }
 
+// Admin App Menu
 void adminApp() {
     while (true) {
         cout << "\nAdmin App >> Consultation Management\n";
         cout << "[1] View Medical History Details\n";
         cout << "[99] Exit\n";
         cout << "Choice: ";
-        int choice, patient_number;
-        cin >> choice;
+        int choice = getValidatedInteger("");
 
         if (choice == 1) {
-            cout << "Enter Patient Number: ";
-            cin >> patient_number;
-            int index = 0;
-            viewMedicalHistory(patient_number, index);
+            int patient_number = getValidatedInteger("Enter Patient Number: ");
+            viewMedicalHistory(patient_number, false);
         } else if (choice == 99) {
             cout << "LogOut.......\n";
             break;
@@ -174,7 +190,9 @@ void adminApp() {
     }
 }
 
+// Main Menu
 int main() {
+    // Adding initial dummy patients for testing
     patients.push_back({1001, {}});
     patients.push_back({1002, {}});
 
@@ -185,8 +203,7 @@ int main() {
         cout << "[3] Admin\n";
         cout << "[99] Exit\n";
         cout << "Choice: ";
-        int choice;
-        cin >> choice;
+        int choice = getValidatedInteger("");
 
         if (choice == 1) {
             doctorApp();
