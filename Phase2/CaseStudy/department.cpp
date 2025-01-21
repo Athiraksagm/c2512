@@ -197,3 +197,29 @@ int main() {
 
     return 0;
 }
+
+-------
+
+#include <iostream>
+#include <vector>
+#include <string>
+#include <limits>
+
+using namespace std;
+
+struct Department {
+    string department_name;
+    string department_description;
+    string department_head;
+    string department_code;
+    string doctor_code;
+};
+
+vector<Department> departments;
+
+int getValidatedInteger(const string& prompt) {
+    int value;
+    while (true) {
+        cout << prompt;
+        cin >> value;
+        if (!cin.fail()) {
