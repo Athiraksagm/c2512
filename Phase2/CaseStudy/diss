@@ -1,0 +1,214 @@
+Dhaheen
+STL(standard template library)
+
+-it is collection of generic classes and functions in C++ that provides solutions to managing collections of objects, performing algorithms, and handling iterators.
+-Classification:
+1.Sequence containers:
+
+-store elements in a linear order. They are optimized for sequential access.
+-eg:
+   I) Vector -Dynamic array that supports fast random access. 
+   ii) Deque - Double-ended queue that supports fast insertion and deletion from both ends.
+   iii) List - Doubly linked list that supports fast insertion and deletion at any position but slower random access.(using iterators)
+
+2.Associative Containers:
+
+- These maintain sorted order of elements and provide fast lookup based on keys using tree-based structures.
+- eg:
+    I)Set - Stores unique elements in sorted order.
+    ii)Map- Stores key-value pairs with unique keys in sorted order.
+    iii)Multiset - Allows duplicate elements.
+    iv)Multimap - Allows duplicate keys in key-value pairs.
+
+3. Unordered Containers:
+
+These maintain elements in an unordered structure using hash tables.
+-eg:
+Unordered Set: Like a set but unsorted.
+Unordered Map: Like a map but unsorted.
+Unordered Multiset: Like a multiset but unsorted.
+Unordered Multimap: Like a multimap but unsorted.
+
+Interface
+
+- Interface concept is implemented using abstract classes.
+- An abstract class is a class that contains at least one pure virtual function (declared using = 0). 
+
+#include <iostream>
+using namespace std;
+
+class Shape {
+public:
+    virtual void draw() = 0; // Pure virtual function
+    virtual ~Shape() {}
+};
+
+class Circle : public Shape {
+public:
+    void draw() override {
+        cout << "Drawing Circle" << endl;
+    }
+};
+
+class Rectangle : public Shape {
+public:
+    void draw() override {
+        cout << "Drawing Rectangle" << endl;
+    }
+};
+
+int main() {
+    Shape* shape1 = new Circle();
+    Shape* shape2 = new Rectangle();
+
+    shape1->draw();
+    shape2->draw();
+
+    delete shape1;
+    delete shape2;
+    return 0;
+}
+Points:
+- Pure Virtual Function: Declared using = 0, it forces derived classes to provide - implementations, ensuring abstraction.
+- Cannot Instantiate: Abstract classes cannot be instantiated directly.
+- Polymorphism: Enables runtime binding via pointers or references to base classes.
+
+Ayisha
+
+1. Explain how mutexes are used to prevent race conditions in multithreaded programs.
+
+- Race Condition - A race condition occurs in multithreaded programs when multiple threads access and modify shared resources concurrently, leading to unpredictable results.
+- Role of Mutex - A mutex (short for "mutual exclusion") is a synchronization primitive used to ensure that only one thread can access a shared resource at a time. 
+
+How Mutex Prevents Race Conditions
+- A thread acquires the mutex lock before accessing the shared resource.
+- Other threads attempting to acquire the same lock are blocked until the mutex is unlocked.
+- Once the first thread finishes its task and unlocks the mutex, the next waiting thread acquires the lock.
+
+#include <iostream>
+#include <thread>
+#include <mutex>
+
+std::mutex mtx; // Mutex to protect shared resource
+int sharedCounter = 0;
+
+void incrementCounter(int threadId) {
+    for (int i = 0; i < 5; ++i) {
+        mtx.lock(); // Lock the mutex
+        ++sharedCounter; // Critical section
+        std::cout << "Thread " << threadId << " incremented counter to " << sharedCounter << std::endl;
+        mtx.unlock(); // Unlock the mutex
+    }
+}
+
+int main() {
+    std::thread t1(incrementCounter, 1);
+    std::thread t2(incrementCounter, 2);
+
+    t1.join();
+    t2.join();
+
+    std::cout << "Final Counter Value: " << sharedCounter << std::endl;
+    return 0;
+}
+
+
+2. Write a C++ Program to Demonstrate the Concept of Inheritance
+
+#include <iostream>
+using namespace std;
+
+// Single Inheritance: Base class and one derived class
+class Animal {
+public:
+    void eat() {
+        cout << "Animal can eat." << endl;
+    }
+};
+
+class Dog : public Animal {
+public:
+    void bark() {
+        cout << "Dog can bark." << endl;
+    }
+};
+
+// Multilevel Inheritance: Derived class from another derived class
+class Puppy : public Dog {
+public:
+    void weep() {
+        cout << "Puppy can weep." << endl;
+    }
+};
+
+// Multiple Inheritance: Derived class from two base classes
+class Bird {
+public:
+    void fly() {
+        cout << "Bird can fly." << endl;
+    }
+};
+
+class Bat : public Animal, public Bird {
+public:
+    void sleepUpsideDown() {
+        cout << "Bat can sleep upside down." << endl;
+    }
+};
+
+// Hierarchical Inheritance: Multiple derived classes from a single base class
+class Cat : public Animal {
+public:
+    void meow() {
+        cout << "Cat can meow." << endl;
+    }
+};
+
+// Hybrid Inheritance: Combination of hierarchical and multiple inheritance
+class MythicalCreature : public Dog, public Bird {
+public:
+    void roar() {
+        cout << "Mythical creature can roar." << endl;
+    }
+};
+
+int main() {
+    cout << "Single Inheritance Example:" << endl;
+    Dog dog;
+    dog.eat();  // From Animal
+    dog.bark(); // From Dog
+    cout << endl;
+
+    cout << "Multilevel Inheritance Example:" << endl;
+    Puppy puppy;
+    puppy.eat();  // From Animal
+    puppy.bark(); // From Dog
+    puppy.weep(); // From Puppy
+    cout << endl;
+
+    cout << "Multiple Inheritance Example:" << endl;
+    Bat bat;
+    bat.eat();            // From Animal
+    bat.fly();            // From Bird
+    bat.sleepUpsideDown(); // From Bat
+    cout << endl;
+
+    cout << "Hierarchical Inheritance Example:" << endl;
+    Cat cat;
+    cat.eat();  // From Animal
+    cat.meow(); // From Cat
+    cout << endl;
+
+    cout << "Hybrid Inheritance Example:" << endl;
+    MythicalCreature creature;
+    creature.bark(); // From Dog
+    creature.fly();  // From Bird
+    creature.roar(); // From MythicalCreature
+    cout << endl;
+
+    return 0;
+}
+
+
+
+
