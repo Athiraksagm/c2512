@@ -325,3 +325,19 @@ int main() {
     return 0;
 }
 
+Mahesh
+Synchronization During IPC
+- Synchronization ensures consistency when multiple processes access shared resources.
+
+1. Semaphores
+
+- Used to control access to a shared resource by multiple processes.
+- Example: A print queue allowing only one document to print at a time.\
+
+2. Mutexes
+
+- Ensures mutual exclusion for a critical section.
+- Example: Updating shared logs in a multithreaded environment.
+Real-Time Example: Collaborative editing software like Google Docs uses a combination of shared memory and synchronization to ensure multiple users can view and edit documents without conflicts.
+
+
