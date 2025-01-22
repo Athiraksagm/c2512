@@ -23,3 +23,42 @@ void DepartmentController::Create() {
     std::cout << "Department DPT5001 created successfully." << std::endl;
     uiCommon.PressAnyKey(true);
 }
+
+------------------------
+
+int getValidatedInteger(const string& prompt) {
+    int value;
+    while (true) {
+        cout << prompt;
+        cin >> value;
+        if (!cin.fail()) {
+            return value;
+        }
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        cout << "Invalid input. Please enter a valid number.\n";
+    }
+}
+
+string getValidatedString(const string& prompt) {
+    string value;
+    cin.ignore();
+    cout << prompt;
+    getline(cin, value);
+    return value;
+}
+
+// Admin's department management functions
+void createDepartment() {
+    Department new_dept;
+    new_dept.department_name = getValidatedString("Enter Department Name: ");
+    new_dept.department_description = getValidatedString("Enter Department Description: ");
+    new_dept.department_head = getValidatedString("Assign Head to Department: ");
+    new_dept.department_code = "DPT" + to_string(departments.size() + 5001);  // Creating department code like DPT5001
+    new_dept.doctor_code = new_dept.department_head;  // Assume head is also the first doctor in the department
+
+    // Adding department to the departments list
+    departments.push_back(new_dept);
+    cout << new_dept.department_name << " Department created successfully..\n";
+    cout << "Head is " << new_dept.department_head << " and Department Number is " << new_dept.department_code << endl;
+}
