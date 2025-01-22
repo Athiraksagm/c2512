@@ -210,5 +210,123 @@ int main() {
 }
 
 
+Abel
+
+Operator Overloading
+
+- allows developers to redefine the functionality of operators for user-defined types.
+
+#include <iostream>
+#include <vector>
+#include <string>
+using namespace std;
+
+// Patient class to represent a patient
+class Patient {
+public:
+    string name;
+    int age;
+
+    Patient(string n, int a) : name(n), age(a) {}
+
+    void display() const {
+        cout << "Name: " << name << ", Age: " << age << endl;
+    }
+};
+
+// RoomAllocation class to manage patients in a room
+class RoomAllocation {
+private:
+    int roomNumber;
+    vector<Patient> patients;
+
+public:
+    RoomAllocation(int roomNum) : roomNumber(roomNum) {}
+
+    // Overloading + operator to add a patient
+    RoomAllocation& operator+(const Patient& p) {
+        patients.push_back(p); // Add patient to the room
+        return *this;
+    }
+
+    void displayRoomDetails() const {
+        cout << "Room Number: " << roomNumber << endl;
+        cout << "Patients:" << endl;
+        for (const auto& patient : patients) {
+            patient.display();
+        }
+    }
+};
+
+int main() {
+    // Create a room
+    RoomAllocation room(101);
+
+    // Create patients
+    Patient p1("John Doe", 30);
+    Patient p2("Jane Smith", 25);
+
+    // Add patients to the room using overloaded + operator
+    room = room + p1;
+    room = room + p2;
+
+    // Display room details
+    room.displayRoomDetails();
+
+    return 0;
+}
+
+
+Virtual Keyword and Pure Virtual Functions
+
+- The virtual keyword and pure virtual functions in C++ enable runtime polymorphism.
+- pure virtual function is a function declared in a base class that must be overridden by derived classes.
+- This ensures that derived classes provide specific implementations, supporting abstraction and polymorphism.
+
+#include <iostream>
+using namespace std;
+
+// Base class: HospitalStaff
+class HospitalStaff {
+public:
+    virtual void workShift() const = 0; // Pure virtual function
+    virtual ~HospitalStaff() {}
+};
+
+// Derived class: Doctor
+class Doctor : public HospitalStaff {
+public:
+    void workShift() const override {
+        cout << "Doctor's Shift: 9 AM - 5 PM" << endl;
+    }
+};
+
+// Derived class: Nurse
+class Nurse : public HospitalStaff {
+public:
+    void workShift() const override {
+        cout << "Nurse's Shift: 7 AM - 3 PM" << endl;
+    }
+};
+
+int main() {
+    // Create HospitalStaff pointers
+    HospitalStaff* staff1 = new Doctor();
+    HospitalStaff* staff2 = new Nurse();
+
+    // Display work shifts
+    staff1->workShift();
+    staff2->workShift();
+
+    // Clean up
+    delete staff1;
+    delete staff2;
+
+    return 0;
+}
+
+
+
+
 
 
