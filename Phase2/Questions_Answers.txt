@@ -340,4 +340,100 @@ Synchronization During IPC
 - Example: Updating shared logs in a multithreaded environment.
 Real-Time Example: Collaborative editing software like Google Docs uses a combination of shared memory and synchronization to ensure multiple users can view and edit documents without conflicts.
 
+C++ 17 features
+
+1.Structured binding
+- Decompose tuples or structures into variables.
+
+#include <tuple>
+auto [x, y] = std::make_tuple(10, 20);
+cout << x << " " << y; // Output: 10 20
+
+2.Filesystem Library
+
+-Provides tools for working with files and directories.
+#include <filesystem>
+namespace fs = std::filesystem;
+for (const auto& entry : fs::directory_iterator("./")) {
+    cout << entry.path() << endl;
+}
+
+3.std::optional
+- Represents a value that may or may not be present.
+
+std::optional<int> value;
+if (value) {
+    cout << *value;
+} else {
+    cout << "No value";
+}
+
+C++ 20 Features
+
+1.Concepts
+-Used for template constraints, improving code readability.
+template <typename T>
+concept Integral = std::is_integral_v<T>;
+
+Integral auto add(Integral auto a, Integral auto b) {
+    return a + b;
+}
+cout << add(10, 20); // Output: 30
+
+2.Ranges Library
+
+Provides a concise and functional way to work with ranges.
+#include <ranges>
+for (auto i : std::views::iota(1, 10) | std::views::filter([](int x) { return x % 2 == 0; })) {
+    cout << i << " "; // Output: 2 4 6 8
+}
+
+3.Coroutines
+
+Simplifies asynchronous programming.
+#include <iostream>
+#include <coroutine>
+struct Generator {
+    struct promise_type {
+        int current_value;
+        std::suspend_always yield_value(int value) {
+            current_value = value;
+            return {};
+        }
+        auto get_return_object() { return Generator{this}; }
+        std::suspend_always initial_suspend() { return {}; }
+        std::suspend_always final_suspend() noexcept { return {}; }
+        void return_void() {}
+        void unhandled_exception() { std::exit(1); }
+    };
+
+    struct promise_type* promise;
+    Generator(promise_type* p) : promise(p) {}
+    bool next() { return promise->current_value != -1; }
+    int getValue() { return promise->current_value; }
+};
+
+Generator generate() {
+    for (int i = 0; i < 5; ++i)
+        co_yield i;
+}
+
+int main() {
+    auto gen = generate();
+    while (gen.next()) {
+        cout << gen.getValue() << endl;
+    }
+    return 0;
+}
+
+4.std::span
+
+Provides a lightweight view over a contiguous sequence of elements.
+void printSpan(std::span<int> s) {
+    for (int x : s) cout << x << " ";
+}
+int arr[] = {1, 2, 3};
+printSpan(arr); // Output: 1 2 3
+
+
 
