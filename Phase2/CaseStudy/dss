@@ -1,112 +1,75 @@
-#include<iostream>
-#include<sstream>
-#include<string>
+Dhaheen
+STL(standard template library)
 
-#include "./../headers/payment_main.h"
-#include "./../headers/ui_common.h"
+-it is collection of generic classes and functions in C++ that provides solutions to managing collections of objects, performing algorithms, and handling iterators.
+-Classification:
+1.Sequence containers:
 
-class PaymentController 
-{ 
-    public: 
-        static void Read(std::string& appointment_Number, int flags = 3) {
-            if((flags & 1) != 0) {
-                std::cout << "Appointment Number  : "; std::cin >> appointment_Number;
-            }
-        }
-        void makePayment(){
-          uiCommon.TitleBar("Admin App > Payment Management > Make Payment");
-            int flags = 3;
-            std::string appointment_Number;
-            
-            
-            do {
-                Read(appointment_Number, flags);
-                int proceedOption; 
+-store elements in a linear order. They are optimized for sequential access.
+-eg:
+   I) Vector -Dynamic array that supports fast random access. 
+   ii) Deque - Double-ended queue that supports fast insertion and deletion from both ends.
+   iii) List - Doubly linked list that supports fast insertion and deletion at any position but slower random access.(using iterators)
 
-                std::stringstream soutput;
-                soutput << "Your consultation fee is : 500 "<< std::endl;
-                soutput << "91 - Continue Payment." << std::endl;
-                soutput << "\tYour choice:"; 
-                proceedOption = uiCommon.in.Int(soutput.str());
+2.Associative Containers:
 
-                if(91 == proceedOption) {
-                    //set to biz object
-                    break;
-                }
-                flags = proceedOption;
-            } while(true);
-            std::cout << "Payment mode : UPI" << std::endl;
-            std::cout << "Payment completed successfully." << std::endl;
-            uiCommon.PressAnyKey(true);        
-        }
+- These maintain sorted order of elements and provide fast lookup based on keys using tree-based structures.
+- eg:
+    I)Set - Stores unique elements in sorted order.
+    ii)Map- Stores key-value pairs with unique keys in sorted order.
+    iii)Multiset - Allows duplicate elements.
+    iv)Multimap - Allows duplicate keys in key-value pairs.
 
-        
-        void View() {
-            uiCommon.TitleBar("Admin App > Payment Management > View Payment Details");
-            int flags = 3;
-            std::string appointment_Number;
-            
-            
-            do {
-                Read(appointment_Number, flags);
-                int proceedOption; 
+3. Unordered Containers:
 
-                std::stringstream soutput;   
-                soutput << "91 - Proceed." << std::endl;
-                soutput << "\tYour choice:"; 
-                proceedOption = uiCommon.in.Int(soutput.str());
+These maintain elements in an unordered structure using hash tables.
+-eg:
+Unordered Set: Like a set but unsorted.
+Unordered Map: Like a map but unsorted.
+Unordered Multiset: Like a multiset but unsorted.
+Unordered Multimap: Like a multimap but unsorted.
 
-                if(91 == proceedOption) {
-                    //set to biz object
-                    break;
-                }
-                flags = proceedOption;
-            } while(true);
-            std::cout << "Appointment Id : Apt5001" << std::endl;
-            std::cout << "Payment amount : 500" << std::endl;
-            std::cout << "Payment mode : UPI" << std::endl;
-            std::cout << "Payment status : Paid" << std::endl;
-            std::cout << "Payment Date and time : 2025-01-22 10:00" << std::endl;
-            std::cout << "Payment details viewed successfully." << std::endl;
-            uiCommon.PressAnyKey(true);        
-        }
-        
+Interface
+
+- Interface concept is implemented using abstract classes.
+- An abstract class is a class that contains at least one pure virtual function (declared using = 0). 
+
+#include <iostream>
+using namespace std;
+
+class Shape {
+public:
+    virtual void draw() = 0; // Pure virtual function
+    virtual ~Shape() {}
 };
 
-static int ReadPaymentMenu() {
-    int choice;
-    
-    uiCommon.TitleBar("Admin App > Payment Management");
+class Circle : public Shape {
+public:
+    void draw() override {
+        cout << "Drawing Circle" << endl;
+    }
+};
 
-    std::stringstream soutput;
-    soutput << "1 - Make Payment " << std::endl;
-    soutput << "2 - View Payment Details" << std::endl;
-    soutput << "99 - Exit" << std::endl;
-    soutput << "Your choice:"; 
-    choice = uiCommon.in.Int(soutput.str()); //std::cin >> choice;
-    
-    uiCommon.Line('~');
-    uiCommon.PressAnyKey(true); 
-    return choice;
+class Rectangle : public Shape {
+public:
+    void draw() override {
+        cout << "Drawing Rectangle" << endl;
+    }
+};
+
+int main() {
+    Shape* shape1 = new Circle();
+    Shape* shape2 = new Rectangle();
+
+    shape1->draw();
+    shape2->draw();
+
+    delete shape1;
+    delete shape2;
+    return 0;
 }
+Points:
+- Pure Virtual Function: Declared using = 0, it forces derived classes to provide - implementations, ensuring abstraction.
+- Cannot Instantiate: Abstract classes cannot be instantiated directly.
+- Polymorphism: Enables runtime binding via pointers or references to base classes.
 
-void ManagePayment() { 
-    PaymentController controller;
-    
-    int choice;
-
-    do { 
-        choice = ReadPaymentMenu();
-        switch(choice) {
-            case 99: {
-                std::cout << "Exited successfully.." <<std::endl;
-            } break;
-            case 1: {
-                controller.makePayment();
-            } break;
-             case 2: {
-                controller.View();
-            } break;
-        }
-    } while(99 != choice);
-}
