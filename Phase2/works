@@ -16,25 +16,14 @@ ls -l server/include/
 cat server/include/httplib.h | head -n 10
 
 
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice$ rm server/include/httplib.h
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice$ wget -O server/include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
---2025-02-05 11:27:38--  https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
-Resolving raw.githubusercontent.com (raw.githubusercontent.com)... 185.199.111.133, 185.199.110.133, 185.199.108.133, ...
-Connecting to raw.githubusercontent.com (raw.githubusercontent.com)|185.199.111.133|:443... connected.
-ERROR: cannot verify raw.githubusercontent.com's certificate, issued by ‘CN=Zscaler Intermediate Root CA (zscaler.net) (t)\\ ,OU=Zscaler Inc.,O=Zscaler Inc.,ST=California,C=US’:
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice$ wget --no-check-certificate -O server/include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
+--2025-02-05 11:30:10--  https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
+Resolving raw.githubusercontent.com (raw.githubusercontent.com)... 185.199.109.133, 185.199.111.133, 185.199.110.133, ...
+Connecting to raw.githubusercontent.com (raw.githubusercontent.com)|185.199.109.133|:443... connected.
+WARNING: cannot verify raw.githubusercontent.com's certificate, issued by ‘CN=Zscaler Intermediate Root CA (zscaler.net) (t)\\ ,OU=Zscaler Inc.,O=Zscaler Inc.,ST=California,C=US’:
   Unable to locally verify the issuer's authority.
-To connect to raw.githubusercontent.com insecurely, use `--no-check-certificate'.
-
-
-
-
-
-wget --no-check-certificate -O server/include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
-
-
-https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
-
-
+HTTP request sent, awaiting response... 403 Forbidden
+2025-02-05 11:30:12 ERROR 403: Forbidden.
 
 
 
