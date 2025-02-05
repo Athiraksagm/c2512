@@ -1,8 +1,24 @@
-gMicroservice/server/build$ make
-[ 16%] Building CXX object CMakeFiles/server.dir/main.cpp.o
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/build$ make -j$(nproc)
+[ 50%] Building CXX object CMakeFiles/server.dir/main.cpp.o
+[ 50%] Building CXX object CMakeFiles/server.dir/RestApiHandler.cpp.o
+[ 66%] Building CXX object CMakeFiles/server.dir/StatisticsTracker.cpp.o
+[ 83%] Building CXX object CMakeFiles/server.dir/PeriodicUpdater.cpp.o
+[ 83%] Building CXX object CMakeFiles/server.dir/ConfigLoader.cpp.o
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/ConfigLoader.cpp:2:10: fatal error: pugixml.hpp: No such file or directory
+    2 | #include <pugixml.hpp>
+      |          ^~~~~~~~~~~~~
+compilation terminated.
+In file included from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/RestApiHandler.cpp:1:
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/RestApiHandler.h:5:10: fatal error: httplib.h: No such file or directory
+    5 | #include "httplib.h"
+      |          ^~~~~~~~~~~
+compilation terminated.
+make[2]: *** [CMakeFiles/server.dir/build.make:104: CMakeFiles/server.dir/RestApiHandler.cpp.o] Error 1
+make[2]: *** Waiting for unfinished jobs....
+make[2]: *** [CMakeFiles/server.dir/build.make:118: CMakeFiles/server.dir/ConfigLoader.cpp.o] Error 1
 In file included from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/main.cpp:2:
 /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/RestApiHandler.h:5:10: fatal error: httplib.h: No such file or directory
-    5 | #include <httplib.h>
+    5 | #include "httplib.h"
       |          ^~~~~~~~~~~
 compilation terminated.
 make[2]: *** [CMakeFiles/server.dir/build.make:76: CMakeFiles/server.dir/main.cpp.o] Error 1
