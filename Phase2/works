@@ -16,15 +16,10 @@ ls -l server/include/
 cat server/include/httplib.h | head -n 10
 
 
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice$ wget --no-check-certificate -O server/include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
---2025-02-05 11:30:10--  https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
-Resolving raw.githubusercontent.com (raw.githubusercontent.com)... 185.199.109.133, 185.199.111.133, 185.199.110.133, ...
-Connecting to raw.githubusercontent.com (raw.githubusercontent.com)|185.199.109.133|:443... connected.
-WARNING: cannot verify raw.githubusercontent.com's certificate, issued by ‘CN=Zscaler Intermediate Root CA (zscaler.net) (t)\\ ,OU=Zscaler Inc.,O=Zscaler Inc.,ST=California,C=US’:
-  Unable to locally verify the issuer's authority.
-HTTP request sent, awaiting response... 403 Forbidden
-2025-02-05 11:30:12 ERROR 403: Forbidden.
-
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice$ curl -L --insecure -o server/include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:--   0     0    0     0    0     0      0      0 --:--:--  0:00:01 100 15377  100 15377    0     0  11240      0  0:00:01  0:00:01 --:--:-- 11248
 
 
 
