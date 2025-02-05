@@ -1,74 +1,37 @@
-cmake_minimum_required(VERSION 3.10)
-project(SystemStatTests)
+-- The C compiler identification is GNU 11.4.0
+-- The CXX compiler identification is GNU 11.4.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Found Boost: /usr/lib/x86_64-linux-gnu/cmake/Boost-1.74.0/BoostConfig.cmake (found version "1.74.0") found components: system filesystem
+-- Found nlohmann_json: /usr/lib/cmake/nlohmann_json/nlohmann_jsonConfig.cmake (found version "3.10.5")
+-- Looking for pthread.h
+-- Looking for pthread.h - found
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Configuring done
+CMake Error at CMakeLists.txt:10 (add_executable):
+  Cannot find source file:
 
-set(CMAKE_CXX_STANDARD 14)
+    StatisticsTracker.cpp
 
-find_package(GTest REQUIRED)
-find_package(Threads REQUIRED)
-find_package(nlohmann_json REQUIRED)
-
-add_executable(ServerTests ServerTests.cpp ../server/StatisticsTracker.cpp ../server/ConfigLoader.cpp)
-target_include_directories(ServerTests PRIVATE ../server)
-target_link_libraries(ServerTests PRIVATE GTest::GTest GTest::Main Threads::Threads nlohmann_json::nlohmann_json)
-
-enable_testing()
-add_test(NAME ServerTests COMMAND ServerTests)
-
-
-
-#include <gtest/gtest.h>
-#include "../server/StatisticsTracker.h"
-#include "../server/ConfigLoader.h"
-
-// Test StatisticsTracker boot count update
-TEST(StatisticsTrackerTest, BootCountUpdate) {
-    StatisticsTracker tracker;
-    int initialBoots = tracker.getBootCount();
-    tracker.update();
-    EXPECT_EQ(tracker.getBootCount(), initialBoots + 1);
-}
-
-// Test StatisticsTracker total uptime update
-TEST(StatisticsTrackerTest, TotalUptimeUpdate) {
-    StatisticsTracker tracker;
-    long initialUptime = tracker.getTotalUptime();
-    tracker.update();
-    EXPECT_GT(tracker.getTotalUptime(), initialUptime);
-}
-
-// Test ConfigLoader loading configuration
-TEST(ConfigLoaderTest, LoadUpdateInterval) {
-    ConfigLoader config;
-    int interval = config.getUpdateInterval();
-    EXPECT_GT(interval, 0); // Ensure it's a positive value
-}
-
-// Test JSON response format
-#include "../server/RestApiHandler.h"
-#include <nlohmann/json.hpp>
-
-TEST(RestApiHandlerTest, JsonResponseFormat) {
-    StatisticsTracker tracker;
-    RestApiHandler apiHandler(tracker);
-
-    nlohmann::json jsonResponse;
-    jsonResponse["boot_count"] = tracker.getBootCount();
-    jsonResponse["total_uptime"] = tracker.getTotalUptime();
-
-    EXPECT_TRUE(jsonResponse.contains("boot_count"));
-    EXPECT_TRUE(jsonResponse.contains("total_uptime"));
-}
-
-// Run all tests
-int main(int argc, char **argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
+  Tried extensions .c .C .c++ .cc .cpp .cxx .cu .mpp .m .M .mm .ixx .cppm .h
+  .hh .h++ .hm .hpp .hxx .in .txx .f .F .for .f77 .f90 .f95 .f03 .hip .ispc
 
 
+CMake Error at CMakeLists.txt:10 (add_executable):
+  No SOURCES given to target: server
 
 
-
+CMake Generate step failed.  Build files cannot be regenerated correctly.
 
 
 
