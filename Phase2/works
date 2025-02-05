@@ -25,6 +25,44 @@ cat server/include/httplib.h | head -n 10
 
 
 
+
+
+[ 16%] Building CXX object CMakeFiles/server.dir/main.cpp.o
+In file included from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/main.cpp:2:
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/RestApiHandler.h:5:10: fatal error: httplib.h: No such file or directory
+    5 | #include <httplib.h>
+      |          ^~~~~~~~~~~
+compilation terminated.
+make[2]: *** [CMakeFiles/server.dir/build.make:76: CMakeFiles/server.dir/main.cpp.o] Error 1
+make[1]: *** [CMakeFiles/Makefile2:83: CMakeFiles/server.dir/all] Error 2
+make: *** [Makefile:91: all] Error 2
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/build$ ls -l server/include/
+ls: cannot access 'server/include/': No such file or directory
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/build$ cd ../..
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice$ ls -l server/include/
+total 4
+-rwxrwxrwx 1 athira athira 131 Feb  5 11:40 httplib.h
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice$ cat server/include/httplib.h | head -n 10
+#ifndef CPPHTTPLIB_H_
+#define CPPHTTPLIB_H_
+
+// ... (Copy the entire content from the official repository)
+
+#endif // CPPHTTPLIB_H_athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Give me the c++ code for my project,the requirements are as follows.
 
 1.System Stat Logging Microservice
