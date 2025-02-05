@@ -7,7 +7,6 @@ wget -O server/include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-h
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
 
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/build$ make
 [ 16%] Building CXX object CMakeFiles/server.dir/main.cpp.o
 In file included from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/main.cpp:2:
 /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/RestApiHandler.h:5:10: fatal error: httplib.h: No such file or directory
