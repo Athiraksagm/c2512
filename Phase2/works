@@ -1,0 +1,24 @@
+SystemStatLoggingMicroservice/
+├── server/
+│   ├── CMakeLists.txt
+│   ├── main.cpp
+│   ├── StatisticsTracker.h
+│   ├── StatisticsTracker.cpp
+│   ├── RestApiHandler.h
+│   ├── RestApiHandler.cpp
+│   ├── ConfigLoader.h
+│   ├── ConfigLoader.cpp
+│   └── PeriodicUpdater.h
+│   └── PeriodicUpdater.cpp
+├── client/
+│   ├── CMakeLists.txt
+│   ├── main.cpp
+│   ├── ApiClient.h
+│   ├── ApiClient.cpp
+│   ├── JsonParser.h
+│   ├── JsonParser.cpp
+│   └── CsvLogger.h
+│   └── CsvLogger.cpp
+└── tests/
+    ├── CMakeLists.txt
+    └── ServerTests.cpp
