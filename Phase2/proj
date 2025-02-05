@@ -1,0 +1,10 @@
+gMicroservice/server/build$ make
+[ 16%] Building CXX object CMakeFiles/server.dir/main.cpp.o
+In file included from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/main.cpp:2:
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/RestApiHandler.h:5:10: fatal error: httplib.h: No such file or directory
+    5 | #include <httplib.h>
+      |          ^~~~~~~~~~~
+compilation terminated.
+make[2]: *** [CMakeFiles/server.dir/build.make:76: CMakeFiles/server.dir/main.cpp.o] Error 1
+make[1]: *** [CMakeFiles/Makefile2:83: CMakeFiles/server.dir/all] Error 2
+make: *** [Makefile:91: all] Error 2
