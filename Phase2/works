@@ -7,27 +7,16 @@ wget -O server/include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-h
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
 
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice$ ls -l server/include/
-total 0
--rwxrwxrwx 1 athira athira 0 Feb  5 11:18 httplib.h
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice$ cat server/CMakeLists.txt
-cmake_minimum_required(VERSION 3.10)
-project(SystemStatServer)
-
-set(CMAKE_CXX_STANDARD 14)
+rm server/include/httplib.h
+wget -O server/include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
 
 
 
-find_package(Boost REQUIRED COMPONENTS system filesystem)
-find_package(nlohmann_json REQUIRED)
-find_package(Threads REQUIRED)
+ls -l server/include/
+cat server/include/httplib.h | head -n 10
 
-include_directories(${CMAKE_SOURCE_DIR}/server/include)
 
-add_executable(server main.cpp StatisticsTracker.cpp RestApiHandler.cpp ConfigLoader.cpp PeriodicUpdater.cpp)
 
-target_include_directories(server PRIVATE ${Boost_INCLUDE_DIRS})
-target_link_libraries(server PRIVATE ${Boost_LIBRARIES} nlohmann_json::nlohmann_json Threads::Threads)
 
 
 
