@@ -1,3 +1,130 @@
+cmake_minimum_required(VERSION 3.10)
+project(SystemStatClient)
+
+set(CMAKE_CXX_STANDARD 14)
+
+find_package(nlohmann_json REQUIRED)
+
+add_executable(client main.cpp ApiClient.cpp JsonParser.cpp CsvLogger.cpp)
+
+target_link_libraries(client PRIVATE nlohmann_json::nlohmann_json)
+
+
+
+
+#include "ApiClient.h"
+#include "JsonParser.h"
+#include "CsvLogger.h"
+#include <iostream>
+
+int main(int argc, char* argv[]) {
+    ApiClient client;
+    JsonParser parser;
+    CsvLogger logger;
+
+    std::string response = client.requestStats();
+    auto stats = parser.parseJson(response);
+
+    if (argc > 1 && std::string(argv[1]) == "--log") {
+        logger.logStats(stats);
+    } else {
+        std::cout << "Boots: " << stats.bootCount << ", Uptime: " << stats.totalUptime << " seconds\n";
+    }
+
+    return 0;
+}
+
+
+
+
+
+
+#ifndef API_CLIENT_H
+#define API_CLIENT_H
+
+#include <string>
+
+class ApiClient {
+public:
+    std::string requestStats();
+};
+
+#endif
+
+
+
+
+
+#include "ApiClient.h"
+#include <httplib.h>
+
+std::string ApiClient::requestStats() {
+    httplib::Client cli("http://localhost:8080");
+    auto res = cli.Get("/stats");
+    return res ? res->body : "{}";
+}
+
+
+
+#ifndef JSON_PARSER_H
+#define JSON_PARSER_H
+
+#include <string>
+
+struct SystemStats {
+    int bootCount;
+    long totalUptime;
+};
+
+class JsonParser {
+public:
+    SystemStats parseJson(const std::string& jsonStr);
+};
+
+#endif
+
+
+
+
+#include "JsonParser.h"
+#include <nlohmann/json.hpp>
+
+SystemStats JsonParser::parseJson(const std::string& jsonStr) {
+    nlohmann::json jsonData = nlohmann::json::parse(jsonStr);
+    return { jsonData["boot_count"], jsonData["total_uptime"] };
+}
+
+
+
+#ifndef CSV_LOGGER_H
+#define CSV_LOGGER_H
+
+#include "JsonParser.h"
+
+class CsvLogger {
+public:
+    void logStats(const SystemStats& stats);
+};
+
+#endif
+
+
+
+
+#include "CsvLogger.h"
+#include <fstream>
+#include <ctime>
+
+void CsvLogger::logStats(const SystemStats& stats) {
+    std::ofstream file("stats.csv", std::ios::app);
+    time_t now = time(nullptr);
+    file << std::ctime(&now) << "," << stats.bootCount << "," << stats.totalUptime << "\n";
+}
+
+
+
+
+
 
 
 
