@@ -1,27 +1,63 @@
-SystemStatLoggingMicroservice/
-├── server/
-│   ├── CMakeLists.txt
-│   ├── main.cpp
-│   ├── StatisticsTracker.h
-│   ├── StatisticsTracker.cpp
-│   ├── RestApiHandler.h
-│   ├── RestApiHandler.cpp
-│   ├── ConfigLoader.h
-│   ├── ConfigLoader.cpp
-│   └── PeriodicUpdater.h
-│   └── PeriodicUpdater.cpp
-├── client/
-│   ├── CMakeLists.txt
-│   ├── main.cpp
-│   ├── ApiClient.h
-│   ├── ApiClient.cpp
-│   ├── JsonParser.h
-│   ├── JsonParser.cpp
-│   └── CsvLogger.h
-│   └── CsvLogger.cpp
-└── tests/
-    ├── CMakeLists.txt
-    └── ServerTests.cpp
+cmake_minimum_required(VERSION 3.10)
+project(SystemStatServer)
+
+set(CMAKE_CXX_STANDARD 14)
+
+find_package(Boost REQUIRED COMPONENTS system filesystem)
+find_package(nlohmann_json REQUIRED)
+find_package(Threads REQUIRED)
+
+add_executable(server main.cpp StatisticsTracker.cpp RestApiHandler.cpp ConfigLoader.cpp PeriodicUpdater.cpp)
+
+target_include_directories(server PRIVATE ${Boost_INCLUDE_DIRS})
+target_link_libraries(server PRIVATE ${Boost_LIBRARIES} nlohmann_json::nlohmann_json Threads::Threads)
+
+
+
+#include "StatisticsTracker.h"
+#include "RestApiHandler.h"
+#include "ConfigLoader.h"
+#include "PeriodicUpdater.h"
+#include <iostream>
+#include <thread>
+
+int main() {
+    StatisticsTracker tracker;
+    ConfigLoader config;
+    RestApiHandler apiHandler(tracker);
+    PeriodicUpdater updater(tracker, config);
+
+    std::thread serverThread([&apiHandler] { apiHandler.startServer(); });
+    std::thread updaterThread([&updater] { updater.run(); });
+
+    serverThread.join();
+    updaterThread.join();
+
+    return 0;
+}
+
+
+
+#ifndef STATISTICS_TRACKER_H
+#define STATISTICS_TRACKER_H
+
+#include <mutex>
+
+class StatisticsTracker {
+private:
+    int bootCount;
+    long totalUptime;
+    std::mutex mtx;
+
+public:
+    StatisticsTracker();
+    void update();
+    int getBootCount();
+    long getTotalUptime();
+};
+
+#endif
+
 
 
 
