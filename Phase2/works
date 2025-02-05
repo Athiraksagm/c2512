@@ -16,16 +16,21 @@ ls -l server/include/
 cat server/include/httplib.h | head -n 10
 
 
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice$ curl -L --insecure -o server/include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:--   0     0    0     0    0     0      0      0 --:--:--  0:00:01 100 15377  100 15377    0     0  11240      0  0:00:01  0:00:01 --:--:-- 11248
-
-
-
-
-curl -L --insecure -o server/include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
-
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice$ ls -l server/include/
+total 16
+-rwxrwxrwx 1 athira athira 15377 Feb  5 11:34 httplib.h
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice$ cat server/include/httplib.h | head -n 10
+<!--# 57tP7QP0ZWVNhSRqVRPstjQ50P0PDt7QQrtQNmMd-->
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3c.org/TR/1999/REC-html401-19991224/loose.dtd">
+<html>
+<head>
+<meta name="description" content="Zscaler makes the internet safe for businesses by protecting their employees from malware, viruses, and other security threats.">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Internet Security by Zscaler</title>
+<script language="JavaScript">var defLang = 'en_US'</script>
+<!--QuEST Global-->
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice$
 
 
 
