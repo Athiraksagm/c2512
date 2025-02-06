@@ -1,48 +1,12 @@
-cmake_minimum_required(VERSION 3.10)
-
-project(Server)
-
-set(CMAKE_CXX_STANDARD 14)
-
-# Add cpprestsdk cmake directory to CMAKE_PREFIX_PATH
-list(APPEND CMAKE_PREFIX_PATH "/usr/lib/x86_64-linux-gnu/cmake/cpprestsdk")
-
-# Find required packages
-find_package(Boost REQUIRED COMPONENTS system thread)
-
-# Find cpprestsdk
-find_package(cpprestsdk REQUIRED)
-
-# Include directories
-include_directories(
-    ${Boost_INCLUDE_DIRS}
-    /usr/include/cpprest
-    /usr/include/pplx
-    ${CMAKE_SOURCE_DIR}
-)
-
-# Add source files
-set(SOURCES
-    main.cpp
-    StatisticsTracker.cpp
-    RestApiHandler.cpp
-    ConfigLoader.cpp
-    PeriodicUpdater.cpp
-)
-
-# Create the executable
-add_executable(server ${SOURCES})
-
-# Link the necessary libraries
-target_link_libraries(server
-    ${Boost_LIBRARIES}
-    cpprest
-    pthread
-)
-
-# Optional: Install rules
-install(TARGETS server DESTINATION bin)
-
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStat/server/build$ make
+[ 16%] Building CXX object CMakeFiles/server.dir/main.cpp.o
+In file included from /mnt/c/Users/2022004/Desktop/SystemStat/server/main.cpp:1:
+/mnt/c/Users/2022004/Desktop/SystemStat/server/RestApiHandler.h:15:17: error: ‘http_listener’ in namespace ‘web::http’ does not name a type
+   15 |      web::http::http_listener listener;
+      |                 ^~~~~~~~~~~~~
+make[2]: *** [CMakeFiles/server.dir/build.make:76: CMakeFiles/server.dir/main.cpp.o] Error 1
+make[1]: *** [CMakeFiles/Makefile2:83: CMakeFiles/server.dir/all] Error 2
+make: *** [Makefile:136: all] Error 2
 
 
 
