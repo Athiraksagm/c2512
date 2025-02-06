@@ -1,30 +1,14 @@
-cmake_minimum_required(VERSION 3.10)
-
-# Set the server project name
-project(Server)
-
-# Find Poco libraries
-find_package(Poco REQUIRED COMPONENTS Foundation Util Net JSON XML)
-
-# Add source files
-add_executable(server main.cpp StatisticsTracker.cpp RestApiHandler.cpp ConfigLoader.cpp)
-
-# Include Poco headers explicitly
-target_include_directories(server PRIVATE /usr/include/Poco)
-
-# Link Poco libraries
-target_link_libraries(server PRIVATE Poco::Foundation Poco::Util Poco::Net Poco::JSON Poco::XML)
-
-message(STATUS "Successfully linked Poco libraries")
-
-
-
-
-sudo apt install libpoco-doc libpoco-data-dev libpoco-data-mysql-dev libpoco-data-postgresql-dev libpoco-netssl-dev
-
-
-
-
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStat/build$ find /usr/include/Poco -name "Document.h"
+/usr/include/Poco/MongoDB/Document.h
+/usr/include/Poco/DOM/Document.h
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStat/build$ sudo apt install libpoco-doc libpoco-data-dev libpoco-data-mysql-dev libpoco-data-postgresql-dev libpoco-netssl-dev
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+E: Unable to locate package libpoco-data-dev
+E: Unable to locate package libpoco-data-mysql-dev
+E: Unable to locate package libpoco-data-postgresql-dev
+E: Unable to locate package libpoco-netssl-dev
 
 find /usr/lib -name "Poco.pc" 2>/dev/null
 
