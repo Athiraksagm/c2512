@@ -21,6 +21,15 @@ make: *** [Makefile:91: all] Error 2
 
 
 
+sudo apt update
+sudo apt install libpoco-dev
+
+
+
+
+
+
+
 
 Give me the c++ code for my project,the requirements are as follows.
 
