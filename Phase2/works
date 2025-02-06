@@ -1,29 +1,116 @@
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStat/server/build$ cmake ..
--- Found Boost: /usr/lib/x86_64-linux-gnu/cmake/Boost-1.74.0/BoostConfig.cmake (found version "1.74.0") found components: system thread
--- Found Boost: /usr/lib/x86_64-linux-gnu/cmake/Boost-1.74.0/BoostConfig.cmake (found version "1.74.0") found components: random system thread filesystem chrono atomic date_time regex
--- Found Boost: /usr/lib/x86_64-linux-gnu/cmake/Boost-1.74.0/BoostConfig.cmake (found version "1.74.0")
--- Found Boost: /usr/lib/x86_64-linux-gnu/cmake/Boost-1.74.0/BoostConfig.cmake (found version "1.74.0") found components: random system thread filesystem chrono atomic date_time regex
--- Configuring done
--- Generating done
--- Build files have been written to: /mnt/c/Users/2022004/Desktop/SystemStat/server
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStat/server/build$ make
-make: *** No targets specified and no makefile found.  Stop.
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStat/server/build$ make server
-make: *** No rule to make target 'server'.  Stop.
-
-
-
-
-
-
-
-cd ~
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStat/server/build$ cd ~
 git clone https://github.com/microsoft/cpprestsdk.git
 cd cpprestsdk
 mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release
 make -j$(nproc)
 sudo make install
+Cloning into 'cpprestsdk'...
+remote: Enumerating objects: 30036, done.
+remote: Counting objects: 100% (11/11), done.
+remote: Compressing objects: 100% (8/8), done.
+remote: Total 30036 (delta 5), reused 3 (delta 3), pack-reused 30025 (from 2)
+Receiving objects: 100% (30036/30036), 10.84 MiB | 815.00 KiB/s, done.
+Resolving deltas: 100% (22034/22034), done.
+-- The C compiler identification is GNU 11.4.0
+-- The CXX compiler identification is GNU 11.4.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Looking for pthread.h
+-- Looking for pthread.h - found
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Looking for include file xlocale.h
+-- Looking for include file xlocale.h - not found
+-- Setting gcc options
+-- Found websocketpp version 0.8.2 on system
+-- Found Boost: /usr/lib/x86_64-linux-gnu/cmake/Boost-1.74.0/BoostConfig.cmake (found version "1.74.0") found components: random system thread filesystem chrono atomic date_time regex
+-- Found PkgConfig: /usr/bin/pkg-config (found version "0.29.2")
+-- Checking for one of the modules 'openssl'
+-- Performing Test _SSL_LEAK_SUPPRESS_AVAILABLE
+-- Performing Test _SSL_LEAK_SUPPRESS_AVAILABLE - Failed
+-- Found ZLIB: /usr/lib/x86_64-linux-gnu/libz.so (found version "1.2.11")
+-- Added test library httpclient_test
+-- Added test library httplistener_test
+-- Added test library json_test
+-- Added test library pplx_test
+-- Added test library streams_test
+-- Added test library uri_test
+-- Added test library utils_test
+-- Added test library websocketsclient_test
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/athira/cpprestsdk/build
+[  1%] Building CXX object Release/src/CMakeFiles/cpprest.dir/http/client/http_client.cpp.o
+[  2%] Building CXX object Release/src/CMakeFiles/cpprest.dir/http/client/http_client_msg.cpp.o
+[  2%] Building CXX object Release/src/CMakeFiles/cpprest.dir/http/common/http_compression.cpp.o
+[  3%] Building CXX object Release/src/CMakeFiles/cpprest.dir/http/common/http_helpers.cpp.o
+[  4%] Building CXX object Release/src/CMakeFiles/cpprest.dir/http/listener/http_listener.cpp.o
+[  4%] Building CXX object Release/src/CMakeFiles/cpprest.dir/http/listener/http_listener_msg.cpp.o
+[  5%] Building CXX object Release/src/CMakeFiles/cpprest.dir/http/listener/http_server_api.cpp.o
+[  5%] Building CXX object Release/src/CMakeFiles/cpprest.dir/http/common/http_msg.cpp.o
+/home/athira/cpprestsdk/Release/src/http/common/http_helpers.cpp: In function ‘size_t web::http::details::chunked_encoding::add_chunked_delimiters(uint8_t*, size_t, size_t)’:
+/home/athira/cpprestsdk/Release/src/http/common/http_helpers.cpp:91:43: error: ‘%8zX’ directive output may be truncated writing between 8 and 16 bytes into a region of size 9 [-Werror=format-truncation=]
+   91 |         snprintf(buffer, sizeof(buffer), "%8zX", bytes_read);
+      |                                           ^~~~
+/home/athira/cpprestsdk/Release/src/http/common/http_helpers.cpp:91:42: note: directive argument in the range [1, 18446744073709551615]
+   91 |         snprintf(buffer, sizeof(buffer), "%8zX", bytes_read);
+      |                                          ^~~~~~
+In file included from /usr/include/stdio.h:894,
+                 from /usr/include/c++/11/cstdio:42,
+                 from /usr/include/c++/11/ext/string_conversions.h:43,
+                 from /usr/include/c++/11/bits/basic_string.h:6608,
+                 from /usr/include/c++/11/string:55,
+                 from /home/athira/cpprestsdk/Release/src/pch/stdafx.h:52,
+                 from /home/athira/cpprestsdk/Release/src/http/common/http_helpers.cpp:14:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:71:35: note: ‘__builtin___snprintf_chk’ output between 9 and 17 bytes into a destination of size 9
+   71 |   return __builtin___snprintf_chk (__s, __n, __USE_FORTIFY_LEVEL - 1,
+      |          ~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   72 |                                    __glibc_objsize (__s), __fmt,
+      |                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   73 |                                    __va_arg_pack ());
+      |                                    ~~~~~~~~~~~~~~~~~
+cc1plus: all warnings being treated as errors
+make[2]: *** [Release/src/CMakeFiles/cpprest.dir/build.make:118: Release/src/CMakeFiles/cpprest.dir/http/common/http_helpers.cpp.o] Error 1
+make[2]: *** Waiting for unfinished jobs....
+make[1]: *** [CMakeFiles/Makefile2:545: Release/src/CMakeFiles/cpprest.dir/all] Error 2
+make: *** [Makefile:146: all] Error 2
+Consolidate compiler generated dependencies of target cpprest
+[  1%] Building CXX object Release/src/CMakeFiles/cpprest.dir/http/common/http_helpers.cpp.o
+/home/athira/cpprestsdk/Release/src/http/common/http_helpers.cpp: In function ‘size_t web::http::details::chunked_encoding::add_chunked_delimiters(uint8_t*, size_t, size_t)’:
+/home/athira/cpprestsdk/Release/src/http/common/http_helpers.cpp:91:43: error: ‘%8zX’ directive output may be truncated writing between 8 and 16 bytes into a region of size 9 [-Werror=format-truncation=]
+   91 |         snprintf(buffer, sizeof(buffer), "%8zX", bytes_read);
+      |                                           ^~~~
+/home/athira/cpprestsdk/Release/src/http/common/http_helpers.cpp:91:42: note: directive argument in the range [1, 18446744073709551615]
+   91 |         snprintf(buffer, sizeof(buffer), "%8zX", bytes_read);
+      |                                          ^~~~~~
+In file included from /usr/include/stdio.h:894,
+                 from /usr/include/c++/11/cstdio:42,
+                 from /usr/include/c++/11/ext/string_conversions.h:43,
+                 from /usr/include/c++/11/bits/basic_string.h:6608,
+                 from /usr/include/c++/11/string:55,
+                 from /home/athira/cpprestsdk/Release/src/pch/stdafx.h:52,
+                 from /home/athira/cpprestsdk/Release/src/http/common/http_helpers.cpp:14:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:71:35: note: ‘__builtin___snprintf_chk’ output between 9 and 17 bytes into a destination of size 9
+   71 |   return __builtin___snprintf_chk (__s, __n, __USE_FORTIFY_LEVEL - 1,
+      |          ~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   72 |                                    __glibc_objsize (__s), __fmt,
+      |                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   73 |                                    __va_arg_pack ());
+      |                                    ~~~~~~~~~~~~~~~~~
+cc1plus: all warnings being treated as errors
+make[2]: *** [Release/src/CMakeFiles/cpprest.dir/build.make:118: Release/src/CMakeFiles/cpprest.dir/http/common/http_helpers.cpp.o] Error 1
+make[1]: *** [CMakeFiles/Makefile2:545: Release/src/CMakeFiles/cpprest.dir/all] Error 2
+make: *** [Makefile:146: all] Error 2
 
 
 
