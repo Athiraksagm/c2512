@@ -15,13 +15,27 @@ endif()
 
 cmake_minimum_required(VERSION 3.10)
 
-# Set the project name
-project(SystemStatLoggingMicroservice)
+# Set the server project name
+project(Server)
 
-# Add subdirectories for server, client, and tests
-add_subdirectory(server)
-add_subdirectory(client)
-add_subdirectory(tests)
+# Find Poco libraries manually
+find_library(POCO_FOUNDATION PocoFoundation)
+find_library(POCO_NET PocoNet)
+find_library(POCO_UTIL PocoUtil)
+find_library(POCO_XML PocoXML)
+find_library(POCO_JSON PocoJSON)
+
+if (POCO_FOUNDATION AND POCO_NET AND POCO_UTIL AND POCO_XML AND POCO_JSON)
+    message(STATUS "Found Poco libraries")
+else()
+    message(FATAL_ERROR "Poco libraries not found")
+endif()
+
+# Add source files
+add_executable(server main.cpp StatisticsTracker.cpp RestApiHandler.cpp ConfigLoader.cpp)
+
+# Link Poco libraries
+target_link_libraries(server PRIVATE ${POCO_FOUNDATION} ${POCO_NET} ${POCO_UTIL} ${POCO_XML} ${POCO_JSON})
 
 
 
