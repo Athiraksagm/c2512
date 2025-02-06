@@ -1,30 +1,43 @@
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStat/server/build$ cmake ..
--- The C compiler identification is GNU 11.4.0
--- The CXX compiler identification is GNU 11.4.0
--- Detecting C compiler ABI info
--- Detecting C compiler ABI info - done
--- Check for working C compiler: /usr/bin/cc - skipped
--- Detecting C compile features
--- Detecting C compile features - done
--- Detecting CXX compiler ABI info
--- Detecting CXX compiler ABI info - done
--- Check for working CXX compiler: /usr/bin/c++ - skipped
--- Detecting CXX compile features
--- Detecting CXX compile features - done
--- Found Boost: /usr/lib/x86_64-linux-gnu/cmake/Boost-1.74.0/BoostConfig.cmake (found version "1.74.0")
--- Found ZLIB: /usr/lib/x86_64-linux-gnu/libz.so (found version "1.2.11")
--- Found OpenSSL: /usr/lib/x86_64-linux-gnu/libcrypto.so (found version "3.0.2")
--- Found Boost: /usr/lib/x86_64-linux-gnu/cmake/Boost-1.74.0/BoostConfig.cmake (found version "1.74.0") found components: random system thread filesystem chrono atomic date_time regex
--- Configuring done
-CMake Error at CMakeLists.txt:10 (add_executable):
-  Target "server" links to target "Boost::Boost" but the target was not
-  found.  Perhaps a find_package() call is missing for an IMPORTED target, or
-  an ALIAS target is missing?
+cmake_minimum_required(VERSION 3.10)
 
+project(Server)
 
--- Generating done
-CMake Generate step failed.  Build files cannot be regenerated correctly.
+set(CMAKE_CXX_STANDARD 14)
 
+# Find required packages
+find_package(Boost REQUIRED COMPONENTS system thread)
+
+# Find cpprestsdk if needed for your project
+find_package(cpprestsdk REQUIRED)
+
+# Include directories
+include_directories(
+    ${Boost_INCLUDE_DIRS}
+    ${cpprestsdk_INCLUDE_DIRS}
+    ${CMAKE_SOURCE_DIR}
+)
+
+# Add source files
+set(SOURCES
+    main.cpp
+    StatisticsTracker.cpp
+    RestApiHandler.cpp
+    ConfigLoader.cpp
+    PeriodicUpdater.cpp
+)
+
+# Create the executable
+add_executable(server ${SOURCES})
+
+# Link the necessary libraries
+target_link_libraries(server
+    ${Boost_LIBRARIES}     # Linking Boost libraries
+    cpprestsdk             # Linking cpprestsdk
+    pthread                # For multi-threading
+)
+
+# Optional: Install rules
+install(TARGETS server DESTINATION bin)
 
 
 
