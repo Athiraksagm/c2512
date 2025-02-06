@@ -1,3 +1,15 @@
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStat/build$ cmake ..
+CMake Error: The source directory "/mnt/c/Users/2022004/Desktop/SystemStat" does not appear to contain CMakeLists.txt.
+Specify --help for usage, or press the help button on the CMake GUI.
+
+
+
+
+
+
+
+
+
 Give me the c++ code for my project,the requirements are as follows.
 
 1.System Stat Logging Microservice
