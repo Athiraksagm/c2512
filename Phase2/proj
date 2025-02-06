@@ -1,16 +1,5 @@
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStat/build$ dpkg -L libpocoxml80
-/.
-/usr
-/usr/lib
-/usr/lib/x86_64-linux-gnu
-/usr/lib/x86_64-linux-gnu/libPocoXML.so.80
-/usr/share
-/usr/share/doc
-/usr/share/doc/libpocoxml80
-/usr/share/doc/libpocoxml80/copyright
-/usr/share/doc/libpocoxml80/changelog.Debian.gz
-
-find /usr/lib -name "Poco.pc" 2>/dev/null
+git clone --recurse-submodules https://github.com/pocoproject/poco.git
+cd poco
 
 
 
