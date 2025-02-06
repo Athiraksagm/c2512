@@ -4,16 +4,20 @@ project(Server)
 
 set(CMAKE_CXX_STANDARD 14)
 
+# Add cpprestsdk cmake directory to CMAKE_PREFIX_PATH
+list(APPEND CMAKE_PREFIX_PATH "/usr/lib/x86_64-linux-gnu/cmake/cpprestsdk")
+
 # Find required packages
 find_package(Boost REQUIRED COMPONENTS system thread)
 
-# Find cpprestsdk if needed for your project
+# Find cpprestsdk
 find_package(cpprestsdk REQUIRED)
 
 # Include directories
 include_directories(
     ${Boost_INCLUDE_DIRS}
-    ${cpprestsdk_INCLUDE_DIRS}
+    /usr/include/cpprest
+    /usr/include/pplx
     ${CMAKE_SOURCE_DIR}
 )
 
@@ -31,14 +35,13 @@ add_executable(server ${SOURCES})
 
 # Link the necessary libraries
 target_link_libraries(server
-    ${Boost_LIBRARIES}     # Linking Boost libraries
-    cpprestsdk             # Linking cpprestsdk
-    pthread                # For multi-threading
+    ${Boost_LIBRARIES}
+    cpprest
+    pthread
 )
 
 # Optional: Install rules
 install(TARGETS server DESTINATION bin)
-
 
 
 
