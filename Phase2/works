@@ -159,6 +159,115 @@ make
 These steps should address the errors you're encountering and get the code compiled successfully. If you need further help, let me know!
 
 
+Yes, you are correct! The changes should also reflect in the corresponding .cpp files based on the updates we discussed in the header files. Here's a summary of the changes needed for the .cpp files:
+
+1. RestApiHandler.cpp:
+
+The constructor now accepts a ConfigLoader::Config& instead of a std::string. You should update the implementation of RestApiHandler in the .cpp file to handle the configuration properly.
+
+// RestApiHandler.cpp
+#include "RestApiHandler.h"
+#include "ConfigLoader.h"
+
+RestApiHandler::RestApiHandler(ConfigLoader::Config& config)
+    : listener(config.address) {  // Assume the address is in the config
+    // Initialize the listener and other members here
+}
+
+void RestApiHandler::start() {
+    // Code to start the listener and handle incoming requests
+}
+
+2. StatisticsTracker.cpp:
+
+You need to implement the getInstance method and other functionality required for your statistics tracking.
+
+// StatisticsTracker.cpp
+#include "StatisticsTracker.h"
+
+StatisticsTracker& StatisticsTracker::getInstance() {
+    static StatisticsTracker instance;
+    return instance;
+}
+
+// Implement other functions to track the system statistics here
+
+3. PeriodicUpdater.cpp:
+
+The PeriodicUpdater should manage the periodic updates of the statistics. Here's how you can implement it:
+
+// PeriodicUpdater.cpp
+#include "PeriodicUpdater.h"
+#include "StatisticsTracker.h"
+#include <thread>
+#include <chrono>
+
+PeriodicUpdater::PeriodicUpdater(StatisticsTracker& tracker, int interval)
+    : tracker(tracker), interval(interval) {}
+
+void PeriodicUpdater::start() {
+    while (true) {
+        // Update the statistics
+        // tracker.updateStats(); // Assuming you have an update function
+
+        // Sleep for the configured interval before the next update
+        std::this_thread::sleep_for(std::chrono::seconds(interval));
+    }
+}
+
+4. main.cpp:
+
+You need to adjust the way you initialize RestApiHandler and StatisticsTracker, and ensure the PeriodicUpdater thread is properly created and managed.
+
+// main.cpp
+#include "RestApiHandler.h"
+#include "StatisticsTracker.h"
+#include "ConfigLoader.h"
+#include "PeriodicUpdater.h"
+#include <thread>
+
+int main() {
+    // Load configuration
+    ConfigLoader::Config config;
+    ConfigLoader configLoader("config.xml");
+    configLoader.load(config);
+
+    // Instantiate the RestApiHandler with the loaded config
+    RestApiHandler apiHandler(config);
+
+    // Instantiate StatisticsTracker using the static method
+    StatisticsTracker& statsTracker = StatisticsTracker::getInstance();
+
+    // Create the PeriodicUpdater thread
+    PeriodicUpdater updater(statsTracker, config.updateInterval);
+    std::thread updateThread(&PeriodicUpdater::start, &updater);
+
+    updateThread.join();
+    return 0;
+}
+
+
+---
+
+Summary of the changes:
+
+1. RestApiHandler now accepts a ConfigLoader::Config& and uses the config.address for initialization.
+
+
+2. StatisticsTracker has a private constructor and provides a static getInstance() method.
+
+
+3. PeriodicUpdater now handles periodic updates using a thread.
+
+
+4. main.cpp correctly initializes the RestApiHandler and StatisticsTracker instances and starts the periodic update thread.
+
+
+
+These changes should resolve the errors and allow the application to compile correctly. Let me know if you need further clarification or assistance!
+
+
+
 
 
 
