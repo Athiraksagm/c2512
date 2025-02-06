@@ -457,3 +457,218 @@ Let me know if you need further adjustments or help!
 
 
 
+
+
+
+
+You're right! I did miss providing the code for a few additional files and components such as JsonParser.h and JsonParser.cpp for the client, ConfigLoader.h and ConfigLoader.cpp for the server, and CMakeLists.txt and ServerTests.cpp for testing. These files are indeed necessary for the full functionality and testing of the system.
+
+Let me provide the missing pieces for you:
+
+1. JsonParser.h (Client)
+
+This file will define a simple parser interface for handling JSON data from the server.
+
+#pragma once
+#include <Poco/JSON/Object.h>
+#include <Poco/JSON/Parser.h>
+#include <Poco/Dynamic/Var.h>
+#include <string>
+
+class JsonParser {
+public:
+    static Poco::JSON::Object::Ptr parseJson(const std::string& jsonStr);
+};
+
+2. JsonParser.cpp (Client)
+
+This file will provide the implementation for the JsonParser class, which parses the JSON response from the server.
+
+#include "JsonParser.h"
+#include <iostream>
+#include <sstream>
+
+Poco::JSON::Object::Ptr JsonParser::parseJson(const std::string& jsonStr) {
+    try {
+        Poco::JSON::Parser parser;
+        Poco::Dynamic::Var result = parser.parse(jsonStr);
+        return result.extract<Poco::JSON::Object::Ptr>();
+    } catch (const Poco::JSON::JSONException& e) {
+        std::cerr << "Error parsing JSON: " << e.displayText() << std::endl;
+        return nullptr;
+    }
+}
+
+3. ConfigLoader.h (Server)
+
+This header defines a class responsible for loading configuration from an XML file (e.g., for interval settings).
+
+#pragma once
+#include <string>
+
+class ConfigLoader {
+public:
+    ConfigLoader();
+    void loadConfig(const std::string& filename);
+    int getInterval() const;
+    
+private:
+    int interval; // Interval for periodic updates
+};
+
+4. ConfigLoader.cpp (Server)
+
+This file contains the implementation for loading the configuration from an XML file.
+
+#include "ConfigLoader.h"
+#include <Poco/XML/Document.h>
+#include <Poco/XML/XMLParser.h>
+#include <Poco/Exception.h>
+#include <fstream>
+#include <iostream>
+
+ConfigLoader::ConfigLoader() : interval(10) {}  // Default interval is 10 seconds
+
+void ConfigLoader::loadConfig(const std::string& filename) {
+    try {
+        std::ifstream file(filename);
+        if (!file.is_open()) {
+            throw std::runtime_error("Could not open config file: " + filename);
+        }
+
+        Poco::XML::Document doc;
+        Poco::XML::XMLParser parser;
+        doc = parser.parse(file);
+
+        // Assume XML structure: <config><interval>10</interval></config>
+        Poco::XML::NodeList* nodes = doc.documentElement()->getElementsByTagName("interval");
+        if (nodes->length() > 0) {
+            interval = std::stoi(nodes->item(0)->innerText());
+        }
+
+    } catch (const Poco::Exception& e) {
+        std::cerr << "Error loading config: " << e.displayText() << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+    }
+}
+
+int ConfigLoader::getInterval() const {
+    return interval;
+}
+
+5. CMakeLists.txt (Server)
+
+This CMakeLists.txt file will set up the server-side build system with dependencies for Poco.
+
+cmake_minimum_required(VERSION 3.10)
+
+project(SystemStatLoggingServer)
+
+set(CMAKE_CXX_STANDARD 14)
+
+find_package(Poco REQUIRED Net Util JSON XML)
+
+include_directories(${Poco_INCLUDE_DIRS})
+
+add_executable(server main.cpp StatisticsTracker.cpp RestApiHandler.cpp ConfigLoader.cpp PeriodicUpdater.cpp)
+target_link_libraries(server Poco::Net Poco::Util Poco::JSON Poco::XML)
+
+6. CMakeLists.txt (Client)
+
+Similarly, this CMakeLists.txt file will set up the client-side build system.
+
+cmake_minimum_required(VERSION 3.10)
+
+project(SystemStatLoggingClient)
+
+set(CMAKE_CXX_STANDARD 14)
+
+find_package(Poco REQUIRED Net Util JSON)
+
+include_directories(${Poco_INCLUDE_DIRS})
+
+add_executable(client main.cpp ApiClient.cpp CsvLogger.cpp JsonParser.cpp)
+target_link_libraries(client Poco::Net Poco::Util Poco::JSON)
+
+7. ServerTests.cpp (Test)
+
+This is a basic test setup for testing the server's functionality. You can use a testing framework like Google Test or Catch2. Here's a basic setup using Google Test:
+
+#include <gtest/gtest.h>
+#include "StatisticsTracker.h"
+#include "RestApiHandler.h"
+#include "PeriodicUpdater.h"
+#include "ConfigLoader.h"
+
+// Mock class for testing purposes
+class MockStatisticsTracker : public StatisticsTracker {
+public:
+    void incrementBootCount() override {
+        bootCount++; // Mocked behavior
+    }
+
+    void updateUptime() override {
+        uptime++; // Mocked behavior
+    }
+};
+
+// Test case for StatisticsTracker
+TEST(StatisticsTrackerTest, IncrementBootCount) {
+    MockStatisticsTracker stats;
+    EXPECT_EQ(stats.getBootCount(), 1);
+    stats.incrementBootCount();
+    EXPECT_EQ(stats.getBootCount(), 2);
+}
+
+TEST(StatisticsTrackerTest, UpdateUptime) {
+    MockStatisticsTracker stats;
+    long initialUptime = stats.getUptime();
+    stats.updateUptime();
+    EXPECT_GT(stats.getUptime(), initialUptime);  // uptime should increase
+}
+
+// Test case for ConfigLoader
+TEST(ConfigLoaderTest, LoadConfig) {
+    ConfigLoader config;
+    config.loadConfig("config.xml");  // Assume this XML file exists
+    EXPECT_EQ(config.getInterval(), 10);  // Default interval should be 10 if no config file exists
+}
+
+int main(int argc, char **argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+}
+
+In this example, we used Google Test (gtest) to write unit tests for StatisticsTracker and ConfigLoader. You can extend the tests to cover the full functionality of the server, client, and other components.
+
+Summary
+
+1. JsonParser: Handles JSON parsing for the client.
+
+
+2. ConfigLoader: Loads configuration for the server, specifically the update interval.
+
+
+3. CMakeLists.txt: Provides build configuration for both the server and client projects.
+
+
+4. ServerTests: Basic unit tests for server components using Google Test.
+
+
+
+You can now compile and run the server, client, and tests. Make sure you have Google Test installed if you're running the tests.
+
+Let me know if you need further clarifications or modifications!
+
+
+
+
+
+
+
+
+
+
+
+
