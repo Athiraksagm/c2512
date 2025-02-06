@@ -6,77 +6,14 @@ athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStat/build$ make
 [  8%] Building CXX object server/CMakeFiles/server.dir/main.cpp.o
 [ 16%] Building CXX object server/CMakeFiles/server.dir/StatisticsTracker.cpp.o
 [ 25%] Building CXX object server/CMakeFiles/server.dir/RestApiHandler.cpp.o
-/mnt/c/Users/2022004/Desktop/SystemStat/server/RestApiHandler.cpp: In member function ‘virtual void RestApiHandler::handleRequest(Poco::Net::HTTPServerRequest&, Poco::Net::HTTPServerResponse&)’:
-/mnt/c/Users/2022004/Desktop/SystemStat/server/RestApiHandler.cpp:12:9: error: invalid use of incomplete type ‘class Poco::Net::HTTPServerResponse’
-   12 |         response.setContentType("application/json");
-      |         ^~~~~~~~
-In file included from /mnt/c/Users/2022004/Desktop/SystemStat/server/RestApiHandler.cpp:1:
-/usr/include/Poco/Net/HTTPRequestHandler.h:29:7: note: forward declaration of ‘class Poco::Net::HTTPServerResponse’
-   29 | class HTTPServerResponse;
-      |       ^~~~~~~~~~~~~~~~~~
-/mnt/c/Users/2022004/Desktop/SystemStat/server/RestApiHandler.cpp:13:29: error: invalid use of incomplete type ‘class Poco::Net::HTTPServerResponse’
-   13 |         std::ostream& out = response.send();
-      |                             ^~~~~~~~
-In file included from /mnt/c/Users/2022004/Desktop/SystemStat/server/RestApiHandler.cpp:1:
-/usr/include/Poco/Net/HTTPRequestHandler.h:29:7: note: forward declaration of ‘class Poco::Net::HTTPServerResponse’
-   29 | class HTTPServerResponse;
-      |       ^~~~~~~~~~~~~~~~~~
-make[2]: *** [server/CMakeFiles/server.dir/build.make:104: server/CMakeFiles/server.dir/RestApiHandler.cpp.o] Error 1
+[ 33%] Building CXX object server/CMakeFiles/server.dir/ConfigLoader.cpp.o
+/mnt/c/Users/2022004/Desktop/SystemStat/server/ConfigLoader.cpp:2:10: fatal error: Poco/XML/Document.h: No such file or directory
+    2 | #include <Poco/XML/Document.h>
+      |          ^~~~~~~~~~~~~~~~~~~~~
+compilation terminated.
+make[2]: *** [server/CMakeFiles/server.dir/build.make:118: server/CMakeFiles/server.dir/ConfigLoader.cpp.o] Error 1
 make[1]: *** [CMakeFiles/Makefile2:134: server/CMakeFiles/server.dir/all] Error 2
 make: *** [Makefile:91: all] Error 2
-
-
-
-
-
-
-#include <Poco/Net/HTTPRequestHandler.h>
-#include <Poco/Net/HTTPRequestHandlerFactory.h>
-#include <Poco/Net/HTTPServer.h>
-#include <Poco/Net/ServerSocket.h>
-#include <Poco/Net/HTTPServerParams.h>
-#include <Poco/Net/HTTPServerRequest.h>
-#include <Poco/Net/HTTPServerResponse.h>  // **Add this line**
-#include <Poco/Util/ServerApplication.h>
-#include <iostream>
-
-class RestApiHandler : public Poco::Net::HTTPRequestHandler {
-public:
-    void handleRequest(Poco::Net::HTTPServerRequest& request, Poco::Net::HTTPServerResponse& response) override {
-        response.setContentType("application/json");
-        std::ostream& out = response.send();
-        out << R"({"message": "Hello from SystemStatLoggingMicroservice"})";
-    }
-};
-
-class RestApiHandlerFactory : public Poco::Net::HTTPRequestHandlerFactory {
-public:
-    Poco::Net::HTTPRequestHandler* createRequestHandler(const Poco::Net::HTTPServerRequest&) override {
-        return new RestApiHandler();
-    }
-};
-
-class RestApiServer : public Poco::Util::ServerApplication {
-protected:
-    int main(const std::vector<std::string>&) override {
-        Poco::UInt16 port = 8080;
-        Poco::Net::ServerSocket serverSocket(port);
-        Poco::Net::HTTPServerParams::Ptr params = new Poco::Net::HTTPServerParams();
-        Poco::Net::HTTPServer server(new RestApiHandlerFactory(), serverSocket, params);
-
-        std::cout << "Server started on port " << port << std::endl;
-        server.start();
-        waitForTerminationRequest();
-        server.stop();
-
-        return Application::EXIT_OK;
-    }
-};
-
-int main(int argc, char** argv) {
-    RestApiServer app;
-    return app.run(argc, argv);
-}
 
 
 
