@@ -1,35 +1,4 @@
-athira@INTVMLT2342:/mnt/c/Users/2022004$ top
-top - 14:36:35 up  3:24,  1 user,  load average: 1.06, 1.01, 0.72
-Tasks:  35 total,   1 running,  34 sleeping,   0 stopped,   0 zombie
-%Cpu(s):  0.2 us,  2.5 sy,  0.0 ni, 95.2 id,  0.0 wa,  0.0 hi,  2.1 si,  0.0 st
-MiB Mem :   7646.0 total,   6898.5 free,    370.9 used,    376.6 buff/cache
-MiB Swap:   2048.0 total,   2048.0 free,      0.0 used.   7036.1 avail Mem
 
-    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND                                                          8314 athira    20   0   52360  20928   8564 D   5.6   0.3   0:00.25 cc1plus                                                             1 root      20   0  166016  11272   8036 S   0.0   0.1   0:01.20 systemd
-      2 root      20   0    2616   1444   1320 S   0.0   0.0   0:00.01 init-systemd(Ub
-      7 root      20   0    2616    132    132 S   0.0   0.0   0:00.00 init
-     63 root      19  -1   47816  15704  14628 S   0.0   0.2   0:00.39 systemd-journal
-     91 root      20   0   21964   5728   4456 S   0.0   0.1   0:01.00 systemd-udevd
-     94 systemd+  20   0   25664  12792   8432 S   0.0   0.2   0:00.39 systemd-resolve
-     95 systemd+  20   0   89364   6512   5712 S   0.0   0.1   0:00.36 systemd-timesyn
-    176 root      20   0    4308   2672   2436 S   0.0   0.0   0:00.03 cron
-    178 message+  20   0    8584   4748   4208 S   0.0   0.1   0:00.13 dbus-daemon
-    182 root      20   0   30084  19348  10312 S   0.0   0.2   0:00.26 networkd-dispat
-    186 syslog    20   0  222404  11308   4344 S   0.0   0.1   0:00.08 rsyslogd
-    190 root      20   0   15332   7440   6492 S   0.0   0.1   0:00.27 systemd-logind
-    214 root      20   0    3240   1076    980 S   0.0   0.0   0:00.01 agetty
-    216 root      20   0    3196   1176   1080 S   0.0   0.0   0:00.00 agetty
-    232 root      20   0  107160  21160  13044 S   0.0   0.3   0:00.19 unattended-upgr
-    276 root      20   0    2624    124      0 S   0.0   0.0   0:00.00 SessionLeader
-    278 root      20   0    2624    128      0 S   0.0   0.0   0:00.27 Relay(282)
-    282 athira    20   0    6260   5196   3344 S   0.0   0.1   0:00.30 bash
-    284 root      20   0    7532   5048   4124 S   0.0   0.1   0:00.04 login
-    389 athira    20   0   16920   9488   8036 S   0.0   0.1   0:00.11 systemd
-    390 athira    20   0  168944   3532      8 S   0.0   0.0   0:00.00 (sd-pam)
-    396 athira    20   0    6236   4896   3336 S   0.0   0.1   0:00.04 bash
-   1191 root      20   0  293052  20108  17192 S   0.0   0.3   0:00.04 packagekitd
-   1195 root      20   0  234512   6824   6196 S   0.0   0.1   0:00.01 polkitd
-   6969 athira    20   0    3716   2628   2208 S   0.0   0.0   0:00.00 make  
 
 
 
