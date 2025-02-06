@@ -1,28 +1,26 @@
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStat/build$ make
-[  9%] Building CXX object server/CMakeFiles/server.dir/main.cpp.o
-[ 18%] Building CXX object server/CMakeFiles/server.dir/StatisticsTracker.cpp.o
-[ 27%] Building CXX object server/CMakeFiles/server.dir/RestApiHandler.cpp.o
-[ 36%] Building CXX object server/CMakeFiles/server.dir/ConfigLoader.cpp.o
-/mnt/c/Users/2022004/Desktop/SystemStat/server/ConfigLoader.cpp:2:10: fatal error: Poco/XML/Document.h: No such file or directory
-    2 | #include <Poco/XML/Document.h>
-      |          ^~~~~~~~~~~~~~~~~~~~~
-compilation terminated.
-make[2]: *** [server/CMakeFiles/server.dir/build.make:118: server/CMakeFiles/server.dir/ConfigLoader.cpp.o] Error 1
-make[1]: *** [CMakeFiles/Makefile2:134: server/CMakeFiles/server.dir/all] Error 2
-make: *** [Makefile:91: all] Error 2
+cmake_minimum_required(VERSION 3.10)
 
+# Set the server project name
+project(Server)
 
+# Find Poco libraries manually
+find_library(POCO_FOUNDATION PocoFoundation)
+find_library(POCO_NET PocoNet)
+find_library(POCO_UTIL PocoUtil)
+find_library(POCO_XML PocoXML)
+find_library(POCO_JSON PocoJSON)
 
+if (POCO_FOUNDATION AND POCO_NET AND POCO_UTIL AND POCO_XML AND POCO_JSON)
+    message(STATUS "Found Poco libraries")
+else()
+    message(FATAL_ERROR "Poco libraries not found")
+endif()
 
-
-
-
-find_package(Poco REQUIRED COMPONENTS Foundation Util Net JSON XML)
-
+# Add source files
 add_executable(server main.cpp StatisticsTracker.cpp RestApiHandler.cpp ConfigLoader.cpp)
 
-target_include_directories(server PRIVATE /usr/include/Poco)
-target_link_libraries(server Poco::Foundation Poco::Util Poco::Net Poco::JSON Poco::XML)
+# Link Poco libraries
+target_link_libraries(server PRIVATE ${POCO_FOUNDATION} ${POCO_NET} ${POCO_UTIL} ${POCO_XML} ${POCO_JSON})
 
 
 
