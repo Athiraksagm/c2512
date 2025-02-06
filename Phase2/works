@@ -1,3 +1,112 @@
+#ifndef JSONPARSER_H
+#define JSONPARSER_H
+
+#include <string>
+#include <cpprest/json.h>
+
+class JsonParser {
+public:
+    static std::string parseJson(const std::string& jsonStr);
+};
+
+#endif
+
+
+
+
+
+#include "JsonParser.h"
+#include <cpprest/json.h>
+#include <iostream>
+
+std::string JsonParser::parseJson(const std::string& jsonStr) {
+    try {
+        web::json::value jsonObj = web::json::value::parse(jsonStr);
+        int bootCount = jsonObj[U("bootCount")].as_integer();
+        int totalUptime = jsonObj[U("totalUptime")].as_integer();
+        
+        return "Boot Count: " + std::to_string(bootCount) + ", Total Uptime: " + std::to_string(totalUptime);
+    } catch (const std::exception& e) {
+        std::cerr << "Error parsing JSON: " << e.what() << std::endl;
+        return "";
+    }
+}
+
+
+
+#include "ApiClient.h"
+#include "JsonParser.h"
+#include <cpprest/http_client.h>
+
+ApiClient::ApiClient(const std::string& url) : url(url) {}
+
+std::string ApiClient::getStats() {
+    web::http::client::http_client client(url);
+    web::http::http_response response = client.request(web::http::methods::GET).get();
+    std::string jsonResponse = response.to_string();
+    
+    // Parse JSON response
+    return JsonParser::parseJson(jsonResponse);
+}
+
+
+
+
+cmake_minimum_required(VERSION 3.10)
+
+project(Client)
+
+set(CMAKE_CXX_STANDARD 14)
+
+# Find required packages
+find_package(Boost REQUIRED)
+find_package(cpprestsdk REQUIRED)
+
+# Include directories
+include_directories(
+    ${Boost_INCLUDE_DIRS}
+    ${cpprestsdk_INCLUDE_DIRS}
+    ${CMAKE_SOURCE_DIR}
+)
+
+# Add source files
+set(SOURCES
+    main.cpp
+    ApiClient.cpp
+    JsonParser.cpp  # Add the JsonParser source file here
+    CsvLogger.cpp
+)
+
+# Create the executable
+add_executable(client ${SOURCES})
+
+# Link the necessary libraries
+target_link_libraries(client
+    ${Boost_LIBRARIES}
+    cpprestsdk
+    pthread
+)
+
+# Optional: Install rules
+install(TARGETS client DESTINATION bin)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 sudo apt install nlohmann-json3-dev
 mkdir -p server/include
 wget -O server/include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h
