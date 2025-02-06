@@ -1,14 +1,29 @@
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStat/build$ find /usr/include/Poco -name "Document.h"
-/usr/include/Poco/MongoDB/Document.h
-/usr/include/Poco/DOM/Document.h
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStat/build$ sudo apt install libpoco-doc libpoco-data-dev libpoco-data-mysql-dev libpoco-data-postgresql-dev libpoco-netssl-dev
-Reading package lists... Done
-Building dependency tree... Done
-Reading state information... Done
-E: Unable to locate package libpoco-data-dev
-E: Unable to locate package libpoco-data-mysql-dev
-E: Unable to locate package libpoco-data-postgresql-dev
-E: Unable to locate package libpoco-netssl-dev
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStat/build$ apt-cache search poco
+feedbackd-device-themes - Device specific themes for Feedbackd
+libcork-dev - simple, easily embeddable, cross-platform C library (development files)
+libcork-doc - simple, easily embeddable, cross-platform C library (documentation files)
+libcork16 - simple, easily embeddable, cross-platform C library
+libpoco-dev - C++ Portable Components (POCO) Development files
+libpoco-doc - Documentation for POCO - The C++ Portable Components
+libpocoactiverecord80 - C++ Portable Components (POCO) ActiveRecord library
+libpococrypto80 - C++ Portable Components (POCO) Crypto library
+libpocodata80 - C++ Portable Components (POCO) Data library
+libpocodatamysql80 - C++ Portable Components (POCO) Data MySQL library
+libpocodataodbc80 - C++ Portable Components (POCO) ODBC library
+libpocodatapostgresql80 - C++ Portable Components (POCO) Data PostgreSQL library
+libpocodatasqlite80 - C++ Portable Components (POCO) Data SQLite library
+libpocoencodings80 - C++ Portable Components (POCO) Encodings library
+libpocofoundation80 - C++ Portable Components (POCO) Foundation library
+libpocojson80 - C++ Portable Components (POCO) JSON library
+libpocojwt80 - C++ Portable Components (POCO) JWT library
+libpocomongodb80 - C++ Portable Components (POCO) Data MongoDB library
+libpoconet80 - C++ Portable Components (POCO) Network library
+libpoconetssl80 - C++ Portable Components (POCO) Network library with SSL
+libpocoredis80 - C++ Portable Components (POCO) Redis library
+libpocoutil80 - C++ Portable Components (POCO) Util library
+libpocoxml80 - C++ Portable Components (POCO) XML library
+libpocozip80 - C++ Portable Components (POCO) Zip library
+ros-cmake-modules - Robot OS CMake Modules
 
 find /usr/lib -name "Poco.pc" 2>/dev/null
 
