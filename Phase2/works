@@ -1,4 +1,10 @@
-cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-Wno-error=format-truncation"
+cd ~
+git clone --recurse-submodules https://github.com/microsoft/cpprestsdk.git
+cd cpprestsdk
+mkdir build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-Wno-error=format-truncation" -G Ninja
+ninja
+sudo ninja install
 
 
 
