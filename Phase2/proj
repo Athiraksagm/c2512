@@ -61,3 +61,399 @@ SystemStatLoggingMicroservice/
 
 
 
+Understood! Since httplib and some other libraries might be blocked on your company laptop, we'll modify the server-client communication approach to avoid relying on third-party libraries like httplib. Instead, we will use Poco (already part of the original code), which is a powerful C++ library for network, HTTP, and JSON handling. You can use Poco's built-in HTTP server for communication and request handling.
+
+Here’s an updated version of your Server and Client code that should work without needing external dependencies like httplib.
+
+
+---
+
+1. Server Application
+
+This server will use Poco's built-in HTTP server. It will handle REST requests, update system stats periodically, and send JSON responses to clients.
+
+Server Application Overview:
+
+1. StatisticsTracker: Manages the boot count and uptime of the system.
+
+
+2. RestApiHandler: Handles incoming HTTP requests from clients and responds with system statistics in JSON format.
+
+
+3. PeriodicUpdater: Periodically updates the system uptime.
+
+
+4. ConfigLoader: Loads configuration (interval settings) from an XML file.
+
+
+
+Updated CMakeLists.txt (Server)
+
+cmake_minimum_required(VERSION 3.10)
+
+project(SystemStatLoggingServer)
+
+set(CMAKE_CXX_STANDARD 14)
+
+find_package(Poco REQUIRED Net Util JSON)
+
+include_directories(${Poco_INCLUDE_DIRS})
+
+add_executable(server main.cpp StatisticsTracker.cpp RestApiHandler.cpp ConfigLoader.cpp PeriodicUpdater.cpp)
+target_link_libraries(server Poco::Net Poco::Util Poco::JSON)
+
+main.cpp (Server)
+
+#include <iostream>
+#include <thread>
+#include "RestApiHandler.h"
+#include "StatisticsTracker.h"
+#include "ConfigLoader.h"
+#include "PeriodicUpdater.h"
+
+int main() {
+    ConfigLoader config;
+    config.loadConfig("config.xml");  // Load the configuration from the XML file
+
+    StatisticsTracker stats;  // Initialize system statistics
+    RestApiHandler apiHandler(stats, config.getInterval());  // Create API handler for HTTP requests
+
+    // Start HTTP server in a separate thread to handle requests concurrently
+    std::thread serverThread(&RestApiHandler::startServer, &apiHandler);
+
+    PeriodicUpdater periodicUpdater(stats, config.getInterval());  // Set up periodic system stats update
+    std::thread updaterThread(&PeriodicUpdater::update, &periodicUpdater);  // Start periodic updates
+
+    serverThread.join();  // Join the server thread to the main thread
+    updaterThread.join();  // Join the updater thread to the main thread
+
+    return 0;
+}
+
+StatisticsTracker.h (Server)
+
+#pragma once
+#include <chrono>
+
+class StatisticsTracker {
+public:
+    StatisticsTracker();
+    void incrementBootCount();
+    void updateUptime();
+    int getBootCount() const;
+    long getUptime() const;
+
+private:
+    int bootCount;
+    long uptime; // in seconds
+};
+
+StatisticsTracker.cpp (Server)
+
+#include "StatisticsTracker.h"
+#include <ctime>
+
+StatisticsTracker::StatisticsTracker() : bootCount(1), uptime(0) {
+    // Initialize uptime and boot count
+    uptime = std::time(0);
+}
+
+void StatisticsTracker::incrementBootCount() {
+    bootCount++;
+}
+
+void StatisticsTracker::updateUptime() {
+    uptime = std::time(0); // Update system uptime to current timestamp
+}
+
+int StatisticsTracker::getBootCount() const {
+    return bootCount;
+}
+
+long StatisticsTracker::getUptime() const {
+    return uptime;
+}
+
+RestApiHandler.h (Server)
+
+#pragma once
+#include <string>
+#include "StatisticsTracker.h"
+#include "ConfigLoader.h"
+#include <Poco/Net/HTTPRequestHandler.h>
+#include <Poco/Net/HTTPResponse.h>
+#include <Poco/Net/HTTPServerRequest.h>
+#include <Poco/Net/HTTPServerResponse.h>
+
+class RestApiHandler : public Poco::Net::HTTPRequestHandler {
+public:
+    RestApiHandler(StatisticsTracker& stats, int interval);
+    void handleRequest(Poco::Net::HTTPServerRequest& request, Poco::Net::HTTPServerResponse& response) override;
+    std::string generateJsonResponse() const;
+    void startServer();
+
+private:
+    StatisticsTracker& stats;
+    int interval;
+};
+
+RestApiHandler.cpp (Server)
+
+#include "RestApiHandler.h"
+#include <Poco/Net/HTTPServer.h>
+#include <Poco/Net/ServerSocket.h>
+#include <Poco/Net/HTTPRequestHandlerFactory.h>
+#include <Poco/Net/HTTPServerParams.h>
+#include <Poco/JSON/Object.h>
+#include <Poco/JSON/Parser.h>
+#include <iostream>
+
+RestApiHandler::RestApiHandler(StatisticsTracker& stats, int interval)
+    : stats(stats), interval(interval) {}
+
+void RestApiHandler::handleRequest(Poco::Net::HTTPServerRequest& request, Poco::Net::HTTPServerResponse& response) {
+    response.setContentType("application/json");
+    response.setStatus(Poco::Net::HTTPResponse::HTTP_OK);
+    
+    std::ostream& out = response.send();
+    out << generateJsonResponse();
+}
+
+std::string RestApiHandler::generateJsonResponse() const {
+    Poco::JSON::Object jsonResponse;
+    jsonResponse.set("boot_count", stats.getBootCount());
+    jsonResponse.set("uptime", stats.getUptime());
+    
+    std::stringstream ss;
+    jsonResponse.stringify(ss);
+    
+    return ss.str();
+}
+
+void RestApiHandler::startServer() {
+    Poco::Net::ServerSocket serverSocket(8080);  // Listen on port 8080
+    Poco::Net::HTTPServerParams* params = new Poco::Net::HTTPServerParams;
+    Poco::Net::HTTPServer server(new Poco::Net::HTTPRequestHandlerFactory<RestApiHandler>(), serverSocket, params);
+
+    std::cout << "Server started, waiting for requests..." << std::endl;
+    server.start();  // Start the server to handle incoming requests
+}
+
+PeriodicUpdater.h (Server)
+
+#pragma once
+#include "StatisticsTracker.h"
+
+class PeriodicUpdater {
+public:
+    PeriodicUpdater(StatisticsTracker& stats, int interval);
+    void update();
+
+private:
+    StatisticsTracker& stats;
+    int interval;
+};
+
+PeriodicUpdater.cpp (Server)
+
+#include "PeriodicUpdater.h"
+#include <chrono>
+#include <thread>
+
+PeriodicUpdater::PeriodicUpdater(StatisticsTracker& stats, int interval)
+    : stats(stats), interval(interval) {}
+
+void PeriodicUpdater::update() {
+    while (true) {
+        std::this_thread::sleep_for(std::chrono::seconds(interval));  // Sleep for the configured interval
+        stats.updateUptime();  // Update system uptime periodically
+        std::cout << "System stats updated!" << std::endl;
+    }
+}
+
+
+---
+
+2. Client Application
+
+The client will make HTTP requests to the server, receive the system statistics in JSON format, and log the stats to a CSV file.
+
+Client Application Overview:
+
+1. ApiClient: Makes GET requests to the server and retrieves the system statistics in JSON format.
+
+
+2. CsvLogger: Logs the received stats into a CSV file with a timestamp.
+
+
+
+CMakeLists.txt (Client)
+
+cmake_minimum_required(VERSION 3.10)
+
+project(SystemStatLoggingClient)
+
+set(CMAKE_CXX_STANDARD 14)
+
+find_package(Poco REQUIRED Net Util JSON)
+
+include_directories(${Poco_INCLUDE_DIRS})
+
+add_executable(client main.cpp ApiClient.cpp CsvLogger.cpp)
+target_link_libraries(client Poco::Net Poco::Util Poco::JSON)
+
+main.cpp (Client)
+
+#include <iostream>
+#include "ApiClient.h"
+#include "CsvLogger.h"
+
+int main(int argc, char* argv[]) {
+    ApiClient client("http://localhost:8080");
+    auto stats = client.getSystemStats();
+
+    CsvLogger csvLogger;
+    csvLogger.logToCSV(stats);  // Log the received stats to a CSV file
+    
+    return 0;
+}
+
+ApiClient.h (Client)
+
+#pragma once
+#include <string>
+#include <Poco/Net/HTTPClientSession.h>
+#include <Poco/Net/HTTPRequest.h>
+#include <Poco/Net/HTTPResponse.h>
+#include <Poco/JSON/Object.h>
+
+class ApiClient {
+public:
+    ApiClient(const std::string& serverUrl);
+    Poco::JSON::Object::Ptr getSystemStats() const;
+
+private:
+    std::string serverUrl;
+};
+
+ApiClient.cpp (Client)
+
+#include "ApiClient.h"
+#include <iostream>
+#include <Poco/Net/HTTPClientSession.h>
+#include <Poco/Net/HTTPRequest.h>
+#include <Poco/Net/HTTPResponse.h>
+#include <Poco/JSON/Parser.h>
+
+ApiClient::ApiClient(const std::string& serverUrl) : serverUrl(serverUrl) {}
+
+Poco::JSON::Object::Ptr ApiClient::getSystemStats() const {
+    Poco::Net::HTTPClientSession session("localhost", 8080);
+    Poco::Net::HTTPRequest request(Poco::Net::HTTPRequest::HTTP_GET, "/");
+    Poco::Net::HTTPResponse response;
+    
+    session.sendRequest(request);
+    std::istream& rs = session.receiveResponse(response);
+    
+    Poco::JSON::Parser parser;
+    Poco::Dynamic::Var result = parser.parse(rs);
+    return result.extract<Poco::JSON::Object::Ptr>();
+}
+
+CsvLogger.h (Client)
+
+#pragma once
+#include <string>
+#include <Poco/JSON/Object.h>
+
+class CsvLogger {
+public:
+    void logToCSV(const Poco::JSON::Object::Ptr& stats) const;
+};
+
+CsvLogger.cpp (Client)
+
+#include "CsvLogger.h"
+#include <iostream>
+#include <fstream>
+#include <ctime>
+
+void CsvLogger::logToCSV(const Poco::JSON::Object::Ptr& stats) const {
+    std::ofstream file("system_stats.csv", std::ios_base::app);
+    if (file.is_open()) {
+        std::time_t now = std::time(0);
+        file << std::ctime(&now) << ", " 
+             << stats->getValue<int>("boot_count") << ", " 
+             << stats->getValue<long>("uptime") << "\n";
+    }
+}
+
+
+---
+
+3. How It Works - Step by Step
+
+1. Server Initialization:
+
+The server starts by reading the configuration from an XML file (e.g., interval settings).
+
+The StatisticsTracker object is initialized with initial system statistics like boot count and uptime.
+
+The server listens on port 8080 using Poco's HTTPServer.
+
+
+
+2. Handling Client Requests:
+
+When the client makes a GET request, the RestApiHandler::handleRequest() method processes the request and sends a JSON response containing the current system statistics.
+
+The statistics are generated from the StatisticsTracker (boot count, uptime).
+
+
+
+3. Periodic Update:
+
+A separate thread, managed by PeriodicUpdater, periodically updates the system uptime (every interval seconds).
+
+
+
+4. Client Requests:
+
+The client (ApiClient) sends an HTTP GET request to the server's localhost:8080.
+
+The server responds with a JSON payload that includes the system's boot count and uptime.
+
+
+
+5. CSV Logging:
+
+The client receives the statistics in JSON format.
+
+The client logs the statistics to a CSV file (system_stats.csv) with the date, boot count, and uptime.
+
+
+
+
+Testing and Running the Application
+
+1. Compile the server using CMake and run it: ./server.
+
+
+2. Compile the client using CMake and run it: ./client.
+
+
+3. You will see system statistics in the server logs and the client will create/append entries in the system_stats.csv file.
+
+
+
+Let me know if you need further adjustments or help!
+
+
+
+
+
+
+
+
+
+
