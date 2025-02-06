@@ -19,28 +19,53 @@ add_subdirectory(tests)
 
 
 
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStat/build$ make
-[  8%] Building CXX object server/CMakeFiles/server.dir/main.cpp.o
-[ 16%] Building CXX object server/CMakeFiles/server.dir/StatisticsTracker.cpp.o
-[ 25%] Building CXX object server/CMakeFiles/server.dir/RestApiHandler.cpp.o
-/mnt/c/Users/2022004/Desktop/SystemStat/server/RestApiHandler.cpp: In member function ‘void RestApiHandler::startServer()’:
-/mnt/c/Users/2022004/Desktop/SystemStat/server/RestApiHandler.cpp:35:38: error: ‘Poco::Net::HTTPRequestHandlerFactory’ is not a template
-   35 |     Poco::Net::HTTPServer server(new Poco::Net::HTTPRequestHandlerFactory<RestApiHandler>(), serverSocket, params);
-      |                                      ^~~~
-/mnt/c/Users/2022004/Desktop/SystemStat/server/RestApiHandler.cpp:35:91: error: invalid new-expression of abstract class type ‘Poco::Net::HTTPRequestHandlerFactory’
-   35 |     Poco::Net::HTTPServer server(new Poco::Net::HTTPRequestHandlerFactory<RestApiHandler>(), serverSocket, params);
-      |                                                                                           ^
-In file included from /usr/include/Poco/Net/HTTPServer.h:23,
-                 from /mnt/c/Users/2022004/Desktop/SystemStat/server/RestApiHandler.cpp:2:
-/usr/include/Poco/Net/HTTPRequestHandlerFactory.h:35:15: note:   because the following virtual functions are pure within ‘Poco::Net::HTTPRequestHandlerFactory’:
-   35 | class Net_API HTTPRequestHandlerFactory
-      |               ^~~~~~~~~~~~~~~~~~~~~~~~~
-/usr/include/Poco/Net/HTTPRequestHandlerFactory.h:49:37: note:     ‘virtual Poco::Net::HTTPRequestHandler* Poco::Net::HTTPRequestHandlerFactory::createRequestHandler(const Poco::Net::HTTPServerRequest&)’
-   49 |         virtual HTTPRequestHandler* createRequestHandler(const HTTPServerRequest& request) = 0;
-      |                                     ^~~~~~~~~~~~~~~~~~~~
-make[2]: *** [server/CMakeFiles/server.dir/build.make:104: server/CMakeFiles/server.dir/RestApiHandler.cpp.o] Error 1
-make[1]: *** [CMakeFiles/Makefile2:134: server/CMakeFiles/server.dir/all] Error 2
-make: *** [Makefile:91: all] Error 2
+#include <Poco/Net/HTTPRequestHandler.h>
+#include <Poco/Net/HTTPRequestHandlerFactory.h>
+#include <Poco/Net/HTTPServer.h>
+#include <Poco/Net/ServerSocket.h>
+#include <Poco/Net/HTTPServerParams.h>
+#include <Poco/Util/ServerApplication.h>
+#include <iostream>
+
+class RestApiHandler : public Poco::Net::HTTPRequestHandler {
+public:
+    void handleRequest(Poco::Net::HTTPServerRequest& request, Poco::Net::HTTPServerResponse& response) override {
+        response.setContentType("application/json");
+        std::ostream& out = response.send();
+        out << R"({"message": "Hello from SystemStatLoggingMicroservice"})";
+    }
+};
+
+// Correct factory implementation
+class RestApiHandlerFactory : public Poco::Net::HTTPRequestHandlerFactory {
+public:
+    Poco::Net::HTTPRequestHandler* createRequestHandler(const Poco::Net::HTTPServerRequest&) override {
+        return new RestApiHandler();
+    }
+};
+
+// Server application
+class RestApiServer : public Poco::Util::ServerApplication {
+protected:
+    int main(const std::vector<std::string>&) override {
+        Poco::UInt16 port = 8080;
+        Poco::Net::ServerSocket serverSocket(port);
+        Poco::Net::HTTPServerParams::Ptr params = new Poco::Net::HTTPServerParams();
+        Poco::Net::HTTPServer server(new RestApiHandlerFactory(), serverSocket, params);
+
+        std::cout << "Server started on port " << port << std::endl;
+        server.start();
+        waitForTerminationRequest();  // Wait until terminated
+        server.stop();
+
+        return Application::EXIT_OK;
+    }
+};
+
+int main(int argc, char** argv) {
+    RestApiServer app;
+    return app.run(argc, argv);
+}
 
 
 
