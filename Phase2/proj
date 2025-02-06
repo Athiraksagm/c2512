@@ -664,6 +664,42 @@ Let me know if you need further clarifications or modifications!
 
 
 
+cmake_minimum_required(VERSION 3.10)
+
+project(SystemStatLoggingTests)
+
+# Set the C++ standard to 14
+set(CMAKE_CXX_STANDARD 14)
+
+# Find dependencies
+find_package(Poco REQUIRED Net Util JSON XML)
+find_package(GTest REQUIRED)
+
+# Include directories for Poco and Google Test
+include_directories(${Poco_INCLUDE_DIRS} ${GTEST_INCLUDE_DIRS})
+
+# Add the source files for the tests
+add_executable(tests
+    ServerTests.cpp  # Your test file
+)
+
+# Link Poco libraries and Google Test libraries to the tests executable
+target_link_libraries(tests
+    Poco::Net
+    Poco::Util
+    Poco::JSON
+    Poco::XML
+    ${GTEST_LIBRARIES}
+    pthread  # pthread is often required for threading in tests
+)
+
+# Enable testing and add the test executable to CTest
+enable_testing()
+add_test(NAME SystemStatLoggingTests COMMAND tests)
+
+
+
+
 
 
 
