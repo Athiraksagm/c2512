@@ -35,6 +35,8 @@ make: *** [Makefile:91: all] Error 2
 #include <Poco/Net/HTTPServer.h>
 #include <Poco/Net/ServerSocket.h>
 #include <Poco/Net/HTTPServerParams.h>
+#include <Poco/Net/HTTPServerRequest.h>
+#include <Poco/Net/HTTPServerResponse.h>  // **Add this line**
 #include <Poco/Util/ServerApplication.h>
 #include <iostream>
 
@@ -47,7 +49,6 @@ public:
     }
 };
 
-// Correct factory implementation
 class RestApiHandlerFactory : public Poco::Net::HTTPRequestHandlerFactory {
 public:
     Poco::Net::HTTPRequestHandler* createRequestHandler(const Poco::Net::HTTPServerRequest&) override {
@@ -55,7 +56,6 @@ public:
     }
 };
 
-// Server application
 class RestApiServer : public Poco::Util::ServerApplication {
 protected:
     int main(const std::vector<std::string>&) override {
@@ -66,7 +66,7 @@ protected:
 
         std::cout << "Server started on port " << port << std::endl;
         server.start();
-        waitForTerminationRequest();  // Wait until terminated
+        waitForTerminationRequest();
         server.stop();
 
         return Application::EXIT_OK;
