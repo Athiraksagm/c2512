@@ -17,6 +17,18 @@ make: *** [Makefile:91: all] Error 2
 
 
 
+find_package(Poco REQUIRED COMPONENTS Foundation Util Net JSON XML)
+
+add_executable(server main.cpp StatisticsTracker.cpp RestApiHandler.cpp ConfigLoader.cpp)
+
+target_include_directories(server PRIVATE /usr/include/Poco)
+target_link_libraries(server Poco::Foundation Poco::Util Poco::Net Poco::JSON Poco::XML)
+
+
+
+
+
+
 find /usr/lib -name "Poco.pc" 2>/dev/null
 
 
