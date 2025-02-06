@@ -1,66 +1,163 @@
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStat/server/build$ cmake ..
--- The C compiler identification is GNU 11.4.0
--- The CXX compiler identification is GNU 11.4.0
--- Detecting C compiler ABI info
--- Detecting C compiler ABI info - done
--- Check for working C compiler: /usr/bin/cc - skipped
--- Detecting C compile features
--- Detecting C compile features - done
--- Detecting CXX compiler ABI info
--- Detecting CXX compiler ABI info - done
--- Check for working CXX compiler: /usr/bin/c++ - skipped
--- Detecting CXX compile features
--- Detecting CXX compile features - done
--- Found Boost: /usr/lib/x86_64-linux-gnu/cmake/Boost-1.74.0/BoostConfig.cmake (found version "1.74.0") found components: system thread
--- Found ZLIB: /usr/lib/x86_64-linux-gnu/libz.so (found version "1.2.11")
--- Found OpenSSL: /usr/lib/x86_64-linux-gnu/libcrypto.so (found version "3.0.2")
--- Found Boost: /usr/lib/x86_64-linux-gnu/cmake/Boost-1.74.0/BoostConfig.cmake (found version "1.74.0") found components: random system thread filesystem chrono atomic date_time regex
--- Configuring done
--- Generating done
--- Build files have been written to: /mnt/c/Users/2022004/Desktop/SystemStat/server/build
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStat/server/build$ make
-[ 16%] Building CXX object CMakeFiles/server.dir/main.cpp.o
-In file included from /mnt/c/Users/2022004/Desktop/SystemStat/server/main.cpp:4:
-/mnt/c/Users/2022004/Desktop/SystemStat/server/RestApiHandler.h:14:16: error: ‘http_listener’ in namespace ‘web::http’ does not name a type
-   14 |     web::http::http_listener listener;
-      |                ^~~~~~~~~~~~~
-/mnt/c/Users/2022004/Desktop/SystemStat/server/main.cpp: In function ‘int main()’:
-/mnt/c/Users/2022004/Desktop/SystemStat/server/main.cpp:14:37: error: no matching function for call to ‘RestApiHandler::RestApiHandler(ConfigLoader::Config&)’
-   14 |     RestApiHandler apiHandler(config);
-      |                                     ^
-In file included from /mnt/c/Users/2022004/Desktop/SystemStat/server/main.cpp:4:
-/mnt/c/Users/2022004/Desktop/SystemStat/server/RestApiHandler.h:10:5: note: candidate: ‘RestApiHandler::RestApiHandler(const string&’
-   10 |     RestApiHandler(const std::string& address);
-      |     ^~~~~~~~~~~~~~
-/mnt/c/Users/2022004/Desktop/SystemStat/server/RestApiHandler.h:10:39: note:   no known conversion for argument 1 from ‘ConfigLoader::Config’ to ‘const string&’ {aka ‘const std::__cxx11::basic_string<char>&’}
-   10 |     RestApiHandler(const std::string& address);
-      |                    ~~~~~~~~~~~~~~~~~~~^~~~~~~
-/mnt/c/Users/2022004/Desktop/SystemStat/server/RestApiHandler.h:8:7: note: candidate: ‘constexpr RestApiHandler::RestApiHandler(const RestApiHandler&)’
-    8 | class RestApiHandler {
-      |       ^~~~~~~~~~~~~~
-/mnt/c/Users/2022004/Desktop/SystemStat/server/RestApiHandler.h:8:7: note:   no known conversion for argument 1 from ‘ConfigLoader::Config’ to ‘const RestApiHandler&’
-/mnt/c/Users/2022004/Desktop/SystemStat/server/RestApiHandler.h:8:7: note: candidate: ‘constexpr RestApiHandler::RestApiHandler(RestApiHandler&&)’
-/mnt/c/Users/2022004/Desktop/SystemStat/server/RestApiHandler.h:8:7: note:   no known conversion for argument 1 from ‘ConfigLoader::Config’ to ‘RestApiHandler&&’
-/mnt/c/Users/2022004/Desktop/SystemStat/server/main.cpp:18:23: error: ‘StatisticsTracker::StatisticsTracker()’ is private within this context
-   18 |     StatisticsTracker statsTracker;
-      |                       ^~~~~~~~~~~~
-In file included from /mnt/c/Users/2022004/Desktop/SystemStat/server/RestApiHandler.h:6,
-                 from /mnt/c/Users/2022004/Desktop/SystemStat/server/main.cpp:4:
-/mnt/c/Users/2022004/Desktop/SystemStat/server/StatisticsTracker.h:11:5: note: declared private here
-   11 |     StatisticsTracker() {}
-      |     ^~~~~~~~~~~~~~~~~
-/mnt/c/Users/2022004/Desktop/SystemStat/server/main.cpp:19:5: error: ‘PeriodicUpdater’ was not declared in this scope
-   19 |     PeriodicUpdater updater(statsTracker, config.updateInterval);
-      |     ^~~~~~~~~~~~~~~
-/mnt/c/Users/2022004/Desktop/SystemStat/server/main.cpp:20:31: error: ‘PeriodicUpdater’ is not a class, namespace, or enumeration
-   20 |     std::thread updateThread(&PeriodicUpdater::start, &updater);
-      |                               ^~~~~~~~~~~~~~~
-/mnt/c/Users/2022004/Desktop/SystemStat/server/main.cpp:20:56: error: ‘updater’ was not declared in this scope
-   20 |     std::thread updateThread(&PeriodicUpdater::start, &updater);
-      |                                                        ^~~~~~~
-make[2]: *** [CMakeFiles/server.dir/build.make:76: CMakeFiles/server.dir/main.cpp.o] Error 1
-make[1]: *** [CMakeFiles/Makefile2:83: CMakeFiles/server.dir/all] Error 2
-make: *** [Makefile:136: all] Error 2
+The errors you're encountering are due to issues in the code where certain classes and types are not recognized, and a constructor mismatch is also present. Let's address these errors one by one:
+
+1. Error: ‘http_listener’ in namespace ‘web::http’ does not name a type
+
+This error indicates that the cpprestsdk (which contains http_listener) was not correctly found or linked in your project. To resolve this:
+
+Make sure the cpprestsdk is installed and linked properly. Since you're facing issues with the package, it's a good idea to either:
+
+Install cpprestsdk on your system using your package manager (e.g., apt in Ubuntu), or
+
+Use another REST API library like Boost.Beast or libcurl if you're unable to get cpprestsdk working.
+
+
+
+2. Error: No matching function for call to ‘RestApiHandler::RestApiHandler(ConfigLoader::Config&)’
+
+The constructor of RestApiHandler is expecting a std::string (address), but you're passing ConfigLoader::Config&. To fix this:
+
+Modify the RestApiHandler constructor to accept a ConfigLoader::Config& instead of a std::string.
+
+
+Example:
+
+class RestApiHandler {
+public:
+    // Change the constructor to accept ConfigLoader::Config
+    RestApiHandler(ConfigLoader::Config& config);
+};
+
+Then, update your implementation accordingly.
+
+3. Error: ‘StatisticsTracker::StatisticsTracker()’ is private within this context
+
+The StatisticsTracker constructor is private, so you cannot directly create an instance of it. You'll need to either:
+
+Change the constructor access level (e.g., to public), or
+
+Provide a static factory method for instantiating the object.
+
+
+Example:
+
+class StatisticsTracker {
+private:
+    StatisticsTracker() {} // Private constructor
+
+public:
+    static StatisticsTracker& getInstance() {
+        static StatisticsTracker instance;
+        return instance;
+    }
+};
+
+4. Error: ‘PeriodicUpdater’ was not declared in this scope
+
+The class PeriodicUpdater is not defined or declared before its use in the main.cpp. You need to ensure that:
+
+PeriodicUpdater is properly declared in the header file PeriodicUpdater.h.
+
+Include the necessary headers in main.cpp and ensure the class is correctly defined and used.
+
+
+Example:
+
+class PeriodicUpdater {
+public:
+    PeriodicUpdater(StatisticsTracker& tracker, int interval);
+    void start();
+};
+
+Complete Revised Example:
+
+To summarize and fix the errors, here's a revised structure of your project:
+
+1. RestApiHandler.h: Modify the constructor to accept the ConfigLoader::Config object instead of a std::string.
+
+// RestApiHandler.h
+class RestApiHandler {
+public:
+    // Accept ConfigLoader::Config instead of std::string
+    RestApiHandler(ConfigLoader::Config& config);
+    void start();
+};
+
+
+2. main.cpp: Update the RestApiHandler initialization and StatisticsTracker usage.
+
+#include "RestApiHandler.h"
+#include "StatisticsTracker.h"
+#include "ConfigLoader.h"
+#include "PeriodicUpdater.h"
+#include <thread>
+
+int main() {
+    // Load configuration
+    ConfigLoader::Config config;
+    ConfigLoader configLoader("config.xml");
+    configLoader.load(config);
+
+    // Instantiate the RestApiHandler with the loaded config
+    RestApiHandler apiHandler(config);
+
+    // Instantiate StatisticsTracker using the static method
+    StatisticsTracker& statsTracker = StatisticsTracker::getInstance();
+
+    // Create the PeriodicUpdater thread
+    PeriodicUpdater updater(statsTracker, config.updateInterval);
+    std::thread updateThread(&PeriodicUpdater::start, &updater);
+
+    updateThread.join();
+    return 0;
+}
+
+
+3. StatisticsTracker.h: Modify the constructor to provide a static method for object creation.
+
+// StatisticsTracker.h
+class StatisticsTracker {
+private:
+    StatisticsTracker() {}
+
+public:
+    static StatisticsTracker& getInstance() {
+        static StatisticsTracker instance;
+        return instance;
+    }
+
+    // Other methods for statistics tracking
+};
+
+
+4. PeriodicUpdater.h: Make sure the class is defined correctly.
+
+// PeriodicUpdater.h
+class PeriodicUpdater {
+public:
+    PeriodicUpdater(StatisticsTracker& tracker, int interval);
+    void start();
+};
+
+
+
+Final Steps:
+
+1. After making these changes, clean the build directory:
+
+rm -rf build
+mkdir build
+cd build
+
+
+2. Run cmake and make again:
+
+cmake ..
+make
+
+
+
+These steps should address the errors you're encountering and get the code compiled successfully. If you need further help, let me know!
+
 
 
 
