@@ -1,43 +1,66 @@
-cmake_minimum_required(VERSION 3.10)
-
-project(Server)
-
-set(CMAKE_CXX_STANDARD 14)
-
-# Find required packages
-find_package(Boost REQUIRED COMPONENTS system thread)
-
-# Find cpprestsdk if needed for your project
-find_package(cpprestsdk REQUIRED)
-
-# Include directories
-include_directories(
-    ${Boost_INCLUDE_DIRS}
-    ${cpprestsdk_INCLUDE_DIRS}
-    ${CMAKE_SOURCE_DIR}
-)
-
-# Add source files
-set(SOURCES
-    main.cpp
-    StatisticsTracker.cpp
-    RestApiHandler.cpp
-    ConfigLoader.cpp
-    PeriodicUpdater.cpp
-)
-
-# Create the executable
-add_executable(server ${SOURCES})
-
-# Link the necessary libraries
-target_link_libraries(server
-    ${Boost_LIBRARIES}     # Linking Boost libraries
-    cpprestsdk             # Linking cpprestsdk
-    pthread                # For multi-threading
-)
-
-# Optional: Install rules
-install(TARGETS server DESTINATION bin)
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStat/server/build$ cmake ..
+-- The C compiler identification is GNU 11.4.0
+-- The CXX compiler identification is GNU 11.4.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Found Boost: /usr/lib/x86_64-linux-gnu/cmake/Boost-1.74.0/BoostConfig.cmake (found version "1.74.0") found components: system thread
+-- Found ZLIB: /usr/lib/x86_64-linux-gnu/libz.so (found version "1.2.11")
+-- Found OpenSSL: /usr/lib/x86_64-linux-gnu/libcrypto.so (found version "3.0.2")
+-- Found Boost: /usr/lib/x86_64-linux-gnu/cmake/Boost-1.74.0/BoostConfig.cmake (found version "1.74.0") found components: random system thread filesystem chrono atomic date_time regex
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /mnt/c/Users/2022004/Desktop/SystemStat/server/build
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStat/server/build$ make
+[ 16%] Building CXX object CMakeFiles/server.dir/main.cpp.o
+In file included from /mnt/c/Users/2022004/Desktop/SystemStat/server/main.cpp:4:
+/mnt/c/Users/2022004/Desktop/SystemStat/server/RestApiHandler.h:14:16: error: ‘http_listener’ in namespace ‘web::http’ does not name a type
+   14 |     web::http::http_listener listener;
+      |                ^~~~~~~~~~~~~
+/mnt/c/Users/2022004/Desktop/SystemStat/server/main.cpp: In function ‘int main()’:
+/mnt/c/Users/2022004/Desktop/SystemStat/server/main.cpp:14:37: error: no matching function for call to ‘RestApiHandler::RestApiHandler(ConfigLoader::Config&)’
+   14 |     RestApiHandler apiHandler(config);
+      |                                     ^
+In file included from /mnt/c/Users/2022004/Desktop/SystemStat/server/main.cpp:4:
+/mnt/c/Users/2022004/Desktop/SystemStat/server/RestApiHandler.h:10:5: note: candidate: ‘RestApiHandler::RestApiHandler(const string&’
+   10 |     RestApiHandler(const std::string& address);
+      |     ^~~~~~~~~~~~~~
+/mnt/c/Users/2022004/Desktop/SystemStat/server/RestApiHandler.h:10:39: note:   no known conversion for argument 1 from ‘ConfigLoader::Config’ to ‘const string&’ {aka ‘const std::__cxx11::basic_string<char>&’}
+   10 |     RestApiHandler(const std::string& address);
+      |                    ~~~~~~~~~~~~~~~~~~~^~~~~~~
+/mnt/c/Users/2022004/Desktop/SystemStat/server/RestApiHandler.h:8:7: note: candidate: ‘constexpr RestApiHandler::RestApiHandler(const RestApiHandler&)’
+    8 | class RestApiHandler {
+      |       ^~~~~~~~~~~~~~
+/mnt/c/Users/2022004/Desktop/SystemStat/server/RestApiHandler.h:8:7: note:   no known conversion for argument 1 from ‘ConfigLoader::Config’ to ‘const RestApiHandler&’
+/mnt/c/Users/2022004/Desktop/SystemStat/server/RestApiHandler.h:8:7: note: candidate: ‘constexpr RestApiHandler::RestApiHandler(RestApiHandler&&)’
+/mnt/c/Users/2022004/Desktop/SystemStat/server/RestApiHandler.h:8:7: note:   no known conversion for argument 1 from ‘ConfigLoader::Config’ to ‘RestApiHandler&&’
+/mnt/c/Users/2022004/Desktop/SystemStat/server/main.cpp:18:23: error: ‘StatisticsTracker::StatisticsTracker()’ is private within this context
+   18 |     StatisticsTracker statsTracker;
+      |                       ^~~~~~~~~~~~
+In file included from /mnt/c/Users/2022004/Desktop/SystemStat/server/RestApiHandler.h:6,
+                 from /mnt/c/Users/2022004/Desktop/SystemStat/server/main.cpp:4:
+/mnt/c/Users/2022004/Desktop/SystemStat/server/StatisticsTracker.h:11:5: note: declared private here
+   11 |     StatisticsTracker() {}
+      |     ^~~~~~~~~~~~~~~~~
+/mnt/c/Users/2022004/Desktop/SystemStat/server/main.cpp:19:5: error: ‘PeriodicUpdater’ was not declared in this scope
+   19 |     PeriodicUpdater updater(statsTracker, config.updateInterval);
+      |     ^~~~~~~~~~~~~~~
+/mnt/c/Users/2022004/Desktop/SystemStat/server/main.cpp:20:31: error: ‘PeriodicUpdater’ is not a class, namespace, or enumeration
+   20 |     std::thread updateThread(&PeriodicUpdater::start, &updater);
+      |                               ^~~~~~~~~~~~~~~
+/mnt/c/Users/2022004/Desktop/SystemStat/server/main.cpp:20:56: error: ‘updater’ was not declared in this scope
+   20 |     std::thread updateThread(&PeriodicUpdater::start, &updater);
+      |                                                        ^~~~~~~
+make[2]: *** [CMakeFiles/server.dir/build.make:76: CMakeFiles/server.dir/main.cpp.o] Error 1
+make[1]: *** [CMakeFiles/Makefile2:83: CMakeFiles/server.dir/all] Error 2
+make: *** [Makefile:136: all] Error 2
 
 
 
