@@ -20,6 +20,10 @@ message(STATUS "Successfully linked Poco libraries")
 
 
 
+sudo apt install libpoco-doc libpoco-data-dev libpoco-data-mysql-dev libpoco-data-postgresql-dev libpoco-netssl-dev
+
+
+
 
 
 find /usr/lib -name "Poco.pc" 2>/dev/null
