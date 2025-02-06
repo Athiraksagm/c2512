@@ -4,6 +4,18 @@ Specify --help for usage, or press the help button on the CMake GUI.
 
 
 
+cmake_minimum_required(VERSION 3.10)
+
+# Set the project name
+project(SystemStatLoggingMicroservice)
+
+# Add subdirectories for server, client, and tests
+add_subdirectory(server)
+add_subdirectory(client)
+add_subdirectory(tests)
+
+
+
 
 
 
