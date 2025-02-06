@@ -1,26 +1,58 @@
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/build$ make -j$(nproc)
-[ 50%] Building CXX object CMakeFiles/server.dir/main.cpp.o
-[ 50%] Building CXX object CMakeFiles/server.dir/RestApiHandler.cpp.o
-[ 66%] Building CXX object CMakeFiles/server.dir/StatisticsTracker.cpp.o
-[ 83%] Building CXX object CMakeFiles/server.dir/PeriodicUpdater.cpp.o
-[ 83%] Building CXX object CMakeFiles/server.dir/ConfigLoader.cpp.o
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/ConfigLoader.cpp:2:10: fatal error: pugixml.hpp: No such file or directory
-    2 | #include <pugixml.hpp>
-      |          ^~~~~~~~~~~~~
-compilation terminated.
-In file included from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/RestApiHandler.cpp:1:
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/RestApiHandler.h:5:10: fatal error: httplib.h: No such file or directory
-    5 | #include "httplib.h"
-      |          ^~~~~~~~~~~
-compilation terminated.
-make[2]: *** [CMakeFiles/server.dir/build.make:104: CMakeFiles/server.dir/RestApiHandler.cpp.o] Error 1
-make[2]: *** Waiting for unfinished jobs....
-make[2]: *** [CMakeFiles/server.dir/build.make:118: CMakeFiles/server.dir/ConfigLoader.cpp.o] Error 1
-In file included from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/main.cpp:2:
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/RestApiHandler.h:5:10: fatal error: httplib.h: No such file or directory
-    5 | #include "httplib.h"
-      |          ^~~~~~~~~~~
-compilation terminated.
-make[2]: *** [CMakeFiles/server.dir/build.make:76: CMakeFiles/server.dir/main.cpp.o] Error 1
-make[1]: *** [CMakeFiles/Makefile2:83: CMakeFiles/server.dir/all] Error 2
-make: *** [Makefile:91: all] Error 2
+Give me the c++ code for my project,the requirements are as follows.
+
+1.System Stat Logging Microservice
+2.1 Introduction
+The System Stat Logging Microservice tracks system boot count and total uptime over its lifetime. The server periodically sends system statistics to clients at a configurable interval.
+2.2 Functional Requirements
+2.2.1 Server Application
+1.	Monitor the number of boots and total uptime of the system.
+2.	Configurable interval for sending statistics (defined in an XML file).
+3.	Client shall request the server using REST API.
+4.	Respond to client requests with current statistics in JSON format.
+5.	Send periodic updates to clients based on the configured interval.
+6.	Handle multiple client requests concurrently.
+2.2.2 Client Application
+1.	Request system statistics from the server.
+2.	Receive and parse JSON responses.
+3.	Store system statistics in a CSV file when enabled via a command-line option.
+4.	The CSV file should include date, time, number of boots, and total uptime with proper heading.
+2.3 Non-Functional Requirements
+1.	Implemented in C++14 or above.
+2.	Separate projects for server and client, compiled using CMake.
+3.	Unit tests (UT) for the server using GTest.
+4.	Multi-threaded architecture to handle multiple client requests simultaneously.
+________________________________________
+3. Common Considerations
+1.	Communication between server and client will use JSON format.
+2.	Server applications will use multi-threading to handle concurrent client requests.
+3.	Configuration settings (thresholds and intervals) will be stored in XML files.
+4.	The system should be robust, ensuring minimal resource usage and optimized performance.
+5.	Error handling should be implemented to manage connection failures, invalid requests, and unexpected conditions.
+
+
+2.The structure of my project should look like this.
+SystemStatLoggingMicroservice/
+├── server/
+│   ├── CMakeLists.txt
+│   ├── main.cpp
+│   ├── StatisticsTracker.h
+│   ├── StatisticsTracker.cpp
+│   ├── RestApiHandler.h
+│   ├── RestApiHandler.cpp
+│   ├── ConfigLoader.h
+│   ├── ConfigLoader.cpp
+│   └── PeriodicUpdater.h
+│   └── PeriodicUpdater.cpp
+├── client/
+│   ├── CMakeLists.txt
+│   ├── main.cpp
+│   ├── ApiClient.h
+│   ├── ApiClient.cpp
+│   ├── JsonParser.h
+│   ├── JsonParser.cpp
+│   └── CsvLogger.h
+│   └── CsvLogger.cpp
+└── tests/
+    ├── CMakeLists.txt
+    └── ServerTests.cpp
+
