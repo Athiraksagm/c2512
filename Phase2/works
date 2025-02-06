@@ -1,10 +1,65 @@
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStat/server/build$ sudo apt-get install libcpprest-dev
-Reading package lists... Done
-Building dependency tree... Done
-Reading state information... Done
-libcpprest-dev is already the newest version (2.10.18-1build2).
-0 upgraded, 0 newly installed, 0 to remove and 22 not upgraded.
-
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStat/server/build$ dpkg-query -L libcpprest-dev
+/.
+/usr
+/usr/include
+/usr/include/cpprest
+/usr/include/cpprest/astreambuf.h
+/usr/include/cpprest/asyncrt_utils.h
+/usr/include/cpprest/base_uri.h
+/usr/include/cpprest/containerstream.h
+/usr/include/cpprest/details
+/usr/include/cpprest/details/SafeInt3.hpp
+/usr/include/cpprest/details/basic_types.h
+/usr/include/cpprest/details/cpprest_compat.h
+/usr/include/cpprest/details/fileio.h
+/usr/include/cpprest/details/http_constants.dat
+/usr/include/cpprest/details/http_helpers.h
+/usr/include/cpprest/details/http_server.h
+/usr/include/cpprest/details/http_server_api.h
+/usr/include/cpprest/details/nosal.h
+/usr/include/cpprest/details/resource.h
+/usr/include/cpprest/details/web_utilities.h
+/usr/include/cpprest/filestream.h
+/usr/include/cpprest/http_client.h
+/usr/include/cpprest/http_compression.h
+/usr/include/cpprest/http_headers.h
+/usr/include/cpprest/http_listener.h
+/usr/include/cpprest/http_msg.h
+/usr/include/cpprest/interopstream.h
+/usr/include/cpprest/json.h
+/usr/include/cpprest/oauth1.h
+/usr/include/cpprest/oauth2.h
+/usr/include/cpprest/producerconsumerstream.h
+/usr/include/cpprest/rawptrstream.h
+/usr/include/cpprest/streams.h
+/usr/include/cpprest/uri.h
+/usr/include/cpprest/uri_builder.h
+/usr/include/cpprest/version.h
+/usr/include/cpprest/ws_client.h
+/usr/include/cpprest/ws_msg.h
+/usr/include/pplx
+/usr/include/pplx/pplx.h
+/usr/include/pplx/pplxcancellation_token.h
+/usr/include/pplx/pplxconv.h
+/usr/include/pplx/pplxinterface.h
+/usr/include/pplx/pplxlinux.h
+/usr/include/pplx/pplxtasks.h
+/usr/include/pplx/pplxwin.h
+/usr/include/pplx/threadpool.h
+/usr/lib
+/usr/lib/x86_64-linux-gnu
+/usr/lib/x86_64-linux-gnu/cmake
+/usr/lib/x86_64-linux-gnu/cmake/cpprestsdk
+/usr/lib/x86_64-linux-gnu/cmake/cpprestsdk/cpprestsdk-config-version.cmake
+/usr/lib/x86_64-linux-gnu/cmake/cpprestsdk/cpprestsdk-config.cmake
+/usr/lib/x86_64-linux-gnu/cmake/cpprestsdk/cpprestsdk-targets-none.cmake
+/usr/lib/x86_64-linux-gnu/cmake/cpprestsdk/cpprestsdk-targets.cmake
+/usr/share
+/usr/share/doc
+/usr/share/doc/libcpprest-dev
+/usr/share/doc/libcpprest-dev/copyright
+/usr/lib/x86_64-linux-gnu/libcpprest.so
+/usr/share/doc/libcpprest-dev/changelog.Debian.gz
 
 
 
