@@ -1,3 +1,71 @@
+// ConfigLoader.cpp
+#include "ConfigLoader.h"
+#include <fstream>
+#include <sstream>
+#include <json/json.h>  // Or any other JSON parser of your choice
+
+ConfigLoader::ConfigLoader(const std::string& filePath) : filePath(filePath) {}
+
+void ConfigLoader::load(Config& config) {
+    // Assume you're loading a JSON file here
+    std::ifstream file(filePath);
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    Json::Value root;
+    Json::Reader reader;
+    reader.parse(buffer.str(), root);
+
+    config.address = root["address"].asString();
+    config.updateInterval = root["updateInterval"].asInt();
+}
+
+
+
+
+
+
+
+// main.cpp
+#include "RestApiHandler.h"
+#include "StatisticsTracker.h"
+#include "ConfigLoader.h"
+#include "PeriodicUpdater.h"
+#include <thread>
+
+int main() {
+    // Load configuration
+    ConfigLoader::Config config;
+    ConfigLoader configLoader("config.json");  // Specify the correct path to your config file
+    configLoader.load(config);
+
+    // Instantiate the RestApiHandler with the loaded config
+    RestApiHandler apiHandler(config);
+
+    // Instantiate StatisticsTracker using the static method
+    StatisticsTracker& statsTracker = StatisticsTracker::getInstance();
+
+    // Create the PeriodicUpdater thread
+    PeriodicUpdater updater(statsTracker, config.updateInterval);
+    std::thread updateThread(&PeriodicUpdater::start, &updater);
+
+    updateThread.join();
+    return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStat/server/build$ make
 [ 16%] Building CXX object CMakeFiles/server.dir/main.cpp.o
 In file included from /mnt/c/Users/2022004/Desktop/SystemStat/server/main.cpp:1:
