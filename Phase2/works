@@ -17,6 +17,20 @@ make: *** No rule to make target 'server'.  Stop.
 
 
 
+cd ~
+git clone https://github.com/microsoft/cpprestsdk.git
+cd cpprestsdk
+mkdir build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+make -j$(nproc)
+sudo make install
+
+
+
+
+
+
+
 
 
 
