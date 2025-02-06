@@ -3,24 +3,19 @@ cmake_minimum_required(VERSION 3.10)
 # Set the server project name
 project(Server)
 
-# Find Poco libraries manually
-find_library(POCO_FOUNDATION PocoFoundation)
-find_library(POCO_NET PocoNet)
-find_library(POCO_UTIL PocoUtil)
-find_library(POCO_XML PocoXML)
-find_library(POCO_JSON PocoJSON)
-
-if (POCO_FOUNDATION AND POCO_NET AND POCO_UTIL AND POCO_XML AND POCO_JSON)
-    message(STATUS "Found Poco libraries")
-else()
-    message(FATAL_ERROR "Poco libraries not found")
-endif()
+# Find Poco libraries
+find_package(Poco REQUIRED COMPONENTS Foundation Util Net JSON XML)
 
 # Add source files
 add_executable(server main.cpp StatisticsTracker.cpp RestApiHandler.cpp ConfigLoader.cpp)
 
+# Include Poco headers explicitly
+target_include_directories(server PRIVATE /usr/include/Poco)
+
 # Link Poco libraries
-target_link_libraries(server PRIVATE ${POCO_FOUNDATION} ${POCO_NET} ${POCO_UTIL} ${POCO_XML} ${POCO_JSON})
+target_link_libraries(server PRIVATE Poco::Foundation Poco::Util Poco::Net Poco::JSON Poco::XML)
+
+message(STATUS "Successfully linked Poco libraries")
 
 
 
