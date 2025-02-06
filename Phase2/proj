@@ -1,18 +1,29 @@
 athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStat/build$ cmake ..
-CMake Error: The source directory "/mnt/c/Users/2022004/Desktop/SystemStat" does not appear to contain CMakeLists.txt.
-Specify --help for usage, or press the help button on the CMake GUI.
-
-
-
-cmake_minimum_required(VERSION 3.10)
-
-# Set the project name
-project(SystemStatLoggingMicroservice)
-
-# Add subdirectories for server, client, and tests
-add_subdirectory(server)
-add_subdirectory(client)
-add_subdirectory(tests)
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /mnt/c/Users/2022004/Desktop/SystemStat/build
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStat/build$ make
+[  8%] Building CXX object server/CMakeFiles/server.dir/main.cpp.o
+[ 16%] Building CXX object server/CMakeFiles/server.dir/StatisticsTracker.cpp.o
+[ 25%] Building CXX object server/CMakeFiles/server.dir/RestApiHandler.cpp.o
+/mnt/c/Users/2022004/Desktop/SystemStat/server/RestApiHandler.cpp: In member function ‘virtual void RestApiHandler::handleRequest(Poco::Net::HTTPServerRequest&, Poco::Net::HTTPServerResponse&)’:
+/mnt/c/Users/2022004/Desktop/SystemStat/server/RestApiHandler.cpp:12:9: error: invalid use of incomplete type ‘class Poco::Net::HTTPServerResponse’
+   12 |         response.setContentType("application/json");
+      |         ^~~~~~~~
+In file included from /mnt/c/Users/2022004/Desktop/SystemStat/server/RestApiHandler.cpp:1:
+/usr/include/Poco/Net/HTTPRequestHandler.h:29:7: note: forward declaration of ‘class Poco::Net::HTTPServerResponse’
+   29 | class HTTPServerResponse;
+      |       ^~~~~~~~~~~~~~~~~~
+/mnt/c/Users/2022004/Desktop/SystemStat/server/RestApiHandler.cpp:13:29: error: invalid use of incomplete type ‘class Poco::Net::HTTPServerResponse’
+   13 |         std::ostream& out = response.send();
+      |                             ^~~~~~~~
+In file included from /mnt/c/Users/2022004/Desktop/SystemStat/server/RestApiHandler.cpp:1:
+/usr/include/Poco/Net/HTTPRequestHandler.h:29:7: note: forward declaration of ‘class Poco::Net::HTTPServerResponse’
+   29 | class HTTPServerResponse;
+      |       ^~~~~~~~~~~~~~~~~~
+make[2]: *** [server/CMakeFiles/server.dir/build.make:104: server/CMakeFiles/server.dir/RestApiHandler.cpp.o] Error 1
+make[1]: *** [CMakeFiles/Makefile2:134: server/CMakeFiles/server.dir/all] Error 2
+make: *** [Makefile:91: all] Error 2
 
 
 
