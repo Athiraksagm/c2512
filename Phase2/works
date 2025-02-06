@@ -1,3 +1,14 @@
+cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-Wno-error=format-truncation"
+
+
+
+
+
+
+
+
+
+
 athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStat/server/build$ cd ~
 git clone https://github.com/microsoft/cpprestsdk.git
 cd cpprestsdk
