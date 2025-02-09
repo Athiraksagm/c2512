@@ -1,36 +1,179 @@
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLogging/build$ cmake ..
--- The C compiler identification is GNU 11.4.0
--- The CXX compiler identification is GNU 11.4.0
--- Detecting C compiler ABI info
--- Detecting C compiler ABI info - done
--- Check for working C compiler: /usr/bin/cc - skipped
--- Detecting C compile features
--- Detecting C compile features - done
--- Detecting CXX compiler ABI info
--- Detecting CXX compiler ABI info - done
--- Check for working CXX compiler: /usr/bin/c++ - skipped
--- Detecting CXX compile features
--- Detecting CXX compile features - done
--- Found GTest: /usr/local/lib/cmake/GTest/GTestConfig.cmake (found version "1.11.0")
--- Configuring done
--- Generating done
--- Build files have been written to: /mnt/c/Users/2022004/Desktop/SystemStatLogging/build
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLogging/build$ make
-[ 16%] Building CXX object server/CMakeFiles/server.dir/server.cpp.o
-[ 33%] Linking CXX executable server
-[ 33%] Built target server
-[ 50%] Building CXX object client/CMakeFiles/client.dir/client.cpp.o
-[ 66%] Linking CXX executable client
-[ 66%] Built target client
-[ 83%] Building CXX object test/CMakeFiles/test_server.dir/test_server.cpp.o
-[100%] Linking CXX executable test_server
-/usr/bin/ld: CMakeFiles/test_server.dir/test_server.cpp.o: in function `SystemStatTest_UptimeTest_Test::TestBody()':
-test_server.cpp:(.text+0x21): undefined reference to `getSystemUptime()'
-/usr/bin/ld: CMakeFiles/test_server.dir/test_server.cpp.o: in function `SystemStatTest_DateTimeTest_Test::TestBody()':
-test_server.cpp:(.text+0x174): undefined reference to `getCurrentDateTime[abi:cxx11]()'
-/usr/bin/ld: CMakeFiles/test_server.dir/test_server.cpp.o: in function `SystemStatTest_ConfigIntervalTest_Test::TestBody()':
-test_server.cpp:(.text+0x39a): undefined reference to `loadConfigInterval()'
-collect2: error: ld returned 1 exit status
-make[2]: *** [test/CMakeFiles/test_server.dir/build.make:98: test/test_server] Error 1
-make[1]: *** [CMakeFiles/Makefile2:186: test/CMakeFiles/test_server.dir/all] Error 2
-make: *** [Makefile:91: all] Error 2
+#include "server_utils.h"
+#include <fstream>
+#include <chrono>
+#include <thread>
+#include <mutex>
+#include <ctime>
+#include <sstream>
+#include <iostream>
+#include "tinyxml2.h"
+
+using namespace tinyxml2;
+
+std::mutex stats_mutex;
+int boot_count = 0;
+
+void updateBootCount() {
+    std::lock_guard<std::mutex> lock(stats_mutex);
+    std::ifstream infile("boot_count.txt");
+    if (infile.is_open()) {
+        infile >> boot_count;
+        infile.close();
+    } else {
+        boot_count = 0;
+    }
+    boot_count++;  // Count this boot
+    std::ofstream outfile("boot_count.txt");
+    if (outfile.is_open()) {
+        outfile << boot_count;
+        outfile.close();
+    }
+}
+
+double getSystemUptime() {
+    std::ifstream uptime_file("/proc/uptime");
+    double uptime = 0.0;
+    if (uptime_file.is_open()) {
+        uptime_file >> uptime;
+        uptime_file.close();
+    }
+    return uptime;
+}
+
+std::string getCurrentDateTime() {
+    std::time_t now = std::time(nullptr);
+    char buf[100];
+    std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", std::localtime(&now));
+    return std::string(buf);
+}
+
+int loadConfigInterval() {
+    XMLDocument doc;
+    int interval = 10; // default interval (seconds)
+    if (doc.LoadFile("config.xml") == XML_SUCCESS) {
+        XMLElement* root = doc.FirstChildElement("config");
+        if (root) {
+            XMLElement* intervalElem = root->FirstChildElement("interval");
+            if (intervalElem) {
+                intervalElem->QueryIntText(&interval);
+            }
+        }
+    } else {
+        std::cout << "Failed to load config.xml, using default interval: " << interval << " seconds." << std::endl;
+    }
+    return interval;
+}
+
+std::string getStatsJSON() {
+    double uptime = getSystemUptime();
+    std::string currentTime = getCurrentDateTime();
+    std::ostringstream oss;
+    oss << "{"
+        << "\"date_time\":\"" << currentTime << "\","
+        << "\"boot_count\":" << boot_count << ","
+        << "\"uptime\":" << uptime
+        << "}";
+    return oss.str();
+}
+
+void periodicUpdate(int interval) {
+    while (true) {
+        {
+            std::lock_guard<std::mutex> lock(stats_mutex);
+            std::cout << "[Periodic Update] " << getStatsJSON() << std::endl;
+        }
+        std::this_thread::sleep_for(std::chrono::seconds(interval));
+    }
+}
+
+
+
+
+
+
+
+
+#include <iostream>
+#include <thread>
+#include "httplib.h"      // Make sure this header is in your include path
+#include "server_utils.h"
+
+int main() {
+    updateBootCount();
+    int interval = loadConfigInterval();
+    std::cout << "Starting System Stat Logging Microservice with update interval: " 
+              << interval << " seconds" << std::endl;
+
+    // Launch a background thread for periodic logging.
+    std::thread updater(periodicUpdate, interval);
+    updater.detach();
+
+    // Set up an HTTP server (using cpp-httplib) to handle client REST requests.
+    httplib::Server svr;
+    svr.Get("/stats", [](const httplib::Request &req, httplib::Response &res) {
+        res.set_content(getStatsJSON(), "application/json");
+    });
+
+    std::cout << "Server is listening on port 8080..." << std::endl;
+    svr.listen("0.0.0.0", 8080);
+
+    return 0;
+}
+
+
+
+
+
+project(Server)
+
+# Add the current source directory for includes.
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+
+# Find TinyXML2 package.
+find_package(tinyxml2 REQUIRED)
+include_directories(${TINYXML2_INCLUDE_DIRS})
+
+# Create a static library from the common source file.
+add_library(server_lib STATIC server_utils.cpp)
+
+# Build the server executable from server.cpp.
+add_executable(server server.cpp)
+
+# Link the server executable with the library, TinyXML2, and pthread.
+target_link_libraries(server server_lib tinyxml2::tinyxml2 pthread)
+
+
+
+
+
+project(Server)
+
+# Add the current source directory for includes.
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+
+# Find TinyXML2 package.
+find_package(tinyxml2 REQUIRED)
+include_directories(${TINYXML2_INCLUDE_DIRS})
+
+# Create a static library from the common source file.
+add_library(server_lib STATIC server_utils.cpp)
+
+# Build the server executable from server.cpp.
+add_executable(server server.cpp)
+
+# Link the server executable with the library, TinyXML2, and pthread.
+target_link_libraries(server server_lib tinyxml2::tinyxml2 pthread)
+
+
+
+
+cmake_minimum_required(VERSION 3.10)
+project(SystemStatLoggingMicroservice)
+
+set(CMAKE_CXX_STANDARD 14)
+
+# Add subdirectories for server, client, and tests.
+add_subdirectory(server)
+add_subdirectory(client)
+add_subdirectory(test)
+
