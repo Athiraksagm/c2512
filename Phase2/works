@@ -1,3 +1,16 @@
-athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$ ps aux | grep server_app
-athira      1467  0.0  0.0   4028  2120 pts/0    S+   18:42   0:00 grep --color=auto server_app
-athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$
+athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$ curl -v http://127.0.0.1:8080/stats
+*   Trying 127.0.0.1:8080...
+* Connected to 127.0.0.1 (127.0.0.1) port 8080 (#0)
+> GET /stats HTTP/1.1
+> Host: 127.0.0.1:8080
+> User-Agent: curl/7.81.0
+> Accept: */*
+>
+* Mark bundle as not supporting multiuse
+< HTTP/1.1 200 OK
+< Keep-Alive: timeout=5, max=100
+< Content-Length: 62
+< Content-Type: application/json
+<
+* Connection #0 to host 127.0.0.1 left intact
+{"boot_count":1,"timestamp":"2025-02-09 18:44:28","uptime":32}athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$
