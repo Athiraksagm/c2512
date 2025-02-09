@@ -1,15 +1,41 @@
-ing$ ./server_app
-^C
-athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$ g++ -std=c++14 -pthread -o server_app server/server.cpp -Iinclude
-athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$ ./server_app
-^C
-athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$ g++ -std=c++14 -pthread -o server_app server/server.cpp -Iinclude
-athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$ ./server_app
+#include "httplib.h"
+#include <iostream>
+#include <fstream>
+#include <nlohmann/json.hpp>
 
+void request_stats(const std::string& server_url, bool save_to_csv) {
+    httplib::Client cli(server_url.c_str(), 8081);
+    auto res = cli.Get("/stats");
 
+    if (res && res->status == 200) {
+        std::cout << "Server Response: " << res->body << std::endl;
 
-thira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$ g++ -std=c++14 -o client_app client/client.cpp -Iinclude
-athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$ g++ -std=c++14 -o client_app client/client.cpp -Iinclude
-athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$ ./client_app
-Failed to get stats from server!
-athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$
+        // Try parsing the JSON (simplified version)
+        try {
+            nlohmann::json json_data = nlohmann::json::parse(res->body);
+            std::cout << "Boot Count: " << json_data["boot_count"] << "\n";
+            std::cout << "Uptime: " << json_data["uptime"] << " seconds\n";
+            std::cout << "Timestamp: " << json_data["timestamp"] << "\n";
+
+            if (save_to_csv) {
+                std::ofstream file("system_stats.csv", std::ios::app);
+                if (file.is_open()) {
+                    file << json_data["timestamp"] << ","
+                         << json_data["boot_count"] << ","
+                         << json_data["uptime"] << "\n";
+                    file.close();
+                }
+            }
+        } catch (const std::exception& e) {
+            std::cerr << "JSON Parsing Error: " << e.what() << std::endl;
+        }
+    } else {
+        std::cerr << "Failed to get stats from server!\n";
+    }
+}
+
+int main(int argc, char* argv[]) {
+    bool save_to_csv = (argc > 1 && std::string(argv[1]) == "--save");
+    request_stats("http://127.0.0.1", save_to_csv);
+    return 0;
+}
