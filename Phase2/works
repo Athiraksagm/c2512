@@ -1,10 +1,22 @@
-athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$ g++ -std=c++14 -o server src/server.cpp -Iinclude -l pthread
-/usr/bin/ld: /tmp/ccJ1CMME.o: in function `getUpdateIntervalFromConfig()':
-server.cpp:(.text+0x3f): undefined reference to `tinyxml2::XMLDocument::XMLDocument(bool, tinyxml2::Whitespace)'
-/usr/bin/ld: server.cpp:(.text+0x58): undefined reference to `tinyxml2::XMLDocument::LoadFile(char const*)'
-/usr/bin/ld: server.cpp:(.text+0xc0): undefined reference to `tinyxml2::XMLElement::IntText(int) const'
-/usr/bin/ld: server.cpp:(.text+0x135): undefined reference to `tinyxml2::XMLDocument::~XMLDocument()'
-/usr/bin/ld: server.cpp:(.text+0x15e): undefined reference to `tinyxml2::XMLDocument::~XMLDocument()'
-/usr/bin/ld: /tmp/ccJ1CMME.o: in function `tinyxml2::XMLNode::FirstChildElement(char const*)':
-server.cpp:(.text._ZN8tinyxml27XMLNode17FirstChildElementEPKc[_ZN8tinyxml27XMLNode17FirstChildElementEPKc]+0x23): undefined reference to `tinyxml2::XMLNode::FirstChildElement(char const*) const'
-athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$
+ing$ g++ -std=c++14 -o server src/server.cpp -Iinclude -I/usr/include/tinyxml2 -l pthread -l tinyxml2
+athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$ .
+/server
+Server running at http://localhost:8080...
+Sending periodic updates to clients...
+Sending periodic updates to clients...
+Sending periodic updates to clients...
+Sending periodic updates to clients...
+Sending periodic updates to clients...
+Sending periodic updates to clients...
+Sending periodic updates to clients...
+Sending periodic updates to clients...
+
+
+
+
+athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$ g++ -std=c++14 -o client src/client.cpp -Iinclude -I/usr/in
+clude/tinyxml2 -l pthread -l tinyxml2
+athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$ ./client
+Received stats:
+Boot Count: 2
+Uptime: 13203 seconds
