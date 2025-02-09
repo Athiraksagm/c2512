@@ -1,368 +1,42 @@
-1. Modularized Code for the Server and Client
-To keep our code modular and testable, we factor out common “utility” functions in a header file.
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLogging/build$ cmake ..
+-- The C compiler identification is GNU 11.4.0
+-- The CXX compiler identification is GNU 11.4.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+CMake Error at server/CMakeLists.txt:4 (find_package):
+  By not providing "FindTinyXML2.cmake" in CMAKE_MODULE_PATH this project has
+  asked CMake to find a package configuration file provided by "TinyXML2",
+  but CMake did not find one.
 
-File: server/server_utils.h
-cpp
-Copy
-Edit
-#ifndef SERVER_UTILS_H
-#define SERVER_UTILS_H
+  Could not find a package configuration file provided by "TinyXML2" with any
+  of the following names:
 
-#include <string>
+    TinyXML2Config.cmake
+    tinyxml2-config.cmake
 
-// Returns system uptime (in seconds) by reading /proc/uptime.
-double getSystemUptime();
+  Add the installation prefix of "TinyXML2" to CMAKE_PREFIX_PATH or set
+  "TinyXML2_DIR" to a directory containing one of the above files.  If
+  "TinyXML2" provides a separate development package or SDK, be sure it has
+  been installed.
 
-// Returns the current date/time as a string.
-std::string getCurrentDateTime();
 
-// Loads the update interval (in seconds) from config.xml. Returns a default value if not found.
-int loadConfigInterval();
-
-// Constructs a JSON string with current stats (date/time, boot count, uptime).
-std::string getStatsJSON();
-
-#endif // SERVER_UTILS_H
-File: server/server.cpp
-cpp
-Copy
-Edit
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <chrono>
-#include <thread>
-#include <mutex>
-#include <ctime>
-#include <sstream>
-
-// Include third-party headers (ensure that these header files are in your include path)
-#include "httplib.h"      // Download from https://github.com/yhirose/cpp-httplib
-#include "tinyxml2.h"     // Make sure tinyxml2 is installed (sudo apt-get install libtinyxml2-dev)
-#include "server_utils.h"
-
-using namespace tinyxml2;
-
-std::mutex stats_mutex;
-int boot_count = 0;
-
-// Updates the boot count (by reading and incrementing a persistent file).
-void updateBootCount() {
-    std::lock_guard<std::mutex> lock(stats_mutex);
-    std::ifstream infile("boot_count.txt");
-    if (infile.is_open()) {
-        infile >> boot_count;
-        infile.close();
-    } else {
-        boot_count = 0;
-    }
-    boot_count++;  // Count this boot
-    std::ofstream outfile("boot_count.txt");
-    if (outfile.is_open()) {
-        outfile << boot_count;
-        outfile.close();
-    }
-}
-
-double getSystemUptime() {
-    std::ifstream uptime_file("/proc/uptime");
-    double uptime = 0.0;
-    if (uptime_file.is_open()) {
-        uptime_file >> uptime;
-        uptime_file.close();
-    }
-    return uptime;
-}
-
-std::string getCurrentDateTime() {
-    std::time_t now = std::time(nullptr);
-    char buf[100];
-    std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", std::localtime(&now));
-    return std::string(buf);
-}
-
-int loadConfigInterval() {
-    XMLDocument doc;
-    int interval = 10; // default interval (seconds)
-    if (doc.LoadFile("config.xml") == XML_SUCCESS) {
-        XMLElement* root = doc.FirstChildElement("config");
-        if (root) {
-            XMLElement* intervalElem = root->FirstChildElement("interval");
-            if (intervalElem) {
-                intervalElem->QueryIntText(&interval);
-            }
-        }
-    } else {
-        std::cout << "Failed to load config.xml, using default interval: " << interval << " seconds." << std::endl;
-    }
-    return interval;
-}
-
-std::string getStatsJSON() {
-    double uptime = getSystemUptime();
-    std::string currentTime = getCurrentDateTime();
-    std::ostringstream oss;
-    oss << "{"
-        << "\"date_time\":\"" << currentTime << "\","
-        << "\"boot_count\":" << boot_count << ","
-        << "\"uptime\":" << uptime
-        << "}";
-    return oss.str();
-}
-
-// This background thread logs stats at the configured interval.
-void periodicUpdate(int interval) {
-    while (true) {
-        {
-            std::lock_guard<std::mutex> lock(stats_mutex);
-            std::cout << "[Periodic Update] " << getStatsJSON() << std::endl;
-        }
-        std::this_thread::sleep_for(std::chrono::seconds(interval));
-    }
-}
-
-int main() {
-    updateBootCount();
-    int interval = loadConfigInterval();
-    std::cout << "Starting System Stat Logging Microservice with update interval: " 
-              << interval << " seconds" << std::endl;
-
-    // Launch a background thread for periodic logging.
-    std::thread updater(periodicUpdate, interval);
-    updater.detach();
-
-    // Set up an HTTP server (using cpp-httplib) to handle client REST requests.
-    httplib::Server svr;
-    svr.Get("/stats", [](const httplib::Request &req, httplib::Response &res) {
-        res.set_content(getStatsJSON(), "application/json");
-    });
-
-    std::cout << "Server is listening on port 8080..." << std::endl;
-    svr.listen("0.0.0.0", 8080);
-
-    return 0;
-}
-File: client/client.cpp
-cpp
-Copy
-Edit
-#include <iostream>
-#include <fstream>
-#include <string>
-
-// Include third-party headers
-#include "httplib.h"      // Download from https://github.com/yhirose/cpp-httplib
-#include "json.hpp"       // Download the single-header file from https://github.com/nlohmann/json
-
-using json = nlohmann::json;
-
-int main(int argc, char* argv[]) {
-    // Check for a command-line flag to enable CSV output.
-    std::string csv_filename;
-    bool write_csv = false;
-    if (argc == 3) {
-        std::string arg = argv[1];
-        if (arg == "--csv") {
-            write_csv = true;
-            csv_filename = argv[2];
-        }
-    }
-
-    // Create an HTTP client to connect to our server (assumed to be on localhost:8080).
-    httplib::Client cli("http://localhost:8080");
-    auto res = cli.Get("/stats");
-    if (res && res->status == 200) {
-        try {
-            // Parse the JSON response.
-            json j = json::parse(res->body);
-            std::string date_time = j["date_time"];
-            int boot_count = j["boot_count"];
-            double uptime = j["uptime"];
-
-            std::cout << "Date Time: " << date_time << std::endl;
-            std::cout << "Boot Count: " << boot_count << std::endl;
-            std::cout << "Uptime: " << uptime << " seconds" << std::endl;
-
-            // If CSV output is enabled, append (or create) a CSV file.
-            if (write_csv) {
-                // Check if file exists (if not, we add the header).
-                std::ifstream infile(csv_filename);
-                bool file_exists = infile.good();
-                infile.close();
-
-                std::ofstream outfile(csv_filename, std::ios::app);
-                if (!file_exists) {
-                    outfile << "Date Time,Boot Count,Uptime" << std::endl;
-                }
-                outfile << date_time << "," << boot_count << "," << uptime << std::endl;
-                outfile.close();
-                std::cout << "Data written to CSV file: " << csv_filename << std::endl;
-            }
-        } catch(const std::exception &e) {
-            std::cerr << "Error parsing JSON: " << e.what() << std::endl;
-        }
-    } else {
-        std::cerr << "Error: Could not retrieve stats from server." << std::endl;
-    }
-
-    return 0;
-}
-2. CMake Build Files
-Below is an example multi‑directory CMake configuration. Assume the following folder structure:
-
-objectivec
-Copy
-Edit
-SystemStatLoggingMicroservice/
-├── CMakeLists.txt         # Top-level CMake file
-├── server/
-│   ├── CMakeLists.txt
-│   ├── server.cpp
-│   └── server_utils.h
-├── client/
-│   ├── CMakeLists.txt
-│   └── client.cpp
-└── test/
-    ├── CMakeLists.txt
-    └── test_server.cpp
-File: CMakeLists.txt (Top-Level)
-cmake
-Copy
-Edit
-cmake_minimum_required(VERSION 3.10)
-project(SystemStatLoggingMicroservice)
-
-set(CMAKE_CXX_STANDARD 14)
-
-# Add subdirectories for server, client, and tests.
-add_subdirectory(server)
-add_subdirectory(client)
-add_subdirectory(test)
-File: server/CMakeLists.txt
-cmake
-Copy
-Edit
-project(Server)
-
-# Locate tinyxml2 (install via: sudo apt-get install libtinyxml2-dev)
-find_package(TinyXML2 REQUIRED)
-include_directories(${TinyXML2_INCLUDE_DIRS})
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})  # For server_utils.h
-
-add_executable(server server.cpp)
-target_link_libraries(server ${TinyXML2_LIBRARIES} pthread)
-File: client/CMakeLists.txt
-cmake
-Copy
-Edit
-project(Client)
-
-# (Assumes that the third-party headers for httplib and nlohmann/json are in the include path or in the client folder)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-
-add_executable(client client.cpp)
-target_link_libraries(client pthread)
-File: test/CMakeLists.txt
-cmake
-Copy
-Edit
-project(ServerTests)
-
-# Find GTest (install via: sudo apt-get install libgtest-dev and then build/install it)
-find_package(GTest REQUIRED)
-include_directories(${GTEST_INCLUDE_DIRS})
-include_directories(${CMAKE_SOURCE_DIR}/server)
-
-add_executable(test_server test_server.cpp)
-target_link_libraries(test_server ${GTEST_LIBRARIES} pthread)
-
-enable_testing()
-add_test(NAME ServerTests COMMAND test_server)
-3. GTest Unit Test Program for the Server
-Below is an example GTest file that tests some of the server’s utility functions. (For these tests to work, make sure that the functions you wish to test are declared in server_utils.h and implemented in server.cpp.)
-
-File: test/test_server.cpp
-cpp
-Copy
-Edit
-#include "gtest/gtest.h"
-#include "server_utils.h"
-
-#include <fstream>
-#include <cstdio>  // for remove()
-
-// Test that getSystemUptime returns a positive number.
-TEST(SystemStatTest, UptimeTest) {
-    double uptime = getSystemUptime();
-    EXPECT_GT(uptime, 0.0);
-}
-
-// Test that getCurrentDateTime returns a non-empty string.
-TEST(SystemStatTest, DateTimeTest) {
-    std::string dt = getCurrentDateTime();
-    EXPECT_FALSE(dt.empty());
-}
-
-// Test that loadConfigInterval correctly parses the config file.
-TEST(SystemStatTest, ConfigIntervalTest) {
-    // Write a temporary config.xml file.
-    std::ofstream config("config.xml");
-    config << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-           << "<config>\n"
-           << "  <interval>5</interval>\n"
-           << "</config>\n";
-    config.close();
-
-    int interval = loadConfigInterval();
-    EXPECT_EQ(interval, 5);
-
-    // Clean up the temporary file.
-    std::remove("config.xml");
-}
-
-int main(int argc, char **argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
-Final Notes
-Third‑Party Libraries:
-– Download and place the single‑header files for cpp‑httplib and nlohmann/json in an appropriate include directory (or in the project folders).
-– Ensure tinyxml2 and gtest are installed on your system.
-
-Building:
-From the top‑level directory, run:
-
-bash
-Copy
-Edit
-mkdir build
-cd build
-cmake ..
-make
-This will build the server (server), the client (client), and the test executable (test_server).
-
-Running:
-– First, run the server:
-
-bash
-Copy
-Edit
-./server/server
-– In another terminal, run the client:
-
-bash
-Copy
-Edit
-./client/client          # for a simple request
-./client/client --csv stats.csv   # to also output to CSV
-– To run the tests:
-
-bash
-Copy
-Edit
-./test/test_server
-This complete solution meets your functional and non‑functional requirements for a system stat logging microservice using C++14 on Linux Ubuntu. Happy coding!
-
+-- Configuring incomplete, errors occurred!
+See also "/mnt/c/Users/2022004/Desktop/SystemStatLogging/build/CMakeFiles/CMakeOutput.log".
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLogging/build$ sudo apt-get install libtinyxml2-dev
+[sudo] password for athira:
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+libtinyxml2-dev is already the newest version (9.0.0+dfsg-3).
+0 upgraded, 0 newly installed, 0 to remove and 22 not upgraded.
 
 
 
