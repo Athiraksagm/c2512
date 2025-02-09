@@ -1,8 +1,75 @@
-athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$ ./client
-Received stats:
-Boot Count: null
-Uptime: 14011 seconds
-terminate called after throwing an instance of 'nlohmann::json_abi_v3_11_3::detail::type_error'
-  what():  [json.exception.type_error.302] type must be number, but is null
-Aborted (core dumped)
-athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$
+#include <iostream>
+#include <httplib.h>
+#include <json.hpp>
+#include <thread>
+#include <chrono>
+#include <fstream>
+#include <ctime>
+
+using json = nlohmann::json;
+
+// Function to save stats to a CSV file
+void saveStatsToCSV(const json &stats) {
+    std::ofstream file("system_stats.csv", std::ios::app);
+    if (!file.is_open()) {
+        std::cerr << "Failed to open CSV file!" << std::endl;
+        return;
+    }
+
+    // Write the header if the file is empty
+    file.seekp(0, std::ios::end);
+    if (file.tellp() == 0) {
+        file << "Date,Time,Boot Count,Uptime (seconds)\n";
+    }
+
+    // Get the current time
+    std::time_t now = std::time(nullptr);
+    std::tm *local_time = std::localtime(&now);
+    
+    file << 1900 + local_time->tm_year << "-"
+         << 1 + local_time->tm_mon << "-"
+         << local_time->tm_mday << ","
+         << local_time->tm_hour << ":"
+         << local_time->tm_min << ":"
+         << local_time->tm_sec << ","
+         << stats.value("boot_count", 0) << ","  // Default boot_count to 0 if it's null
+         << stats["uptime"].get<long>() << "\n";
+
+    file.close();
+}
+
+// Function to request stats from the server periodically
+void requestStats() {
+    httplib::Client client("http://localhost:8080");
+
+    while (true) {
+        // Send GET request to the server
+        auto res = client.Get("/stats");
+
+        if (res && res->status == 200) {
+            // Parse JSON response
+            json stats = json::parse(res->body);
+
+            // Handle boot_count being null or missing
+            int boot_count = stats.value("boot_count", 0);  // Default to 0 if boot_count is missing or null
+            long uptime = stats["uptime"].get<long>();  // Assuming uptime will always be present
+
+            std::cout << "Received stats:\n";
+            std::cout << "Boot Count: " << boot_count << "\n";
+            std::cout << "Uptime: " << uptime << " seconds\n";
+
+            // Save stats to CSV
+            saveStatsToCSV(stats);
+        } else {
+            std::cout << "Failed to get stats from server.\n";
+        }
+
+        // Wait for the next request (interval)
+        std::this_thread::sleep_for(std::chrono::seconds(10)); // Adjust the interval as needed
+    }
+}
+
+int main() {
+    requestStats(); // Start the periodic requests to fetch stats
+    return 0;
+}
