@@ -1,10 +1,11 @@
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLogging/build$ cmake ..
--- Configuring done
-CMake Error at server/CMakeLists.txt:14 (add_executable):
-  Target "server" links to target "tinyxml2::tinyxml2" but the target was not
-  found.  Perhaps a find_package() call is missing for an IMPORTED target, or
-  an ALIAS target is missing?
+project(Server)
 
+include_directories(${CMAKE_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR})
+# Use the custom find module to locate TinyXML2
+find_package(tinyxml2 REQUIRED)
 
--- Generating done
-CMake Generate step failed.  Build files cannot be regenerated correctly.
+# Include directories: add TinyXML2's include directory and your source directory.
+include_directories(${TINYXML2_INCLUDE_DIRS})
+
+add_executable(server server.cpp)
+target_link_libraries(server ${TINYXML2_LIBRARIES} pthread)
