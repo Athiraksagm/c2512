@@ -1,20 +1,4 @@
-athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$ g++ -std=c++14 -pthread -o server server.cpp -Iinclude
-cc1plus: fatal error: server.cpp: No such file or directory
-compilation terminated.
-athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$ cd server
-athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging/server$ g++ -std=c++14 -pthread -o server server.cpp -Iinclude
-In file included from server.cpp:1:
-server.h:4:10: fatal error: httplib.h: No such file or directory
-    4 | #include "httplib.h"
-      |          ^~~~~~~~~~~
-compilation terminated.
-athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging/server$ g++ -std=c++14 -pthread -o server server.cpp -Iinclude
-In file included from server.cpp:1:
-server.h:4:10: fatal error: httplib.h: No such file or directory
-    4 | #include "httplib.h"
-      |          ^~~~~~~~~~~
-compilation terminated.
-athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging/server$ cd ..
-athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$ g++ -std=c++14 -pthread -o server server.cpp -Iinclude
-cc1plus: fatal error: server.cpp: No such file or directory
-compilation terminated.
+athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$ g++ -std=c++14 -pthread -o server server/server.cpp -Iinclu
+de
+/usr/bin/ld: cannot open output file server: Is a directory
+collect2: error: ld returned 1 exit status
