@@ -1,173 +1,20 @@
-/* ============================ SERVER ============================ */
-
-// server.h
-#ifndef SERVER_H
-#define SERVER_H
-
-#include "httplib.h"
-#include "json.hpp"
-#include <string>
-#include <fstream>
-#include <chrono>
-#include <mutex>
-
-void start_server(int port);
-int getSystemBootCount();
-long getSystemUptime();
-std::string getCurrentDateTime();
-
-#endif // SERVER_H
-
-// server.cpp
-#include "server.h"
-#include <iostream>
-
-std::mutex mtx;
-int boot_count = 1; // Placeholder
-long start_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-
-int getSystemBootCount() {
-    return boot_count;
-}
-
-long getSystemUptime() {
-    return std::time(nullptr) - start_time;
-}
-
-std::string getCurrentDateTime() {
-    time_t now = std::time(nullptr);
-    char buf[80];
-    strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", localtime(&now));
-    return std::string(buf);
-}
-
-void start_server(int port) {
-    httplib::Server svr;
-    
-    svr.Get("/stats", [](const httplib::Request&, httplib::Response& res) {
-        nlohmann::json response;
-        response["boot_count"] = getSystemBootCount();
-        response["uptime"] = getSystemUptime();
-        response["timestamp"] = getCurrentDateTime();
-        res.set_content(response.dump(), "application/json");
-    });
-    
-    std::cout << "Server running on port " << port << "..." << std::endl;
-    svr.listen("0.0.0.0", port);
-}
-
-int main() {
-    start_server(8080);
-    return 0;
-}
-
-/* ============================ CLIENT ============================ */
-
-// client.h
-#ifndef CLIENT_H
-#define CLIENT_H
-
-#include "httplib.h"
-#include "json.hpp"
-#include <string>
-#include <iostream>
-#include <fstream>
-
-void request_stats(const std::string& server_url, bool save_to_csv);
-
-#endif // CLIENT_H
-
-// client.cpp
-#include "client.h"
-
-void request_stats(const std::string& server_url, bool save_to_csv) {
-    httplib::Client cli(server_url.c_str(), 8080);
-    auto res = cli.Get("/stats");
-    
-    if (res && res->status == 200) {
-        auto json_data = nlohmann::json::parse(res->body);
-        std::cout << "Boot Count: " << json_data["boot_count"] << "\n";
-        std::cout << "Uptime: " << json_data["uptime"] << " seconds\n";
-        std::cout << "Timestamp: " << json_data["timestamp"] << "\n";
-        
-        if (save_to_csv) {
-            std::ofstream file("system_stats.csv", std::ios::app);
-            if (file.is_open()) {
-                file << json_data["timestamp"] << ","
-                     << json_data["boot_count"] << ","
-                     << json_data["uptime"] << "\n";
-                file.close();
-            }
-        }
-    } else {
-        std::cerr << "Failed to get stats from server!\n";
-    }
-}
-
-int main(int argc, char* argv[]) {
-    bool save_to_csv = (argc > 1 && std::string(argv[1]) == "--save");
-    request_stats("http://localhost", save_to_csv);
-    return 0;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Compile the Server
-sh
-Copy
-Edit
-g++ -std=c++14 -pthread -o server server.cpp -Iinclude
-Compile the Client
-sh
-Copy
-Edit
-g++ -std=c++14 -o client client.cpp -Iinclude
-Step 2: Run the Server
-In Terminal 1, start the server:
-
-sh
-Copy
-Edit
-./server
-The server will start listening for client requests.
-
-Step 3: Run the Client
-In Terminal 2, run the client to request system stats from the server:
-
-sh
-Copy
-Edit
-./client
-If the client has a CSV option (e.g., --log), you can run:
-
-sh
-Copy
-Edit
-./client --log
-Expected Output
-The server should print logs about received client requests and responses.
-The client should display the system stats received from the server.
-If CSV logging is enabled, the client will save stats to a CSV file.
-Troubleshooting
-If you see an error like "httplib.h: No such file or directory", ensure the include/ directory contains httplib.h and json.hpp, and pass -Iinclude during compilation.
-If the server doesn’t start, check if another process is using the same port.
-Run the programs and let me know if they work! Once confirmed, we'll proceed with CMake integration. 🚀
+athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$ g++ -std=c++14 -pthread -o server server.cpp -Iinclude
+cc1plus: fatal error: server.cpp: No such file or directory
+compilation terminated.
+athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$ cd server
+athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging/server$ g++ -std=c++14 -pthread -o server server.cpp -Iinclude
+In file included from server.cpp:1:
+server.h:4:10: fatal error: httplib.h: No such file or directory
+    4 | #include "httplib.h"
+      |          ^~~~~~~~~~~
+compilation terminated.
+athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging/server$ g++ -std=c++14 -pthread -o server server.cpp -Iinclude
+In file included from server.cpp:1:
+server.h:4:10: fatal error: httplib.h: No such file or directory
+    4 | #include "httplib.h"
+      |          ^~~~~~~~~~~
+compilation terminated.
+athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging/server$ cd ..
+athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$ g++ -std=c++14 -pthread -o server server.cpp -Iinclude
+cc1plus: fatal error: server.cpp: No such file or directory
+compilation terminated.
