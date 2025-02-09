@@ -1,197 +1,367 @@
-cd ~
-git clone --recurse-submodules https://github.com/microsoft/cpprestsdk.git
-cd cpprestsdk
-mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-Wno-error=format-truncation" -G Ninja
-ninja
-sudo ninja install
+1. Modularized Code for the Server and Client
+To keep our code modular and testable, we factor out common “utility” functions in a header file.
 
+File: server/server_utils.h
+cpp
+Copy
+Edit
+#ifndef SERVER_UTILS_H
+#define SERVER_UTILS_H
 
+#include <string>
 
+// Returns system uptime (in seconds) by reading /proc/uptime.
+double getSystemUptime();
 
+// Returns the current date/time as a string.
+std::string getCurrentDateTime();
 
+// Loads the update interval (in seconds) from config.xml. Returns a default value if not found.
+int loadConfigInterval();
 
+// Constructs a JSON string with current stats (date/time, boot count, uptime).
+std::string getStatsJSON();
 
+#endif // SERVER_UTILS_H
+File: server/server.cpp
+cpp
+Copy
+Edit
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <chrono>
+#include <thread>
+#include <mutex>
+#include <ctime>
+#include <sstream>
 
+// Include third-party headers (ensure that these header files are in your include path)
+#include "httplib.h"      // Download from https://github.com/yhirose/cpp-httplib
+#include "tinyxml2.h"     // Make sure tinyxml2 is installed (sudo apt-get install libtinyxml2-dev)
+#include "server_utils.h"
 
+using namespace tinyxml2;
 
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStat/server/build$ cd ~
-git clone https://github.com/microsoft/cpprestsdk.git
-cd cpprestsdk
-mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release
-make -j$(nproc)
-sudo make install
-Cloning into 'cpprestsdk'...
-remote: Enumerating objects: 30036, done.
-remote: Counting objects: 100% (11/11), done.
-remote: Compressing objects: 100% (8/8), done.
-remote: Total 30036 (delta 5), reused 3 (delta 3), pack-reused 30025 (from 2)
-Receiving objects: 100% (30036/30036), 10.84 MiB | 815.00 KiB/s, done.
-Resolving deltas: 100% (22034/22034), done.
--- The C compiler identification is GNU 11.4.0
--- The CXX compiler identification is GNU 11.4.0
--- Detecting C compiler ABI info
--- Detecting C compiler ABI info - done
--- Check for working C compiler: /usr/bin/cc - skipped
--- Detecting C compile features
--- Detecting C compile features - done
--- Detecting CXX compiler ABI info
--- Detecting CXX compiler ABI info - done
--- Check for working CXX compiler: /usr/bin/c++ - skipped
--- Detecting CXX compile features
--- Detecting CXX compile features - done
--- Looking for pthread.h
--- Looking for pthread.h - found
--- Performing Test CMAKE_HAVE_LIBC_PTHREAD
--- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
--- Found Threads: TRUE
--- Looking for include file xlocale.h
--- Looking for include file xlocale.h - not found
--- Setting gcc options
--- Found websocketpp version 0.8.2 on system
--- Found Boost: /usr/lib/x86_64-linux-gnu/cmake/Boost-1.74.0/BoostConfig.cmake (found version "1.74.0") found components: random system thread filesystem chrono atomic date_time regex
--- Found PkgConfig: /usr/bin/pkg-config (found version "0.29.2")
--- Checking for one of the modules 'openssl'
--- Performing Test _SSL_LEAK_SUPPRESS_AVAILABLE
--- Performing Test _SSL_LEAK_SUPPRESS_AVAILABLE - Failed
--- Found ZLIB: /usr/lib/x86_64-linux-gnu/libz.so (found version "1.2.11")
--- Added test library httpclient_test
--- Added test library httplistener_test
--- Added test library json_test
--- Added test library pplx_test
--- Added test library streams_test
--- Added test library uri_test
--- Added test library utils_test
--- Added test library websocketsclient_test
--- Configuring done
--- Generating done
--- Build files have been written to: /home/athira/cpprestsdk/build
-[  1%] Building CXX object Release/src/CMakeFiles/cpprest.dir/http/client/http_client.cpp.o
-[  2%] Building CXX object Release/src/CMakeFiles/cpprest.dir/http/client/http_client_msg.cpp.o
-[  2%] Building CXX object Release/src/CMakeFiles/cpprest.dir/http/common/http_compression.cpp.o
-[  3%] Building CXX object Release/src/CMakeFiles/cpprest.dir/http/common/http_helpers.cpp.o
-[  4%] Building CXX object Release/src/CMakeFiles/cpprest.dir/http/listener/http_listener.cpp.o
-[  4%] Building CXX object Release/src/CMakeFiles/cpprest.dir/http/listener/http_listener_msg.cpp.o
-[  5%] Building CXX object Release/src/CMakeFiles/cpprest.dir/http/listener/http_server_api.cpp.o
-[  5%] Building CXX object Release/src/CMakeFiles/cpprest.dir/http/common/http_msg.cpp.o
-/home/athira/cpprestsdk/Release/src/http/common/http_helpers.cpp: In function ‘size_t web::http::details::chunked_encoding::add_chunked_delimiters(uint8_t*, size_t, size_t)’:
-/home/athira/cpprestsdk/Release/src/http/common/http_helpers.cpp:91:43: error: ‘%8zX’ directive output may be truncated writing between 8 and 16 bytes into a region of size 9 [-Werror=format-truncation=]
-   91 |         snprintf(buffer, sizeof(buffer), "%8zX", bytes_read);
-      |                                           ^~~~
-/home/athira/cpprestsdk/Release/src/http/common/http_helpers.cpp:91:42: note: directive argument in the range [1, 18446744073709551615]
-   91 |         snprintf(buffer, sizeof(buffer), "%8zX", bytes_read);
-      |                                          ^~~~~~
-In file included from /usr/include/stdio.h:894,
-                 from /usr/include/c++/11/cstdio:42,
-                 from /usr/include/c++/11/ext/string_conversions.h:43,
-                 from /usr/include/c++/11/bits/basic_string.h:6608,
-                 from /usr/include/c++/11/string:55,
-                 from /home/athira/cpprestsdk/Release/src/pch/stdafx.h:52,
-                 from /home/athira/cpprestsdk/Release/src/http/common/http_helpers.cpp:14:
-/usr/include/x86_64-linux-gnu/bits/stdio2.h:71:35: note: ‘__builtin___snprintf_chk’ output between 9 and 17 bytes into a destination of size 9
-   71 |   return __builtin___snprintf_chk (__s, __n, __USE_FORTIFY_LEVEL - 1,
-      |          ~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   72 |                                    __glibc_objsize (__s), __fmt,
-      |                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   73 |                                    __va_arg_pack ());
-      |                                    ~~~~~~~~~~~~~~~~~
-cc1plus: all warnings being treated as errors
-make[2]: *** [Release/src/CMakeFiles/cpprest.dir/build.make:118: Release/src/CMakeFiles/cpprest.dir/http/common/http_helpers.cpp.o] Error 1
-make[2]: *** Waiting for unfinished jobs....
-make[1]: *** [CMakeFiles/Makefile2:545: Release/src/CMakeFiles/cpprest.dir/all] Error 2
-make: *** [Makefile:146: all] Error 2
-Consolidate compiler generated dependencies of target cpprest
-[  1%] Building CXX object Release/src/CMakeFiles/cpprest.dir/http/common/http_helpers.cpp.o
-/home/athira/cpprestsdk/Release/src/http/common/http_helpers.cpp: In function ‘size_t web::http::details::chunked_encoding::add_chunked_delimiters(uint8_t*, size_t, size_t)’:
-/home/athira/cpprestsdk/Release/src/http/common/http_helpers.cpp:91:43: error: ‘%8zX’ directive output may be truncated writing between 8 and 16 bytes into a region of size 9 [-Werror=format-truncation=]
-   91 |         snprintf(buffer, sizeof(buffer), "%8zX", bytes_read);
-      |                                           ^~~~
-/home/athira/cpprestsdk/Release/src/http/common/http_helpers.cpp:91:42: note: directive argument in the range [1, 18446744073709551615]
-   91 |         snprintf(buffer, sizeof(buffer), "%8zX", bytes_read);
-      |                                          ^~~~~~
-In file included from /usr/include/stdio.h:894,
-                 from /usr/include/c++/11/cstdio:42,
-                 from /usr/include/c++/11/ext/string_conversions.h:43,
-                 from /usr/include/c++/11/bits/basic_string.h:6608,
-                 from /usr/include/c++/11/string:55,
-                 from /home/athira/cpprestsdk/Release/src/pch/stdafx.h:52,
-                 from /home/athira/cpprestsdk/Release/src/http/common/http_helpers.cpp:14:
-/usr/include/x86_64-linux-gnu/bits/stdio2.h:71:35: note: ‘__builtin___snprintf_chk’ output between 9 and 17 bytes into a destination of size 9
-   71 |   return __builtin___snprintf_chk (__s, __n, __USE_FORTIFY_LEVEL - 1,
-      |          ~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   72 |                                    __glibc_objsize (__s), __fmt,
-      |                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   73 |                                    __va_arg_pack ());
-      |                                    ~~~~~~~~~~~~~~~~~
-cc1plus: all warnings being treated as errors
-make[2]: *** [Release/src/CMakeFiles/cpprest.dir/build.make:118: Release/src/CMakeFiles/cpprest.dir/http/common/http_helpers.cpp.o] Error 1
-make[1]: *** [CMakeFiles/Makefile2:545: Release/src/CMakeFiles/cpprest.dir/all] Error 2
-make: *** [Makefile:146: all] Error 2
+std::mutex stats_mutex;
+int boot_count = 0;
 
+// Updates the boot count (by reading and incrementing a persistent file).
+void updateBootCount() {
+    std::lock_guard<std::mutex> lock(stats_mutex);
+    std::ifstream infile("boot_count.txt");
+    if (infile.is_open()) {
+        infile >> boot_count;
+        infile.close();
+    } else {
+        boot_count = 0;
+    }
+    boot_count++;  // Count this boot
+    std::ofstream outfile("boot_count.txt");
+    if (outfile.is_open()) {
+        outfile << boot_count;
+        outfile.close();
+    }
+}
 
+double getSystemUptime() {
+    std::ifstream uptime_file("/proc/uptime");
+    double uptime = 0.0;
+    if (uptime_file.is_open()) {
+        uptime_file >> uptime;
+        uptime_file.close();
+    }
+    return uptime;
+}
 
+std::string getCurrentDateTime() {
+    std::time_t now = std::time(nullptr);
+    char buf[100];
+    std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", std::localtime(&now));
+    return std::string(buf);
+}
 
+int loadConfigInterval() {
+    XMLDocument doc;
+    int interval = 10; // default interval (seconds)
+    if (doc.LoadFile("config.xml") == XML_SUCCESS) {
+        XMLElement* root = doc.FirstChildElement("config");
+        if (root) {
+            XMLElement* intervalElem = root->FirstChildElement("interval");
+            if (intervalElem) {
+                intervalElem->QueryIntText(&interval);
+            }
+        }
+    } else {
+        std::cout << "Failed to load config.xml, using default interval: " << interval << " seconds." << std::endl;
+    }
+    return interval;
+}
 
+std::string getStatsJSON() {
+    double uptime = getSystemUptime();
+    std::string currentTime = getCurrentDateTime();
+    std::ostringstream oss;
+    oss << "{"
+        << "\"date_time\":\"" << currentTime << "\","
+        << "\"boot_count\":" << boot_count << ","
+        << "\"uptime\":" << uptime
+        << "}";
+    return oss.str();
+}
 
+// This background thread logs stats at the configured interval.
+void periodicUpdate(int interval) {
+    while (true) {
+        {
+            std::lock_guard<std::mutex> lock(stats_mutex);
+            std::cout << "[Periodic Update] " << getStatsJSON() << std::endl;
+        }
+        std::this_thread::sleep_for(std::chrono::seconds(interval));
+    }
+}
 
+int main() {
+    updateBootCount();
+    int interval = loadConfigInterval();
+    std::cout << "Starting System Stat Logging Microservice with update interval: " 
+              << interval << " seconds" << std::endl;
 
+    // Launch a background thread for periodic logging.
+    std::thread updater(periodicUpdate, interval);
+    updater.detach();
 
+    // Set up an HTTP server (using cpp-httplib) to handle client REST requests.
+    httplib::Server svr;
+    svr.Get("/stats", [](const httplib::Request &req, httplib::Response &res) {
+        res.set_content(getStatsJSON(), "application/json");
+    });
 
+    std::cout << "Server is listening on port 8080..." << std::endl;
+    svr.listen("0.0.0.0", 8080);
 
+    return 0;
+}
+File: client/client.cpp
+cpp
+Copy
+Edit
+#include <iostream>
+#include <fstream>
+#include <string>
 
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStat/server/build$ make
-[ 16%] Building CXX object CMakeFiles/server.dir/main.cpp.o
-In file included from /mnt/c/Users/2022004/Desktop/SystemStat/server/main.cpp:1:
-/mnt/c/Users/2022004/Desktop/SystemStat/server/RestApiHandler.h:11:20: error: ‘ConfigLoader’ has not been declared
-   11 |     RestApiHandler(ConfigLoader::Config& config);
-      |                    ^~~~~~~~~~~~
-/mnt/c/Users/2022004/Desktop/SystemStat/server/RestApiHandler.h:11:40: error: expected ‘)’ before ‘&’ token
-   11 |     RestApiHandler(ConfigLoader::Config& config);
-      |                   ~                    ^
-      |                                        )
-/mnt/c/Users/2022004/Desktop/SystemStat/server/main.cpp: In function ‘int main()’:
-/mnt/c/Users/2022004/Desktop/SystemStat/server/main.cpp:10:43: error: no matching function for call to ‘ConfigLoader::ConfigLoader(const char [11])’
-   10 |     ConfigLoader configLoader("config.xml");
-      |                                           ^
-In file included from /mnt/c/Users/2022004/Desktop/SystemStat/server/main.cpp:3:
-/mnt/c/Users/2022004/Desktop/SystemStat/server/ConfigLoader.h:6:7: note: candidate: ‘constexpr ConfigLoader::ConfigLoader()’
-    6 | class ConfigLoader {
-      |       ^~~~~~~~~~~~
-/mnt/c/Users/2022004/Desktop/SystemStat/server/ConfigLoader.h:6:7: note:   candidate expects 0 arguments, 1 provided
-/mnt/c/Users/2022004/Desktop/SystemStat/server/ConfigLoader.h:6:7: note: candidate: ‘constexpr ConfigLoader::ConfigLoader(const ConfigLoader&)’
-/mnt/c/Users/2022004/Desktop/SystemStat/server/ConfigLoader.h:6:7: note:   no known conversion for argument 1 from ‘const char [11]’ to ‘const ConfigLoader&’
-/mnt/c/Users/2022004/Desktop/SystemStat/server/ConfigLoader.h:6:7: note: candidate: ‘constexpr ConfigLoader::ConfigLoader(ConfigLoader&&)’
-/mnt/c/Users/2022004/Desktop/SystemStat/server/ConfigLoader.h:6:7: note:   no known conversion for argument 1 from ‘const char [11]’ to ‘ConfigLoader&&’
-/mnt/c/Users/2022004/Desktop/SystemStat/server/main.cpp:11:18: error: ‘class ConfigLoader’ has no member named ‘load’
-   11 |     configLoader.load(config);
-      |                  ^~~~
-/mnt/c/Users/2022004/Desktop/SystemStat/server/main.cpp:14:37: error: no matching function for call to ‘RestApiHandler::RestApiHandler(ConfigLoader::Config&)’
-   14 |     RestApiHandler apiHandler(config);
-      |                                     ^
-In file included from /mnt/c/Users/2022004/Desktop/SystemStat/server/main.cpp:1:
-/mnt/c/Users/2022004/Desktop/SystemStat/server/RestApiHandler.h:8:7: note: candidate: ‘constexpr RestApiHandler::RestApiHandler()’
-    8 | class RestApiHandler {
-      |       ^~~~~~~~~~~~~~
-/mnt/c/Users/2022004/Desktop/SystemStat/server/RestApiHandler.h:8:7: note:   candidate expects 0 arguments, 1 provided
-/mnt/c/Users/2022004/Desktop/SystemStat/server/RestApiHandler.h:8:7: note: candidate: ‘constexpr RestApiHandler::RestApiHandler(const RestApiHandler&)’
-/mnt/c/Users/2022004/Desktop/SystemStat/server/RestApiHandler.h:8:7: note:   no known conversion for argument 1 from ‘ConfigLoader::Config’ to ‘const RestApiHandler&’
-/mnt/c/Users/2022004/Desktop/SystemStat/server/RestApiHandler.h:8:7: note: candidate: ‘constexpr RestApiHandler::RestApiHandler(RestApiHandler&&)’
-/mnt/c/Users/2022004/Desktop/SystemStat/server/RestApiHandler.h:8:7: note:   no known conversion for argument 1 from ‘ConfigLoader::Config’ to ‘RestApiHandler&&’
-make[2]: *** [CMakeFiles/server.dir/build.make:76: CMakeFiles/server.dir/main.cpp.o] Error 1
-make[1]: *** [CMakeFiles/Makefile2:83: CMakeFiles/server.dir/all] Error 2
-make: *** [Makefile:136: all] Error 2
+// Include third-party headers
+#include "httplib.h"      // Download from https://github.com/yhirose/cpp-httplib
+#include "json.hpp"       // Download the single-header file from https://github.com/nlohmann/json
 
+using json = nlohmann::json;
 
+int main(int argc, char* argv[]) {
+    // Check for a command-line flag to enable CSV output.
+    std::string csv_filename;
+    bool write_csv = false;
+    if (argc == 3) {
+        std::string arg = argv[1];
+        if (arg == "--csv") {
+            write_csv = true;
+            csv_filename = argv[2];
+        }
+    }
 
+    // Create an HTTP client to connect to our server (assumed to be on localhost:8080).
+    httplib::Client cli("http://localhost:8080");
+    auto res = cli.Get("/stats");
+    if (res && res->status == 200) {
+        try {
+            // Parse the JSON response.
+            json j = json::parse(res->body);
+            std::string date_time = j["date_time"];
+            int boot_count = j["boot_count"];
+            double uptime = j["uptime"];
 
+            std::cout << "Date Time: " << date_time << std::endl;
+            std::cout << "Boot Count: " << boot_count << std::endl;
+            std::cout << "Uptime: " << uptime << " seconds" << std::endl;
 
+            // If CSV output is enabled, append (or create) a CSV file.
+            if (write_csv) {
+                // Check if file exists (if not, we add the header).
+                std::ifstream infile(csv_filename);
+                bool file_exists = infile.good();
+                infile.close();
 
+                std::ofstream outfile(csv_filename, std::ios::app);
+                if (!file_exists) {
+                    outfile << "Date Time,Boot Count,Uptime" << std::endl;
+                }
+                outfile << date_time << "," << boot_count << "," << uptime << std::endl;
+                outfile.close();
+                std::cout << "Data written to CSV file: " << csv_filename << std::endl;
+            }
+        } catch(const std::exception &e) {
+            std::cerr << "Error parsing JSON: " << e.what() << std::endl;
+        }
+    } else {
+        std::cerr << "Error: Could not retrieve stats from server." << std::endl;
+    }
 
+    return 0;
+}
+2. CMake Build Files
+Below is an example multi‑directory CMake configuration. Assume the following folder structure:
 
+objectivec
+Copy
+Edit
+SystemStatLoggingMicroservice/
+├── CMakeLists.txt         # Top-level CMake file
+├── server/
+│   ├── CMakeLists.txt
+│   ├── server.cpp
+│   └── server_utils.h
+├── client/
+│   ├── CMakeLists.txt
+│   └── client.cpp
+└── test/
+    ├── CMakeLists.txt
+    └── test_server.cpp
+File: CMakeLists.txt (Top-Level)
+cmake
+Copy
+Edit
+cmake_minimum_required(VERSION 3.10)
+project(SystemStatLoggingMicroservice)
 
+set(CMAKE_CXX_STANDARD 14)
 
+# Add subdirectories for server, client, and tests.
+add_subdirectory(server)
+add_subdirectory(client)
+add_subdirectory(test)
+File: server/CMakeLists.txt
+cmake
+Copy
+Edit
+project(Server)
 
+# Locate tinyxml2 (install via: sudo apt-get install libtinyxml2-dev)
+find_package(TinyXML2 REQUIRED)
+include_directories(${TinyXML2_INCLUDE_DIRS})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})  # For server_utils.h
+
+add_executable(server server.cpp)
+target_link_libraries(server ${TinyXML2_LIBRARIES} pthread)
+File: client/CMakeLists.txt
+cmake
+Copy
+Edit
+project(Client)
+
+# (Assumes that the third-party headers for httplib and nlohmann/json are in the include path or in the client folder)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+
+add_executable(client client.cpp)
+target_link_libraries(client pthread)
+File: test/CMakeLists.txt
+cmake
+Copy
+Edit
+project(ServerTests)
+
+# Find GTest (install via: sudo apt-get install libgtest-dev and then build/install it)
+find_package(GTest REQUIRED)
+include_directories(${GTEST_INCLUDE_DIRS})
+include_directories(${CMAKE_SOURCE_DIR}/server)
+
+add_executable(test_server test_server.cpp)
+target_link_libraries(test_server ${GTEST_LIBRARIES} pthread)
+
+enable_testing()
+add_test(NAME ServerTests COMMAND test_server)
+3. GTest Unit Test Program for the Server
+Below is an example GTest file that tests some of the server’s utility functions. (For these tests to work, make sure that the functions you wish to test are declared in server_utils.h and implemented in server.cpp.)
+
+File: test/test_server.cpp
+cpp
+Copy
+Edit
+#include "gtest/gtest.h"
+#include "server_utils.h"
+
+#include <fstream>
+#include <cstdio>  // for remove()
+
+// Test that getSystemUptime returns a positive number.
+TEST(SystemStatTest, UptimeTest) {
+    double uptime = getSystemUptime();
+    EXPECT_GT(uptime, 0.0);
+}
+
+// Test that getCurrentDateTime returns a non-empty string.
+TEST(SystemStatTest, DateTimeTest) {
+    std::string dt = getCurrentDateTime();
+    EXPECT_FALSE(dt.empty());
+}
+
+// Test that loadConfigInterval correctly parses the config file.
+TEST(SystemStatTest, ConfigIntervalTest) {
+    // Write a temporary config.xml file.
+    std::ofstream config("config.xml");
+    config << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+           << "<config>\n"
+           << "  <interval>5</interval>\n"
+           << "</config>\n";
+    config.close();
+
+    int interval = loadConfigInterval();
+    EXPECT_EQ(interval, 5);
+
+    // Clean up the temporary file.
+    std::remove("config.xml");
+}
+
+int main(int argc, char **argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+}
+Final Notes
+Third‑Party Libraries:
+– Download and place the single‑header files for cpp‑httplib and nlohmann/json in an appropriate include directory (or in the project folders).
+– Ensure tinyxml2 and gtest are installed on your system.
+
+Building:
+From the top‑level directory, run:
+
+bash
+Copy
+Edit
+mkdir build
+cd build
+cmake ..
+make
+This will build the server (server), the client (client), and the test executable (test_server).
+
+Running:
+– First, run the server:
+
+bash
+Copy
+Edit
+./server/server
+– In another terminal, run the client:
+
+bash
+Copy
+Edit
+./client/client          # for a simple request
+./client/client --csv stats.csv   # to also output to CSV
+– To run the tests:
+
+bash
+Copy
+Edit
+./test/test_server
+This complete solution meets your functional and non‑functional requirements for a system stat logging microservice using C++14 on Linux Ubuntu. Happy coding!
 
 
 
