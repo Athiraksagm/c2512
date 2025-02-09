@@ -1,0 +1,101 @@
+#include "httplib.h"
+#include "json.hpp"
+#include <iostream>
+#include <thread>
+#include <chrono>
+#include <atomic>
+#include <fstream>
+#include <sys/sysinfo.h>
+#include <unistd.h>
+
+using json = nlohmann::json;
+
+// Global variables to track the stats
+std::atomic<int> boot_count(0);
+std::atomic<long> total_uptime(0);
+
+// Function to read the boot count from a file
+int loadBootCount() {
+    std::ifstream file("boot_count.txt");
+    int count = 0;
+    if (file.is_open()) {
+        file >> count;  // Read the current boot count
+        std::cout << "Loaded boot count: " << count << std::endl;  // Debugging
+    } else {
+        std::cout << "boot_count.txt not found or empty, initializing to 0." << std::endl;  // Debugging
+    }
+    file.close();
+    return count;
+}
+
+// Function to save the updated boot count to a file
+void saveBootCount(int count) {
+    std::ofstream file("boot_count.txt");
+    if (file.is_open()) {
+        file << count;  // Save the current boot count
+        std::cout << "Saved boot count: " << count << std::endl;  // Debugging
+    }
+    file.close();
+}
+
+// Function to get the system's uptime
+void updateSystemStats() {
+    struct sysinfo info;
+    if (sysinfo(&info) == 0) {
+        total_uptime.store(info.uptime);  // total uptime in seconds
+    }
+    // Read and increment the boot count from the file
+    int current_count = loadBootCount();
+    boot_count.store(current_count + 1);  // Increment boot count
+    saveBootCount(boot_count.load());  // Save the updated boot count
+}
+
+// Server handler to send stats to the client
+void handleClientRequest(const httplib::Request &req, httplib::Response &res) {
+    // Update system stats (this ensures the boot count is updated on each request)
+    updateSystemStats();
+
+    json response_json;
+    response_json["boots"] = boot_count.load();
+    response_json["uptime"] = total_uptime.load();
+
+    // Set headers to prevent caching
+    res.set_header("Cache-Control", "no-store");
+
+    res.set_content(response_json.dump(), "application/json");
+}
+
+// Function to send periodic updates based on the interval
+void sendPeriodicUpdates(httplib::Server &server) {
+    int interval = 10;  // Update interval (seconds), can be read from a config file if needed
+
+    while (true) {
+        std::this_thread::sleep_for(std::chrono::seconds(interval));  // Wait for the interval duration
+        updateSystemStats();  // Update system stats
+
+        std::cout << "Sending periodic updates to clients..." << std::endl;
+    }
+}
+
+int main() {
+    // Load the boot count from the file and increment it
+    boot_count.store(loadBootCount() + 1);
+    saveBootCount(boot_count.load());  // Save the updated boot count
+
+    std::cout << "Server running at http://localhost:8080...\n";
+
+    httplib::Server server;
+
+    // Define the route for client requests
+    server.Get("/stats", handleClientRequest);
+
+    // Run the server in a separate thread to handle multiple requests concurrently
+    std::thread update_thread(sendPeriodicUpdates, std::ref(server));
+
+    // Start the server on port 8080
+    server.listen("localhost", 8080);
+
+    update_thread.join();  // Wait for the update thread to finish (it won't unless terminated)
+
+    return 0;
+}
