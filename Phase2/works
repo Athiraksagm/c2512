@@ -1,23 +1,115 @@
 cmake_minimum_required(VERSION 3.10)
-
-# Project name
 project(SystemStatLogging)
 
-# Set C++14 standard
 set(CMAKE_CXX_STANDARD 14)
 
-# Include directories
+# Add paths for the includes and libraries
 include_directories(include)
+link_directories(${CMAKE_SOURCE_DIR}/lib)
 
-# Add the executable for the server
+# Add GTest
+find_package(GTest REQUIRED)
+include_directories(${GTEST_INCLUDE_DIRS})
+
+# Add the server and client executables
 add_executable(server src/server.cpp)
-
-# Add the executable for the client
 add_executable(client src/client.cpp)
 
-# Link the required libraries (TinyXML2, pthread)
-target_link_libraries(server pthread tinyxml2)
-target_link_libraries(client pthread tinyxml2)
+# Add the tests
+add_executable(test_system_stats test/test_system_stats.cpp)
 
-# Optionally, you can add more configuration for building client/server dependencies
-# For example, if you have a separate config directory
+# Link GTest with the tests
+target_link_libraries(test_system_stats ${GTEST_LIBRARIES} pthread)
+
+# Link server and client with necessary libraries
+target_link_libraries(server pthread tinyxml2)
+target_link_libraries(client pthread)
+
+# Install CMake files
+install(TARGETS server client DESTINATION bin)
+
+
+
+
+
+#include "gtest/gtest.h"
+#include "json.hpp"
+#include <fstream>
+#include <iostream>
+#include <atomic>
+#include <sys/sysinfo.h>
+#include <unistd.h>
+#include <sstream>
+
+using json = nlohmann::json;
+
+std::atomic<int> boot_count(0);
+std::atomic<long> total_uptime(0);
+
+// Mock the `sysinfo` function to return a fixed uptime
+struct sysinfo mock_sysinfo;
+int sysinfo(struct sysinfo *info) {
+    info->uptime = 1000;  // Mock uptime to 1000 seconds for testing
+    return 0;  // Mock success
+}
+
+// Simulate loading and saving boot count from file
+int loadBootCount() {
+    return 1;  // Always return 1 for test purposes
+}
+
+void saveBootCount(int count) {
+    std::ofstream file("boot_count.txt");
+    file << count;
+}
+
+void updateSystemStats() {
+    struct sysinfo info;
+    if (sysinfo(&info) == 0) {
+        total_uptime.store(info.uptime);  // Mock uptime in seconds
+    }
+
+    int current_count = loadBootCount();
+    boot_count.store(current_count + 1);
+    saveBootCount(boot_count.load());
+}
+
+// Test case 1: Check if boot count increments properly
+TEST(SystemStatsTest, BootCountIncrement) {
+    boot_count.store(0);
+    updateSystemStats();
+    EXPECT_EQ(boot_count.load(), 2);  // Should increment by 1 (from 1 to 2)
+}
+
+// Test case 2: Check if uptime is properly updated
+TEST(SystemStatsTest, UptimeUpdate) {
+    total_uptime.store(0);
+    updateSystemStats();
+    EXPECT_EQ(total_uptime.load(), 1000);  // Mocked uptime should be 1000 seconds
+}
+
+// Test case 3: Check boot count saving to a file
+TEST(SystemStatsTest, BootCountFileSave) {
+    saveBootCount(5);
+    std::ifstream file("boot_count.txt");
+    int count;
+    file >> count;
+    EXPECT_EQ(count, 5);  // The saved count should be 5
+}
+
+// Test case 4: JSON response format
+TEST(SystemStatsTest, JsonResponseFormat) {
+    json response_json;
+    response_json["boots"] = boot_count.load();
+    response_json["uptime"] = total_uptime.load();
+
+    std::string expected_json = "{\"boots\":2,\"uptime\":1000}";
+    EXPECT_EQ(response_json.dump(), expected_json);  // Should match expected JSON format
+}
+
+int main(int argc, char **argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+}
+
+
