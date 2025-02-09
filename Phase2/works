@@ -1,31 +1,84 @@
-athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$ ./server
-Server running at http://localhost:8080...
-Sending periodic updates to clients...
-Sending periodic updates to clients...
-Sending periodic updates to clients...
-Sending periodic updates to clients...
-Sending periodic updates to clients...
-Sending periodic updates to clients...
-Sending periodic updates to clients...
+#include "httplib.h"
+#include "json.hpp"
+#include <iostream>
+#include <thread>
+#include <chrono>
+#include <atomic>
+#include <sys/sysinfo.h>
+#include <unistd.h>
+#include <fstream>
+#include "tinyxml2.h"
 
+using json = nlohmann::json;
 
+// Global variables to track the stats
+std::atomic<int> boot_count(0);
+std::atomic<long> total_uptime(0);
 
-athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$ ./client
-Received stats:
-Boot Count: 0
-Uptime: 14196 seconds
-Received stats:
-Boot Count: 0
-Uptime: 14206 seconds
-Received stats:
-Boot Count: 0
-Uptime: 14216 seconds
-Received stats:
-Boot Count: 0
-Uptime: 14226 seconds
-Received stats:
-Boot Count: 0
-Uptime: 14236 seconds
-Received stats:
-Boot Count: 0
-Uptime: 14246 seconds
+// Function to read the update interval from the config file
+int getUpdateIntervalFromConfig() {
+    tinyxml2::XMLDocument doc;
+    doc.LoadFile("config/config.xml");  // Load the XML configuration file
+
+    tinyxml2::XMLElement* root = doc.FirstChildElement("config");
+    if (root) {
+        tinyxml2::XMLElement* intervalElement = root->FirstChildElement("interval");
+        if (intervalElement) {
+            return intervalElement->IntText();  // Get the interval value (in seconds)
+        } else {
+            std::cerr << "Error: Interval not found in config.xml" << std::endl;
+            return 10;  // Default value if not found
+        }
+    } else {
+        std::cerr << "Error: Could not find the config root element" << std::endl;
+        return 10;  // Default value if file is not loaded properly
+    }
+}
+
+// Function to get the system's uptime and boot count
+void updateSystemStats() {
+    struct sysinfo info;
+    if (sysinfo(&info) == 0) {
+        total_uptime.store(info.uptime);  // total uptime in seconds
+    }
+    // Simulate the boot count (In real-world scenarios, this might require persistent storage)
+    boot_count.store(boot_count.load() + 1);
+}
+
+// Server handler to send stats to the client
+void handleClientRequest(const httplib::Request &req, httplib::Response &res) {
+    json response_json;
+    response_json["boots"] = boot_count.load();
+    response_json["uptime"] = total_uptime.load();
+
+    res.set_content(response_json.dump(), "application/json");
+}
+
+// Function to send periodic updates based on the interval read from config.xml
+void sendPeriodicUpdates(httplib::Server &server) {
+    int interval = getUpdateIntervalFromConfig();  // Get interval from XML
+
+    while (true) {
+        std::this_thread::sleep_for(std::chrono::seconds(interval));  // Wait for the interval duration
+        updateSystemStats();  // Update system stats
+
+        std::cout << "Sending periodic updates to clients..." << std::endl;
+        // The server does not need to send updates to clients directly, since clients request the stats.
+        // You can add any additional logic here if needed, such as sending notifications to clients.
+    }
+}
+
+int main() {
+    httplib::Server server;
+
+    // Define the route for client requests
+    server.Get("/stats", handleClientRequest);
+
+    // Run the server in a separate thread to handle multiple requests concurrently
+    std::thread update_thread(sendPeriodicUpdates, std::ref(server));
+
+    std::cout << "Server running at http://localhost:8080..." << std::endl;
+    server.listen("localhost", 8080);  // Start the server on port 8080
+
+    update_thread.join();  // Wait for the update thread to finish (it won't unless terminated)
+}
