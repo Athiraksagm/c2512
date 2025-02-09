@@ -1,15 +1,15 @@
-void start_server(int port) {
-    httplib::Server svr;
+ing$ ./server_app
+^C
+athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$ g++ -std=c++14 -pthread -o server_app server/server.cpp -Iinclude
+athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$ ./server_app
+^C
+athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$ g++ -std=c++14 -pthread -o server_app server/server.cpp -Iinclude
+athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$ ./server_app
 
-    svr.Get("/stats", [](const httplib::Request& req, httplib::Response& res) {
-        nlohmann::json stats;
-        stats["boot_count"] = getSystemBootCount();
-        stats["uptime"] = getSystemUptime();
-        stats["timestamp"] = getCurrentDateTime();
-        
-        res.set_content(stats.dump(), "application/json");
-    });
 
-    // Bind to 0.0.0.0 so it can accept requests from any network interface
-    svr.listen("0.0.0.0", port);
-}
+
+thira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$ g++ -std=c++14 -o client_app client/client.cpp -Iinclude
+athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$ g++ -std=c++14 -o client_app client/client.cpp -Iinclude
+athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$ ./client_app
+Failed to get stats from server!
+athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$
