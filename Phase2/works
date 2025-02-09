@@ -109,3 +109,65 @@ int main(int argc, char* argv[]) {
     request_stats("http://localhost", save_to_csv);
     return 0;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Compile the Server
+sh
+Copy
+Edit
+g++ -std=c++14 -pthread -o server server.cpp -Iinclude
+Compile the Client
+sh
+Copy
+Edit
+g++ -std=c++14 -o client client.cpp -Iinclude
+Step 2: Run the Server
+In Terminal 1, start the server:
+
+sh
+Copy
+Edit
+./server
+The server will start listening for client requests.
+
+Step 3: Run the Client
+In Terminal 2, run the client to request system stats from the server:
+
+sh
+Copy
+Edit
+./client
+If the client has a CSV option (e.g., --log), you can run:
+
+sh
+Copy
+Edit
+./client --log
+Expected Output
+The server should print logs about received client requests and responses.
+The client should display the system stats received from the server.
+If CSV logging is enabled, the client will save stats to a CSV file.
+Troubleshooting
+If you see an error like "httplib.h: No such file or directory", ensure the include/ directory contains httplib.h and json.hpp, and pass -Iinclude during compilation.
+If the server doesn’t start, check if another process is using the same port.
+Run the programs and let me know if they work! Once confirmed, we'll proceed with CMake integration. 🚀
