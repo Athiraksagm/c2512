@@ -1,16 +1,31 @@
-athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$ curl -v http://127.0.0.1:8080/stats
-*   Trying 127.0.0.1:8080...
-* Connected to 127.0.0.1 (127.0.0.1) port 8080 (#0)
-> GET /stats HTTP/1.1
-> Host: 127.0.0.1:8080
-> User-Agent: curl/7.81.0
-> Accept: */*
->
-* Mark bundle as not supporting multiuse
-< HTTP/1.1 200 OK
-< Keep-Alive: timeout=5, max=100
-< Content-Length: 62
-< Content-Type: application/json
-<
-* Connection #0 to host 127.0.0.1 left intact
-{"boot_count":1,"timestamp":"2025-02-09 18:44:28","uptime":32}athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$
+#include "client.h"
+
+void request_stats(const std::string& server_url, bool save_to_csv) {
+    httplib::Client cli(server_url.c_str(), 8080);
+    auto res = cli.Get("/stats");
+    
+    if (res && res->status == 200) {
+        auto json_data = nlohmann::json::parse(res->body);
+        std::cout << "Boot Count: " << json_data["boot_count"] << "\n";
+        std::cout << "Uptime: " << json_data["uptime"] << " seconds\n";
+        std::cout << "Timestamp: " << json_data["timestamp"] << "\n";
+        
+        if (save_to_csv) {
+            std::ofstream file("system_stats.csv", std::ios::app);
+            if (file.is_open()) {
+                file << json_data["timestamp"] << ","
+                     << json_data["boot_count"] << ","
+                     << json_data["uptime"] << "\n";
+                file.close();
+            }
+        }
+    } else {
+        std::cerr << "Failed to get stats from server!\n";
+    }
+}
+
+int main(int argc, char* argv[]) {
+    bool save_to_csv = (argc > 1 && std::string(argv[1]) == "--save");
+    request_stats("http://localhost", save_to_csv);
+    return 0;
+}
