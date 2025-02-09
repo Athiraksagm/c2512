@@ -1,31 +1,15 @@
-#include "client.h"
+void start_server(int port) {
+    httplib::Server svr;
 
-void request_stats(const std::string& server_url, bool save_to_csv) {
-    httplib::Client cli(server_url.c_str(), 8080);
-    auto res = cli.Get("/stats");
-    
-    if (res && res->status == 200) {
-        auto json_data = nlohmann::json::parse(res->body);
-        std::cout << "Boot Count: " << json_data["boot_count"] << "\n";
-        std::cout << "Uptime: " << json_data["uptime"] << " seconds\n";
-        std::cout << "Timestamp: " << json_data["timestamp"] << "\n";
+    svr.Get("/stats", [](const httplib::Request& req, httplib::Response& res) {
+        nlohmann::json stats;
+        stats["boot_count"] = getSystemBootCount();
+        stats["uptime"] = getSystemUptime();
+        stats["timestamp"] = getCurrentDateTime();
         
-        if (save_to_csv) {
-            std::ofstream file("system_stats.csv", std::ios::app);
-            if (file.is_open()) {
-                file << json_data["timestamp"] << ","
-                     << json_data["boot_count"] << ","
-                     << json_data["uptime"] << "\n";
-                file.close();
-            }
-        }
-    } else {
-        std::cerr << "Failed to get stats from server!\n";
-    }
-}
+        res.set_content(stats.dump(), "application/json");
+    });
 
-int main(int argc, char* argv[]) {
-    bool save_to_csv = (argc > 1 && std::string(argv[1]) == "--save");
-    request_stats("http://localhost", save_to_csv);
-    return 0;
+    // Bind to 0.0.0.0 so it can accept requests from any network interface
+    svr.listen("0.0.0.0", port);
 }
