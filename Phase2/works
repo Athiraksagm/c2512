@@ -1,3 +1,19 @@
+cmake_minimum_required(VERSION 3.10)
+project(SystemStatLoggingMicroservice)
+
+set(CMAKE_CXX_STANDARD 14)
+
+# Add subdirectories for server, client, and tests.
+add_subdirectory(server)
+add_subdirectory(client)
+add_subdirectory(test)
+
+
+
+
+
+
+
 athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLogging/build$ cmake ..
 -- The C compiler identification is GNU 11.4.0
 -- The CXX compiler identification is GNU 11.4.0
