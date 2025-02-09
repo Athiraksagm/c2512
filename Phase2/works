@@ -1,11 +1,111 @@
-project(Server)
+/* ============================ SERVER ============================ */
 
-include_directories(${CMAKE_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR})
-# Use the custom find module to locate TinyXML2
-find_package(tinyxml2 REQUIRED)
+// server.h
+#ifndef SERVER_H
+#define SERVER_H
 
-# Include directories: add TinyXML2's include directory and your source directory.
-include_directories(${TINYXML2_INCLUDE_DIRS})
+#include "httplib.h"
+#include "json.hpp"
+#include <string>
+#include <fstream>
+#include <chrono>
+#include <mutex>
 
-add_executable(server server.cpp)
-target_link_libraries(server ${TINYXML2_LIBRARIES} pthread)
+void start_server(int port);
+int getSystemBootCount();
+long getSystemUptime();
+std::string getCurrentDateTime();
+
+#endif // SERVER_H
+
+// server.cpp
+#include "server.h"
+#include <iostream>
+
+std::mutex mtx;
+int boot_count = 1; // Placeholder
+long start_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+
+int getSystemBootCount() {
+    return boot_count;
+}
+
+long getSystemUptime() {
+    return std::time(nullptr) - start_time;
+}
+
+std::string getCurrentDateTime() {
+    time_t now = std::time(nullptr);
+    char buf[80];
+    strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", localtime(&now));
+    return std::string(buf);
+}
+
+void start_server(int port) {
+    httplib::Server svr;
+    
+    svr.Get("/stats", [](const httplib::Request&, httplib::Response& res) {
+        nlohmann::json response;
+        response["boot_count"] = getSystemBootCount();
+        response["uptime"] = getSystemUptime();
+        response["timestamp"] = getCurrentDateTime();
+        res.set_content(response.dump(), "application/json");
+    });
+    
+    std::cout << "Server running on port " << port << "..." << std::endl;
+    svr.listen("0.0.0.0", port);
+}
+
+int main() {
+    start_server(8080);
+    return 0;
+}
+
+/* ============================ CLIENT ============================ */
+
+// client.h
+#ifndef CLIENT_H
+#define CLIENT_H
+
+#include "httplib.h"
+#include "json.hpp"
+#include <string>
+#include <iostream>
+#include <fstream>
+
+void request_stats(const std::string& server_url, bool save_to_csv);
+
+#endif // CLIENT_H
+
+// client.cpp
+#include "client.h"
+
+void request_stats(const std::string& server_url, bool save_to_csv) {
+    httplib::Client cli(server_url.c_str(), 8080);
+    auto res = cli.Get("/stats");
+    
+    if (res && res->status == 200) {
+        auto json_data = nlohmann::json::parse(res->body);
+        std::cout << "Boot Count: " << json_data["boot_count"] << "\n";
+        std::cout << "Uptime: " << json_data["uptime"] << " seconds\n";
+        std::cout << "Timestamp: " << json_data["timestamp"] << "\n";
+        
+        if (save_to_csv) {
+            std::ofstream file("system_stats.csv", std::ios::app);
+            if (file.is_open()) {
+                file << json_data["timestamp"] << ","
+                     << json_data["boot_count"] << ","
+                     << json_data["uptime"] << "\n";
+                file.close();
+            }
+        }
+    } else {
+        std::cerr << "Failed to get stats from server!\n";
+    }
+}
+
+int main(int argc, char* argv[]) {
+    bool save_to_csv = (argc > 1 && std::string(argv[1]) == "--save");
+    request_stats("http://localhost", save_to_csv);
+    return 0;
+}
