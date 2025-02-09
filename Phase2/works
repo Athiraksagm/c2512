@@ -4,10 +4,9 @@
 #include <thread>
 #include <chrono>
 #include <atomic>
+#include <fstream>
 #include <sys/sysinfo.h>
 #include <unistd.h>
-#include <fstream>
-#include "tinyxml2.h"
 
 using json = nlohmann::json;
 
@@ -15,34 +14,36 @@ using json = nlohmann::json;
 std::atomic<int> boot_count(0);
 std::atomic<long> total_uptime(0);
 
-// Function to read the update interval from the config file
-int getUpdateIntervalFromConfig() {
-    tinyxml2::XMLDocument doc;
-    doc.LoadFile("config/config.xml");  // Load the XML configuration file
-
-    tinyxml2::XMLElement* root = doc.FirstChildElement("config");
-    if (root) {
-        tinyxml2::XMLElement* intervalElement = root->FirstChildElement("interval");
-        if (intervalElement) {
-            return intervalElement->IntText();  // Get the interval value (in seconds)
-        } else {
-            std::cerr << "Error: Interval not found in config.xml" << std::endl;
-            return 10;  // Default value if not found
-        }
-    } else {
-        std::cerr << "Error: Could not find the config root element" << std::endl;
-        return 10;  // Default value if file is not loaded properly
+// Function to read the boot count from a file
+int loadBootCount() {
+    std::ifstream file("boot_count.txt");
+    int count = 0;
+    if (file.is_open()) {
+        file >> count;  // Read the current boot count
     }
+    file.close();
+    return count;
 }
 
-// Function to get the system's uptime and boot count
+// Function to save the updated boot count to a file
+void saveBootCount(int count) {
+    std::ofstream file("boot_count.txt");
+    if (file.is_open()) {
+        file << count;  // Save the current boot count
+    }
+    file.close();
+}
+
+// Function to get the system's uptime
 void updateSystemStats() {
     struct sysinfo info;
     if (sysinfo(&info) == 0) {
         total_uptime.store(info.uptime);  // total uptime in seconds
     }
-    // Simulate the boot count (In real-world scenarios, this might require persistent storage)
-    boot_count.store(boot_count.load() + 1);
+    // Read and increment the boot count from the file
+    int current_count = loadBootCount();
+    boot_count.store(current_count + 1);  // Increment boot count
+    saveBootCount(boot_count.load());  // Save the updated boot count
 }
 
 // Server handler to send stats to the client
@@ -54,9 +55,9 @@ void handleClientRequest(const httplib::Request &req, httplib::Response &res) {
     res.set_content(response_json.dump(), "application/json");
 }
 
-// Function to send periodic updates based on the interval read from config.xml
+// Function to send periodic updates based on the interval
 void sendPeriodicUpdates(httplib::Server &server) {
-    int interval = getUpdateIntervalFromConfig();  // Get interval from XML
+    int interval = 10;  // Update interval (seconds), can be read from a config file if needed
 
     while (true) {
         std::this_thread::sleep_for(std::chrono::seconds(interval));  // Wait for the interval duration
@@ -69,6 +70,12 @@ void sendPeriodicUpdates(httplib::Server &server) {
 }
 
 int main() {
+    // Load the boot count from the file and increment it
+    boot_count.store(loadBootCount() + 1);
+    saveBootCount(boot_count.load());  // Save the updated boot count
+
+    std::cout << "Server running at http://localhost:8080...\n";
+
     httplib::Server server;
 
     // Define the route for client requests
@@ -77,8 +84,10 @@ int main() {
     // Run the server in a separate thread to handle multiple requests concurrently
     std::thread update_thread(sendPeriodicUpdates, std::ref(server));
 
-    std::cout << "Server running at http://localhost:8080..." << std::endl;
-    server.listen("localhost", 8080);  // Start the server on port 8080
+    // Start the server on port 8080
+    server.listen("localhost", 8080);
 
     update_thread.join();  // Wait for the update thread to finish (it won't unless terminated)
+
+    return 0;
 }
