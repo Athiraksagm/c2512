@@ -1,3 +1,20 @@
+project(ServerTests)
+
+find_package(GTest REQUIRED)
+include_directories(${GTEST_INCLUDE_DIRS})
+include_directories(${CMAKE_SOURCE_DIR}/server)
+
+add_executable(test_server test_server.cpp)
+
+# Link the test executable with GTest, pthread, and server_lib.
+target_link_libraries(test_server GTest::GTest pthread server_lib)
+
+enable_testing()
+add_test(NAME ServerTests COMMAND test_server)
+
+
+
+
 #include "server_utils.h"
 #include <fstream>
 #include <chrono>
