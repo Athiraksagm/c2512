@@ -3,6 +3,47 @@
 #include <iostream>
 #include <thread>
 #include <chrono>
+
+using json = nlohmann::json;
+
+void requestStats() {
+    httplib::Client client("http://localhost:8080");
+
+    while (true) {
+        // Send GET request to the server
+        auto res = client.Get("/stats");
+
+        if (res && res->status == 200) {
+            // Parse JSON response
+            json stats = json::parse(res->body);
+
+            // Debugging output to confirm the received data
+            std::cout << "Received stats:\n";
+            std::cout << "Boot Count: " << stats["boots"] << "\n";
+            std::cout << "Uptime: " << stats["uptime"] << " seconds\n";
+        } else {
+            std::cout << "Failed to get stats from server.\n";
+        }
+
+        // Wait for the next request (interval)
+        std::this_thread::sleep_for(std::chrono::seconds(10)); // Adjust the interval as needed
+    }
+}
+
+int main() {
+    std::cout << "Client is requesting stats from server...\n";
+    requestStats();
+    return 0;
+}
+
+
+
+
+#include "httplib.h"
+#include "json.hpp"
+#include <iostream>
+#include <thread>
+#include <chrono>
 #include <atomic>
 #include <fstream>
 #include <sys/sysinfo.h>
@@ -52,9 +93,15 @@ void updateSystemStats() {
 
 // Server handler to send stats to the client
 void handleClientRequest(const httplib::Request &req, httplib::Response &res) {
+    // Update system stats (this ensures the boot count is updated on each request)
+    updateSystemStats();
+
     json response_json;
     response_json["boots"] = boot_count.load();
     response_json["uptime"] = total_uptime.load();
+
+    // Set headers to prevent caching
+    res.set_header("Cache-Control", "no-store");
 
     res.set_content(response_json.dump(), "application/json");
 }
@@ -68,8 +115,6 @@ void sendPeriodicUpdates(httplib::Server &server) {
         updateSystemStats();  // Update system stats
 
         std::cout << "Sending periodic updates to clients..." << std::endl;
-        // The server does not need to send updates to clients directly, since clients request the stats.
-        // You can add any additional logic here if needed, such as sending notifications to clients.
     }
 }
 
