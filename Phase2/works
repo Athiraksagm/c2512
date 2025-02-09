@@ -1,19 +1,3 @@
-cmake_minimum_required(VERSION 3.10)
-project(SystemStatLoggingMicroservice)
-
-set(CMAKE_CXX_STANDARD 14)
-
-# Add subdirectories for server, client, and tests.
-add_subdirectory(server)
-add_subdirectory(client)
-add_subdirectory(test)
-
-
-
-
-
-
-
 athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLogging/build$ cmake ..
 -- The C compiler identification is GNU 11.4.0
 -- The CXX compiler identification is GNU 11.4.0
@@ -28,32 +12,45 @@ athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLogging/build$ cmake .
 -- Detecting CXX compile features
 -- Detecting CXX compile features - done
 CMake Error at server/CMakeLists.txt:4 (find_package):
-  By not providing "FindTinyXML2.cmake" in CMAKE_MODULE_PATH this project has
-  asked CMake to find a package configuration file provided by "TinyXML2",
+  By not providing "Findtinyxml2.cmake" in CMAKE_MODULE_PATH this project has
+  asked CMake to find a package configuration file provided by "tinyxml2",
   but CMake did not find one.
 
-  Could not find a package configuration file provided by "TinyXML2" with any
+  Could not find a package configuration file provided by "tinyxml2" with any
   of the following names:
 
-    TinyXML2Config.cmake
+    tinyxml2Config.cmake
     tinyxml2-config.cmake
 
-  Add the installation prefix of "TinyXML2" to CMAKE_PREFIX_PATH or set
-  "TinyXML2_DIR" to a directory containing one of the above files.  If
-  "TinyXML2" provides a separate development package or SDK, be sure it has
+  Add the installation prefix of "tinyxml2" to CMAKE_PREFIX_PATH or set
+  "tinyxml2_DIR" to a directory containing one of the above files.  If
+  "tinyxml2" provides a separate development package or SDK, be sure it has
   been installed.
 
 
 -- Configuring incomplete, errors occurred!
 See also "/mnt/c/Users/2022004/Desktop/SystemStatLogging/build/CMakeFiles/CMakeOutput.log".
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLogging/build$ sudo apt-get install libtinyxml2-dev
-[sudo] password for athira:
-Reading package lists... Done
-Building dependency tree... Done
-Reading state information... Done
-libtinyxml2-dev is already the newest version (9.0.0+dfsg-3).
-0 upgraded, 0 newly installed, 0 to remove and 22 not upgraded.
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLogging/build$ cmake -DCMAKE_PREFIX_PATH=/usr/lib/x86_64-linux-gnu/cma
+ke ..
+CMake Error at server/CMakeLists.txt:4 (find_package):
+  By not providing "Findtinyxml2.cmake" in CMAKE_MODULE_PATH this project has
+  asked CMake to find a package configuration file provided by "tinyxml2",
+  but CMake did not find one.
 
+  Could not find a package configuration file provided by "tinyxml2" with any
+  of the following names:
+
+    tinyxml2Config.cmake
+    tinyxml2-config.cmake
+
+  Add the installation prefix of "tinyxml2" to CMAKE_PREFIX_PATH or set
+  "tinyxml2_DIR" to a directory containing one of the above files.  If
+  "tinyxml2" provides a separate development package or SDK, be sure it has
+  been installed.
+
+
+-- Configuring incomplete, errors occurred!
+See also "/mnt/c/Users/2022004/Desktop/SystemStatLogging/build/CMakeFiles/CMakeOutput.log".
 
 
 
