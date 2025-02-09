@@ -1,106 +1,18 @@
-Step 1.2: Create the Findtinyxml2.cmake File
-Create a file named Findtinyxml2.cmake inside the cmake folder with the following content:
 
-cmake
-Copy
-Edit
-# Findtinyxml2.cmake
-# This module defines the following variables:
-#  TINYXML2_FOUND         - TRUE if TinyXML2 is found
-#  TINYXML2_INCLUDE_DIRS  - Where to find tinyxml2.h
-#  TINYXML2_LIBRARIES     - The TinyXML2 library
-
-find_path(TINYXML2_INCLUDE_DIR
-  NAMES tinyxml2.h
-  PATH_SUFFIXES tinyxml2
-  PATHS /usr/include /usr/local/include
-)
-
-find_library(TINYXML2_LIBRARY
-  NAMES tinyxml2
-  PATHS /usr/lib /usr/local/lib /usr/lib/x86_64-linux-gnu
-)
-
-if(TINYXML2_INCLUDE_DIR AND TINYXML2_LIBRARY)
-  set(TINYXML2_FOUND TRUE)
-  set(TINYXML2_INCLUDE_DIRS ${TINYXML2_INCLUDE_DIR})
-  set(TINYXML2_LIBRARIES ${TINYXML2_LIBRARY})
-else()
-  set(TINYXML2_FOUND FALSE)
-endif()
-
-mark_as_advanced(TINYXML2_INCLUDE_DIR TINYXML2_LIBRARY)
-This simple module searches for the header and library in common system directories. You can adjust the PATHS if necessary.
-
-Step 1.3: Update Your Top-Level CMakeLists.txt
-Tell CMake to include your custom modules by adding the following line near the top of your top-level CMakeLists.txt (before calling any find_package):
-
-cmake
-Copy
-Edit
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
-Step 1.4: Update server/CMakeLists.txt
-Modify your server/CMakeLists.txt to use the variables provided by your Find module:
-
-cmake
-Copy
-Edit
-project(Server)
-
-# Use the custom find module to locate TinyXML2
-find_package(tinyxml2 REQUIRED)
-
-# Include directories: add TinyXML2's include directory and your source directory.
-include_directories(${TINYXML2_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR})
-
-add_executable(server server.cpp)
-target_link_libraries(server ${TINYXML2_LIBRARIES} pthread)
-Now, from your build directory, try configuring again:
-
-bash
-Copy
-Edit
-cd /mnt/c/Users/2022004/Desktop/SystemStatLogging/build
-cmake ..
-make
-Option 2: Use pkg-config in CMake
-If TinyXML2’s pkg-config file is available (check by running pkg-config --cflags tinyxml2), you can use CMake’s PkgConfig module instead of find_package.
-
-Step 2.1: Modify server/CMakeLists.txt
-Replace the find_package(tinyxml2 REQUIRED) call with pkg-config usage:
-
-cmake
-Copy
-Edit
-project(Server)
-
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(TINYXML2 REQUIRED tinyxml2)
-
-include_directories(${TINYXML2_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR})
-add_executable(server server.cpp)
-target_link_libraries(server ${TINYXML2_LIBRARIES} pthread)
-Step 2.2: Configure and Build
-From your build directory, run:
-
-bash
-Copy
-Edit
-cd /mnt/c/Users/2022004/Desktop/SystemStatLogging/build
-cmake ..
-make
-This method uses pkg-config to retrieve the TinyXML2 details, which can be more robust if the pkg-config file is correctly installed on your system.
-
-Verifying the Installation
-To check if pkg-config finds TinyXML2, run:
-
-bash
-Copy
-Edit
-pkg-config --cflags tinyxml2
-pkg-config --libs tinyxml2
-If these commands return valid flags and library paths, then Option 2 should work for you.
-
+ athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLogging/build$ cmake ..
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /mnt/c/Users/2022004/Desktop/SystemStatLogging/build
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLogging/build$ make
+[ 16%] Building CXX object server/CMakeFiles/server.dir/server.cpp.o
+/mnt/c/Users/2022004/Desktop/SystemStatLogging/server/server.cpp:11:10: fatal error: httplib.h: No such file or directory
+   11 | #include "httplib.h"      // Download from https://github.com/yhirose/cpp-httplib
+      |          ^~~~~~~~~~~
+compilation terminated.
+make[2]: *** [server/CMakeFiles/server.dir/build.make:76: server/CMakeFiles/server.dir/server.cpp.o] Error 1
+make[1]: *** [CMakeFiles/Makefile2:134: server/CMakeFiles/server.dir/all] Error 2
+make: *** [Makefile:91: all] Error 2
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLogging/build$
 
 
 
