@@ -1,22 +1,35 @@
-ing$ g++ -std=c++14 -o server src/server.cpp -Iinclude -I/usr/include/tinyxml2 -l pthread -l tinyxml2
-athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$ .
-/server
-Server running at http://localhost:8080...
-Sending periodic updates to clients...
-Sending periodic updates to clients...
-Sending periodic updates to clients...
-Sending periodic updates to clients...
-Sending periodic updates to clients...
-Sending periodic updates to clients...
-Sending periodic updates to clients...
-Sending periodic updates to clients...
+#include <iostream>
+#include <httplib.h>
+#include <json.hpp>
+#include <thread>
+#include <chrono>
 
+using json = nlohmann::json;
 
+void requestStats() {
+    httplib::Client client("http://localhost:8080");
 
+    while (true) {
+        // Send GET request to the server
+        auto res = client.Get("/stats");
 
-athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$ g++ -std=c++14 -o client src/client.cpp -Iinclude -I/usr/in
-clude/tinyxml2 -l pthread -l tinyxml2
-athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLogging$ ./client
-Received stats:
-Boot Count: 2
-Uptime: 13203 seconds
+        if (res && res->status == 200) {
+            // Parse JSON response
+            json stats = json::parse(res->body);
+
+            std::cout << "Received stats:\n";
+            std::cout << "Boot Count: " << stats["boot_count"] << "\n";
+            std::cout << "Uptime: " << stats["uptime"] << " seconds\n";
+        } else {
+            std::cout << "Failed to get stats from server.\n";
+        }
+
+        // Wait for the next request (interval)
+        std::this_thread::sleep_for(std::chrono::seconds(10)); // Adjust the interval as needed
+    }
+}
+
+int main() {
+    requestStats();
+    return 0;
+}
