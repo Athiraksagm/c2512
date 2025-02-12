@@ -8,7 +8,7 @@
 
 using json = nlohmann::json;
 
-// Function to save stats to a CSV file
+
 void saveStatsToCSV(const json &stats) 
 {
     std::ofstream file("system_stats.csv", std::ios::app);
@@ -41,39 +41,31 @@ void saveStatsToCSV(const json &stats)
 }
 
 // Function to request stats from the server periodically
-void requestStats() 
-{
+void requestStats() {
     httplib::Client client("http://localhost:8080");
 
     while (true) {
-        // Send GET request to the server
         auto res = client.Get("/stats");
 
         if (res && res->status == 200) {
-            // Parse JSON response
             json stats = json::parse(res->body);
 
-            // Debugging output to confirm the received data
             std::cout << "Received stats:\n";
-            std::cout << "Boot Count: " << stats["boots"] << "\n";
+            std::cout << "Boot Count: " << stats["boots"] << "\n"; // Fix: Correct key
             std::cout << "Uptime: " << stats["uptime"] << " seconds\n";
         } else {
             std::cout << "Failed to get stats from server.\n";
         }
 
-        // Wait for the next request (interval)
-        std::this_thread::sleep_for(std::chrono::seconds(10)); // Adjust the interval as needed
+        std::this_thread::sleep_for(std::chrono::seconds(10)); 
     }
 }
 
-int main() 
-{
+int main() {
     std::cout << "Client is requesting stats from server...\n";
     requestStats();
     return 0;
 }
-
-
 
 
 
@@ -90,37 +82,31 @@ int main()
 
 using json = nlohmann::json;
 
-// Global variables to track the stats
+// Global variables
 std::atomic<int> boot_count(0);
 std::atomic<long> total_uptime(0);
 
-// Function to read the boot count from a file
-int loadBootCount() 
-{
+// Function to read boot count from a file
+int loadBootCount() {
     std::ifstream file("boot_count.txt");
     int count = 0;
     if (file.is_open()) {
-        file >> count;  // Read the current boot count
-        std::cout << "Loaded boot count: " << count << std::endl;  // Debugging
-    } else {
-        std::cout << "boot_count.txt not found or empty, initializing to 0." << std::endl;  // Debugging
+        file >> count;
     }
     file.close();
     return count;
 }
 
-// Function to save the updated boot count to a file
-void saveBootCount(int count) 
-{
+// Function to save boot count to a file
+void saveBootCount(int count) {
     std::ofstream file("boot_count.txt");
     if (file.is_open()) {
-        file << count;  // Save the current boot count
-        std::cout << "Saved boot count: " << count << std::endl;  // Debugging
+        file << count;
     }
     file.close();
 }
 
-// Function to save boot count and uptime to a CSV file
+
 void saveStatsToCSV() 
 {
     std::ofstream file;
@@ -151,54 +137,31 @@ void saveStatsToCSV()
 }
 
 // Function to get the system's uptime
-void updateSystemStats() 
-{
+void updateUptime() {
     struct sysinfo info;
     if (sysinfo(&info) == 0) {
-        total_uptime.store(info.uptime);  // total uptime in seconds
+        total_uptime.store(info.uptime);  // Update uptime (in seconds)
     }
-    // Read and increment the boot count from the file
-    int current_count = loadBootCount();
-    boot_count.store(current_count + 1);  // Increment boot count
-    saveBootCount(boot_count.load());  // Save the updated boot count
-
-    saveStatsToCSV();  // Save stats to CSV file
+    saveStatsToCSV();
 }
 
 // Server handler to send stats to the client
-void handleClientRequest(const httplib::Request &req, httplib::Response &res) 
-{
-    // Update system stats (this ensures the boot count is updated on each request)
-    updateSystemStats();
+void handleClientRequest(const httplib::Request &req, httplib::Response &res) {
+    updateUptime();  // Update uptime before responding
 
     json response_json;
     response_json["boots"] = boot_count.load();
     response_json["uptime"] = total_uptime.load();
 
-    // Set headers to prevent caching
     res.set_header("Cache-Control", "no-store");
-
     res.set_content(response_json.dump(), "application/json");
 }
 
-// Function to send periodic updates based on the interval
-void sendPeriodicUpdates(httplib::Server &server) 
-{
-    int interval = 10;  // Update interval (seconds), can be read from a config file if needed
-
-    while (true) {
-        std::this_thread::sleep_for(std::chrono::seconds(interval));  // Wait for the interval duration
-        updateSystemStats();  // Update system stats
-
-        std::cout << "Sending periodic updates to clients..." << std::endl;
-    }
-}
-
-int main() 
-{
-    // Load the boot count from the file and increment it
-    boot_count.store(loadBootCount() + 1);
-    saveBootCount(boot_count.load());  // Save the updated boot count
+int main() {
+    // Load boot count once at startup
+    int stored_boot_count = loadBootCount();
+    boot_count.store(stored_boot_count + 1);
+    saveBootCount(boot_count.load());
 
     // Initialize the CSV file with a header if it doesn't exist
     std::ifstream checkFile("system_stats.csv");
@@ -214,17 +177,11 @@ int main()
     std::cout << "Server running at http://localhost:8080...\n";
 
     httplib::Server server;
-
-    // Define the route for client requests
     server.Get("/stats", handleClientRequest);
 
-    // Run the server in a separate thread to handle multiple requests concurrently
-    std::thread update_thread(sendPeriodicUpdates, std::ref(server));
-
-    // Start the server on port 8080
     server.listen("localhost", 8080);
-
-    update_thread.join();  // Wait for the update thread to finish (it won't unless terminated)
-
     return 0;
 }
+
+
+
