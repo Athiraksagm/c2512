@@ -1,1 +1,317 @@
+Updated Project Structure
+
+SystemStatLogging/
+│── CMakeLists.txt
+│── src/
+│   ├── client/
+│   │   ├── client.cpp
+│   │   ├── ClientHandler.h
+│   │   ├── ClientHandler.cpp
+│   ├── server/
+│   │   ├── server.cpp
+│   │   ├── ServerHandler.h
+│   │   ├── ServerHandler.cpp
+│   │   ├── FileManager.h
+│   │   ├── FileManager.cpp
+│   │   ├── SystemStats.h
+│   │   ├── SystemStats.cpp
+
+
+---
+
+1. File: src/client/ClientHandler.h
+
+#ifndef CLIENT_HANDLER_H
+#define CLIENT_HANDLER_H
+
+#include <string>
+#include <nlohmann/json.hpp>
+
+class ClientHandler {
+public:
+    static void requestStats();
+    static void saveStatsToCSV(const nlohmann::json &stats);
+};
+
+#endif
+
+
+---
+
+2. File: src/client/ClientHandler.cpp
+
+#include "ClientHandler.h"
+#include <iostream>
+#include <httplib.h>
+#include <fstream>
+#include <ctime>
+#include <thread>
+#include <chrono>
+
+using json = nlohmann::json;
+
+void ClientHandler::saveStatsToCSV(const json &stats) {
+    std::ofstream file("system_stats.csv", std::ios::app);
+    if (!file.is_open()) {
+        std::cerr << "Failed to open CSV file!" << std::endl;
+        return;
+    }
+
+    file.seekp(0, std::ios::end);
+    if (file.tellp() == 0) {
+        file << "Date,Time,Boot Count,Uptime (seconds)\n";
+    }
+
+    std::time_t now = std::time(nullptr);
+    std::tm *local_time = std::localtime(&now);
+
+    file << 1900 + local_time->tm_year << "-"
+         << 1 + local_time->tm_mon << "-"
+         << local_time->tm_mday << ","
+         << local_time->tm_hour << ":"
+         << local_time->tm_min << ":"
+         << local_time->tm_sec << ","
+         << stats.value("boots", 0) << ","
+         << stats["uptime"].get<long>() << "\n";
+
+    file.close();
+}
+
+void ClientHandler::requestStats() {
+    httplib::Client client("http://localhost:8080");
+
+    while (true) {
+        auto res = client.Get("/stats");
+
+        if (res && res->status == 200) {
+            json stats = json::parse(res->body);
+            std::cout << "Boot Count: " << stats["boots"] << "\n";
+            std::cout << "Uptime: " << stats["uptime"] << " seconds\n";
+
+            saveStatsToCSV(stats);
+        } else {
+            std::cout << "Failed to get stats from server.\n";
+        }
+
+        std::this_thread::sleep_for(std::chrono::seconds(10));
+    }
+}
+
+
+---
+
+3. File: src/client/client.cpp
+
+#include "ClientHandler.h"
+#include <iostream>
+
+int main() {
+    std::cout << "Client is requesting stats from server...\n";
+    ClientHandler::requestStats();
+    return 0;
+}
+
+
+---
+
+4. File: src/server/FileManager.h
+
+#ifndef FILE_MANAGER_H
+#define FILE_MANAGER_H
+
+class FileManager {
+public:
+    static int loadBootCount();
+    static void saveBootCount(int count);
+    static void saveStatsToCSV(int boot_count, long uptime);
+};
+
+#endif
+
+
+---
+
+5. File: src/server/FileManager.cpp
+
+#include "FileManager.h"
+#include <fstream>
+#include <iostream>
+#include <ctime>
+
+int FileManager::loadBootCount() {
+    std::ifstream file("boot_count.txt");
+    int count = 0;
+    if (file.is_open()) {
+        file >> count;
+    }
+    file.close();
+    return count;
+}
+
+void FileManager::saveBootCount(int count) {
+    std::ofstream file("boot_count.txt");
+    if (file.is_open()) {
+        file << count;
+    }
+    file.close();
+}
+
+void FileManager::saveStatsToCSV(int boot_count, long uptime) {
+    std::ofstream file("system_stats.csv", std::ios::app);
+    if (!file.is_open()) {
+        std::cerr << "Error opening CSV file!" << std::endl;
+        return;
+    }
+
+    std::time_t now = std::time(nullptr);
+    std::tm *local_time = std::localtime(&now);
+
+    file << 1900 + local_time->tm_year << "-"
+         << 1 + local_time->tm_mon << "-"
+         << local_time->tm_mday << ", "
+         << local_time->tm_hour << ":"
+         << local_time->tm_min << ":"
+         << local_time->tm_sec << ", "
+         << boot_count << ", "
+         << uptime << "\n";
+
+    file.close();
+}
+
+
+---
+
+6. File: src/server/SystemStats.h
+
+#ifndef SYSTEM_STATS_H
+#define SYSTEM_STATS_H
+
+class SystemStats {
+public:
+    static long getUptime();
+};
+
+#endif
+
+
+---
+
+7. File: src/server/SystemStats.cpp
+
+#include "SystemStats.h"
+#include <sys/sysinfo.h>
+
+long SystemStats::getUptime() {
+    struct sysinfo info;
+    if (sysinfo(&info) == 0) {
+        return info.uptime;
+    }
+    return -1;
+}
+
+
+---
+
+8. File: src/server/ServerHandler.h
+
+#ifndef SERVER_HANDLER_H
+#define SERVER_HANDLER_H
+
+#include "FileManager.h"
+#include "SystemStats.h"
+#include <httplib.h>
+
+class ServerHandler {
+public:
+    static void handleClientRequest(const httplib::Request &req, httplib::Response &res);
+};
+
+#endif
+
+
+---
+
+9. File: src/server/ServerHandler.cpp
+
+#include "ServerHandler.h"
+#include <atomic>
+#include <nlohmann/json.hpp>
+
+using json = nlohmann::json;
+std::atomic<int> boot_count(0);
+std::atomic<long> total_uptime(0);
+
+void ServerHandler::handleClientRequest(const httplib::Request &req, httplib::Response &res) {
+    total_uptime.store(SystemStats::getUptime());
+    
+    json response_json;
+    response_json["boots"] = boot_count.load();
+    response_json["uptime"] = total_uptime.load();
+    
+    res.set_header("Cache-Control", "no-store");
+    res.set_content(response_json.dump(), "application/json");
+
+    FileManager::saveStatsToCSV(boot_count.load(), total_uptime.load());
+}
+
+
+---
+
+10. File: src/server/server.cpp
+
+#include "ServerHandler.h"
+#include "FileManager.h"
+#include <iostream>
+#include <httplib.h>
+
+int main() {
+    int stored_boot_count = FileManager::loadBootCount();
+    boot_count.store(stored_boot_count + 1);
+    FileManager::saveBootCount(boot_count.load());
+
+    std::cout << "Server running at http://localhost:8080...\n";
+
+    httplib::Server server;
+    server.Get("/stats", ServerHandler::handleClientRequest);
+
+    server.listen("localhost", 8080);
+    return 0;
+}
+
+
+---
+
+11. Updated CMakeLists.txt
+
+cmake_minimum_required(VERSION 3.10)
+project(SystemStatLogging)
+
+set(CMAKE_CXX_STANDARD 14)
+
+include_directories(include)
+link_directories(${CMAKE_SOURCE_DIR}/lib)
+
+find_package(GTest REQUIRED)
+include_directories(${GTEST_INCLUDE_DIRS})
+
+add_executable(server 
+    src/server/server.cpp
+    src/server/ServerHandler.cpp
+    src/server/FileManager.cpp
+    src/server/SystemStats.cpp
+)
+
+add_executable(client 
+    src/client/client.cpp
+    src/client/ClientHandler.cpp
+)
+
+target_link_libraries(test_system_stats ${GTEST_LIBRARIES} pthread)
+target_link_libraries(server pthread tinyxml2)
+target_link_libraries(client pthread)
+
+install(TARGETS server client DESTINATION bin)
+
+This modular approach improves maintainability, readability, and reusability while keeping the same functionality.
+
 
