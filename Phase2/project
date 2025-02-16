@@ -1,3 +1,4 @@
+//SERVER
 #include "httplib.h"
 #include "json.hpp"
 #include <iostream>
@@ -64,6 +65,36 @@ bool hasSystemRebooted() {
     return false;
 }
 
+void saveStatsToCSV() {
+    std::ofstream file("system_stats.csv", std::ios::app);  // Open in append mode
+
+    if (!file.is_open()) {
+        std::cerr << "Error opening CSV file!" << std::endl;
+        return;
+    }
+
+    // Check if file is empty, write header
+    std::ifstream checkFile("system_stats.csv");
+    if (checkFile.peek() == std::ifstream::traits_type::eof()) {  
+        file << "Date,Time,Boot Count,Uptime (seconds)\n";
+    }
+    checkFile.close();
+
+    std::time_t now = std::time(nullptr);
+    std::tm *local_time = std::localtime(&now);
+
+    file << 1900 + local_time->tm_year << "-"
+         << 1 + local_time->tm_mon << "-"
+         << local_time->tm_mday << ","
+         << local_time->tm_hour << ":"
+         << local_time->tm_min << ":"
+         << local_time->tm_sec << ","
+         << boot_count.load() << ","
+         << total_uptime.load() << "\n";
+
+    file.close();
+}
+
 // Function to update uptime
 void updateUptime() {
     struct sysinfo info;
@@ -95,6 +126,18 @@ int main() {
     boot_count.store(stored_boot_count);
 
     std::cout << "Boot Count: " << boot_count.load() << std::endl;
+
+    // Initialize the CSV file with a header if it doesn't exist
+    std::ifstream checkFile("system_stats.csv");
+    if (!checkFile.is_open()) {
+        std::ofstream file("system_stats.csv");
+        if (file.is_open()) {
+            file << " Date (YYYY-MM-DD), Time (HH-MM-SS), Boot Count, Uptime (seconds)" << std::endl;  // Write header to CSV file
+            file.close();
+        }
+    }
+    checkFile.close();
+
     std::cout << "Server running at http://localhost:8080...\n";
 
     httplib::Server server;
@@ -104,9 +147,7 @@ int main() {
     return 0;
 }
 
-
-
-
+//CLIENT
 #include <iostream>
 #include <httplib.h>
 #include <json.hpp>
@@ -114,70 +155,6 @@ int main() {
 #include <chrono>
 
 using json = nlohmann::json;
-
-// Function to request stats from the server periodically
-void requestStats() {
-    httplib::Client client("http://localhost:8080");
-
-    while (true) {
-        auto res = client.Get("/stats");
-
-        if (res && res->status == 200) {
-            json stats = json::parse(res->body);
-
-            std::cout << "Received stats:\n";
-            std::cout << "Boot Count: " << stats["boot_count"] << "\n";
-            std::cout << "Uptime: " << stats["uptime"] << " seconds\n";
-        } else {
-            std::cerr << "Failed to get stats from server.\n";
-        }
-
-        std::this_thread::sleep_for(std::chrono::seconds(10));
-    }
-}
-
-int main() {
-    std::cout << "Client is requesting stats from server...\n";
-    requestStats();
-    return 0;
-}
-
-
-
-
-
-void saveStatsToCSV() {
-    std::ofstream file("system_stats.csv", std::ios::app);  // Open in append mode
-
-    if (!file.is_open()) {
-        std::cerr << "Error opening CSV file!" << std::endl;
-        return;
-    }
-
-    // Check if file is empty, write header
-    std::ifstream checkFile("system_stats.csv");
-    if (checkFile.peek() == std::ifstream::traits_type::eof()) {  
-        file << "Date,Time,Boot Count,Uptime (seconds)\n";
-    }
-    checkFile.close();
-
-    std::time_t now = std::time(nullptr);
-    std::tm *local_time = std::localtime(&now);
-
-    file << 1900 + local_time->tm_year << "-"
-         << 1 + local_time->tm_mon << "-"
-         << local_time->tm_mday << ","
-         << local_time->tm_hour << ":"
-         << local_time->tm_min << ":"
-         << local_time->tm_sec << ","
-         << boot_count.load() << ","
-         << total_uptime.load() << "\n";
-
-    file.close();
-}
-
-
-
 
 void saveStatsToCSV(const json &stats) {
     std::ofstream file("system_stats.csv", std::ios::app);  
@@ -208,3 +185,83 @@ void saveStatsToCSV(const json &stats) {
 
     file.close();
 }
+
+
+// Function to request stats from the server periodically
+void requestStats() {
+    httplib::Client client("http://localhost:8080");
+
+    while (true) {
+        auto res = client.Get("/stats");
+
+        if (res && res->status == 200) {
+            json stats = json::parse(res->body);
+
+            std::cout << "Received stats:\n";
+            std::cout << "Boot Count: " << stats["boot_count"] << "\n";
+            std::cout << "Uptime: " << stats["uptime"] << " seconds\n";
+        } else {
+            std::cerr << "Failed to get stats from server.\n";
+        }
+
+        std::this_thread::sleep_for(std::chrono::seconds(10));
+    }
+}
+
+int main() {
+    std::cout << "Client is requesting stats from server...\n";
+    requestStats();
+    return 0;
+}
+
+ Why this error happening boot count is increasing when i run server 2 times.it should not change while i running server multiple times right.it should only run while retarting and shutdown the system. and also the data is not showing in csv file. Give proper code.
+
+
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/build$ ./server
+Boot Count: 5
+Server running at http://localhost:8080...
+^C
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/build$ cmake ..
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/build
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/build$ make
+Consolidate compiler generated dependencies of target server
+[ 33%] Built target server
+Consolidate compiler generated dependencies of target client
+[ 66%] Built target client
+Consolidate compiler generated dependencies of target test_system_stats
+[100%] Built target test_system_stats
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/build$ ./server
+Boot Count: 6
+Server running at http://localhost:8080...
+^C
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/build$ ./server
+Boot Count: 7
+Server running at http://localhost:8080...
+^C
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/build$ ./server
+Boot Count: 7
+Server running at http://localhost:8080...
+^C
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/build$ ./server
+Boot Count: 8
+Server running at http://localhost:8080...
+^C
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/build$ ./server
+Boot Count: 8
+Server running at http://localhost:8080...
+^C
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/build$ ./server
+Boot Count: 9
+Server running at http://localhost:8080...
+^C
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/build$ ./server
+Boot Count: 9
+Server running at http://localhost:8080...
+^C
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/build$ ./server
+Boot Count: 9
+Server running at http://localhost:8080...
+^C
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/build$
