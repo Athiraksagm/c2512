@@ -1,3 +1,4 @@
+
 #include "httplib.h"
 #include "json.hpp"
 #include <iostream>
@@ -11,22 +12,18 @@ using json = nlohmann::json;
 std::atomic<int> boot_count(0);
 std::atomic<long> total_uptime(0);
 
-long getSystemBootTime()
-{
+long getSystemBootTime() {
     struct sysinfo info;
-    if (sysinfo(&info) == 0)
-    {
+    if (sysinfo(&info) == 0) {
         return time(nullptr) - info.uptime;
     }
     return 0;
 }
 
-int loadBootCount()
-{
+int loadBootCount() {
     std::ifstream file("boot_count.txt");
     int count = 0;
-    if (file.is_open()) 
-    {
+    if (file.is_open()) {
         file >> count;
         file.close();
     }
@@ -41,31 +38,26 @@ void saveBootCount(int count) {
     }
 }
 
-bool hasSystemRebooted()
-{
+bool hasSystemRebooted() {
     long current_boot_time = getSystemBootTime();
     std::ifstream file("last_boot_time.txt");
     long last_boot_time = 0;
 
-    if (file.is_open())
-    {
+    if (file.is_open()) {
         file >> last_boot_time;
         file.close();
     } else {
         std::ofstream saveFile("last_boot_time.txt");
-        if (saveFile.is_open()) 
-        {
+        if (saveFile.is_open()) {
             saveFile << current_boot_time;
             saveFile.close();
         }
         return false;
     }
 
-    if (current_boot_time > 0 && current_boot_time != last_boot_time) 
-    {
+    if (current_boot_time > 0 && current_boot_time != last_boot_time) {
         std::ofstream saveFile("last_boot_time.txt");
-        if (saveFile.is_open()) 
-        {
+        if (saveFile.is_open()) {
             saveFile << current_boot_time;
             saveFile.close();
         }
@@ -78,7 +70,7 @@ bool hasSystemRebooted()
 void saveStatsToCSV() 
 {
     std::ofstream file;
-    file.open("system_stats.csv", std::ios_base::app);
+    file.open("system_stats.csv", std::ios_base::app); 
 
     if (file.is_open()) {
 
@@ -91,7 +83,7 @@ void saveStatsToCSV()
          << local_time->tm_hour << ":"
          << local_time->tm_min << ":"
          << local_time->tm_sec << ", "
-         << boot_count.load() << ", " 
+         << boot_count.load() << ", "  
           << total_uptime.load() << "\n";
       std::cout << "Saved stats to CSV: Date = " << 1900 + local_time->tm_year << "-" 
       << 1 + local_time->tm_mon << "-"  << local_time->tm_mday << ", Time = " << local_time->tm_hour 
@@ -104,17 +96,14 @@ void saveStatsToCSV()
     file.close();
 }
 
-void updateUptime() 
-{
+void updateUptime() {
     struct sysinfo info;
-    if (sysinfo(&info) == 0)
-    {
+    if (sysinfo(&info) == 0) {
         total_uptime.store(info.uptime);
     }
 }
 
-void handleClientRequest(const httplib::Request &req, httplib::Response &res)
-{
+void handleClientRequest(const httplib::Request &req, httplib::Response &res) {
     updateUptime();
 
     json response_json;
@@ -123,12 +112,13 @@ void handleClientRequest(const httplib::Request &req, httplib::Response &res)
 
     saveStatsToCSV(); 
 
+    std::cout <<  "[Request Received] Boot Count: " << boot_count.load() << ", Uptime: " << total_uptime.load() << " seconds\n";
+
     res.set_header("Cache-Control", "no-store");
     res.set_content(response_json.dump(), "application/json");
 }
 
-int main()
-{
+int main() {
     int stored_boot_count = loadBootCount();
 
     if (hasSystemRebooted()) {
@@ -138,19 +128,21 @@ int main()
 
     boot_count.store(stored_boot_count);
 
-    std::cout << "Boot Count: " << boot_count.load() << std::endl;
+    std::cout << "=============================\n" << " SYSTEM STAT LOGGING SERVER\n" << "=============================\n";
+
+    std::cout << "Boot Count: " << boot_count.load() << "\n";
+    std::cout << "Server running at http://localhost:8080...\n";
+    std::cout << "Waiting for client requests...\n";
 
     std::ifstream checkFile("system_stats.csv");
     if (!checkFile.is_open()) {
         std::ofstream file("system_stats.csv");
         if (file.is_open()) {
-            file << " Date (YYYY-MM-DD), Time (HH-MM-SS), Boot Count, Uptime (seconds)" << std::endl;
+            file << " Date (YYYY-MM-DD), Time (HH-MM-SS), Boot Count, Uptime (seconds)" << std::endl;  
             file.close();
         }
     }
     checkFile.close();
-
-    std::cout << "Server running at http://localhost:8080...\n";
 
     httplib::Server server;
     server.Get("/stats", handleClientRequest);
