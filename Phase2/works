@@ -13,7 +13,7 @@ std::atomic<long> total_uptime(0);
 
 std::string file_path = "../"; // Store files outside `build/`
 
-// Function to get the system's boot time
+// Function to get the system's boot time as a Unix timestamp
 long getSystemBootTime() {
     struct sysinfo info;
     if (sysinfo(&info) == 0) {
@@ -53,7 +53,7 @@ long loadLastBootTime() {
     return last_boot_time;
 }
 
-// Save the current boot time to the file
+// Save the current boot time to the file as a Unix timestamp
 void saveLastBootTime(long boot_time) {
     std::ofstream file(file_path + "last_boot_time.txt");
     if (file.is_open()) {
@@ -72,9 +72,9 @@ bool hasSystemRebooted() {
         return false;
     }
 
-    // If the current boot time is different from the last boot time, increment boot count
+    // If the current boot time is different from the last boot time, it means a reboot has occurred
     if (current_boot_time > 0 && current_boot_time != last_boot_time) {
-        saveLastBootTime(current_boot_time);
+        saveLastBootTime(current_boot_time); // Update last boot time to the current one
         return true;  // Reboot detected
     }
 
