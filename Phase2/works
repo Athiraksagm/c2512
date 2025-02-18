@@ -1,12 +1,23 @@
 long getSystemBootTime() {
-    struct sysinfo info;
-    if (sysinfo(&info) == 0) {
-        long boot_time = time(nullptr) - info.uptime;
-        std::cout << "Current time: " << time(nullptr) << "\n";
-        std::cout << "Uptime: " << info.uptime << "\n";
-        std::cout << "Boot time calculated as: " << boot_time << "\n";
-        return boot_time;
+    std::ifstream stat_file("/proc/stat");
+    std::string line;
+    
+    if (stat_file.is_open()) {
+        // Read the first line of /proc/stat
+        std::getline(stat_file, line);
+        
+        // /proc/stat contains "btime" on the first line as "btime  <boot time in seconds>"
+        std::istringstream ss(line);
+        std::string label;
+        long boot_time = 0;
+
+        // Check for the "btime" field and extract the boot time
+        if (ss >> label >> boot_time) {
+            return boot_time;  // Return boot time in seconds since Unix epoch
+        }
     }
-    std::cerr << "Error getting system info!\n";
+    
+    // If the file couldn't be read or the field was not found, return 0 (error)
+    std::cerr << "Error reading system boot time from /proc/stat!" << std::endl;
     return 0;
 }
