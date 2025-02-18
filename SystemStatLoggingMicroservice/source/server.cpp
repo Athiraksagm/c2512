@@ -1,4 +1,3 @@
-
 #include "httplib.h"
 #include "json.hpp"
 #include <iostream>
@@ -85,11 +84,6 @@ void saveStatsToCSV()
          << local_time->tm_sec << ", "
          << boot_count.load() << ", "  
           << total_uptime.load() << "\n";
-      std::cout << "Saved stats to CSV: Date = " << 1900 + local_time->tm_year << "-" 
-      << 1 + local_time->tm_mon << "-"  << local_time->tm_mday << ", Time = " << local_time->tm_hour 
-      << ":" << local_time->tm_min << ":" << local_time->tm_sec << ", Boot Count = " 
-      << boot_count.load() << ", Uptime = " << total_uptime.load() << std::endl;
-
     } else {
         std::cerr << "Error opening CSV file!" << std::endl;
     }
