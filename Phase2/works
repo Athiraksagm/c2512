@@ -16,7 +16,7 @@ std::string file_path = "../"; // Stores files outside `build/`
 long getSystemBootTime() {
     struct sysinfo info;
     if (sysinfo(&info) == 0) {
-        return time(nullptr) - info.uptime;
+        return time(nullptr) - info.uptime;  // This gives the absolute boot time, based on system uptime
     }
     return 0;
 }
@@ -66,12 +66,13 @@ bool hasSystemRebooted() {
         return false;
     }
 
+    // Compare the boot time only when it's different
     if (current_boot_time > 0 && current_boot_time != last_boot_time) {
         saveLastBootTime(current_boot_time);
-        return true;
+        return true;  // System has rebooted
     }
 
-    return false;
+    return false;  // No reboot detected
 }
 
 void saveStatsToCSV() {
