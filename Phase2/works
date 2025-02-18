@@ -1,17 +1,18 @@
-#include "httplib.h"
-#include "json.hpp"
 #include <iostream>
 #include <fstream>
-#include <atomic>
+#include <string>
+#include <Poco/Net/HTTPServer.h>
+#include <Poco/Net/HTTPRequestHandlerFactory.h>
+#include <Poco/Net/HTTPServerParams.h>
+#include <Poco/Thread.h>
+#include <Poco/Net/HTTPServerRequest.h>
+#include <Poco/Net/HTTPServerResponse.h>
+#include <Poco/JSON/Object.h>
+#include <Poco/JSON/Parser.h>
 #include <sys/sysinfo.h>
 #include <unistd.h>
 
-using json = nlohmann::json;
-
-std::atomic<int> boot_count(0);
-std::atomic<long> total_uptime(0);
-
-std::string file_path = "../"; // Store files outside `build/`
+const std::string BOOT_COUNT_FILE = "boot_count.txt";
 
 // Function to get the system's boot time as a Unix timestamp
 long getSystemBootTime() {
@@ -22,145 +23,115 @@ long getSystemBootTime() {
     return 0;
 }
 
-// Load the boot count from the file
-int loadBootCount() {
-    std::ifstream file(file_path + "boot_count.txt");
-    int count = 0;
+// Function to get the boot count from the file
+int getBootCount() {
+    std::ifstream file(BOOT_COUNT_FILE);
+    int bootCount = 0;
+    
     if (file.is_open()) {
-        file >> count;
+        file >> bootCount; // Read current boot count from the file
         file.close();
     }
-    return count;
+    
+    return bootCount;
 }
 
-// Save the boot count to the file
-void saveBootCount(int count) {
-    std::ofstream file(file_path + "boot_count.txt");
+// Function to update the boot count in the file
+void updateBootCount(int bootCount) {
+    std::ofstream file(BOOT_COUNT_FILE);
     if (file.is_open()) {
-        file << count;
-        file.close();
-    }
-}
-
-// Load the last boot time from the file
-long loadLastBootTime() {
-    std::ifstream file(file_path + "last_boot_time.txt");
-    long last_boot_time = 0;
-    if (file.is_open()) {
-        file >> last_boot_time;
-        file.close();
-    }
-    return last_boot_time;
-}
-
-// Save the current boot time to the file as a Unix timestamp
-void saveLastBootTime(long boot_time) {
-    std::ofstream file(file_path + "last_boot_time.txt");
-    if (file.is_open()) {
-        file << boot_time;
+        file << bootCount; // Write the updated boot count to the file
         file.close();
     }
 }
 
-// Function to check if the system has rebooted
-bool hasSystemRebooted() {
-    long current_boot_time = getSystemBootTime();
-    long last_boot_time = loadLastBootTime();
+// HTTP Request Handler for providing system stats
+class StatsRequestHandler : public Poco::Net::HTTPRequestHandler {
+public:
+    void handleRequest(Poco::Net::HTTPServerRequest& request, Poco::Net::HTTPServerResponse& response) override {
+        // Retrieve boot count and uptime
+        int bootCount = getBootCount();
+        long uptime = sysinfo().uptime;
 
-    if (last_boot_time == 0) {  // First run, save the boot time and return false
-        saveLastBootTime(current_boot_time);
-        return false;
+        // Prepare the JSON response
+        Poco::JSON::Object jsonResponse;
+        jsonResponse.set("boot_count", bootCount);
+        jsonResponse.set("uptime", uptime);
+
+        std::ostream& ostr = response.send();
+        response.setContentType("application/json");
+        response.setStatus(Poco::Net::HTTPResponse::HTTP_OK);
+        jsonResponse.stringify(ostr);
     }
+};
 
-    // If the current boot time is different from the last boot time, it means a reboot has occurred
-    if (current_boot_time > 0 && current_boot_time != last_boot_time) {
-        saveLastBootTime(current_boot_time); // Update last boot time to the current one
-        return true;  // Reboot detected
-    }
+// Main function to start the HTTP server
+int main() {
+    int bootCount = getBootCount();
+    bootCount++;  // Increment boot count on each restart
+    updateBootCount(bootCount);  // Update boot count file
 
-    return false;  // No reboot detected
+    std::cout << "=============================" << std::endl;
+    std::cout << " SYSTEM STAT LOGGING SERVER " << std::endl;
+    std::cout << "=============================" << std::endl;
+    std::cout << "Boot Count: " << bootCount << std::endl;
+    
+    // Start the HTTP server
+    Poco::Net::HTTPServerParams* pParams = new Poco::Net::HTTPServerParams;
+    Poco::Net::HTTPRequestHandlerFactory* pFactory = new Poco::Net::HTTPRequestHandlerFactoryImpl<StatsRequestHandler>();
+    Poco::Net::HTTPServer srv(pFactory, Poco::Net::ServerSocket(8080), pParams);
+    srv.start();
+    
+    std::cout << "Server running at http://localhost:8080..." << std::endl;
+    std::cout << "Waiting for client requests..." << std::endl;
+    
+    // Keep the server running
+    Poco::Thread::sleep(Poco::Timespan::SECONDS * 3600);
+    
+    return 0;
 }
 
-// Save system stats to CSV
-void saveStatsToCSV() {
-    std::ofstream file(file_path + "system_stats.csv", std::ios_base::app);
-    if (file.is_open()) {
-        std::time_t now = std::time(nullptr);
-        std::tm *local_time = std::localtime(&now);
 
-        // Append stats to CSV: Date, Time, Boot Count, Uptime (seconds)
-        file << 1900 + local_time->tm_year << "-"
-             << 1 + local_time->tm_mon << "-"
-             << local_time->tm_mday << ", "
-             << local_time->tm_hour << ":"
-             << local_time->tm_min << ":"
-             << local_time->tm_sec << ", "
-             << boot_count.load() << ", "
-             << total_uptime.load() << "\n";
-    } else {
-        std::cerr << "Error opening CSV file!" << std::endl;
-    }
-}
 
-// Update the system uptime
-void updateUptime() {
-    struct sysinfo info;
-    if (sysinfo(&info) == 0) {
-        total_uptime.store(info.uptime);  // Store uptime in atomic variable
-    }
-}
 
-// Handle the client request to fetch stats
-void handleClientRequest(const httplib::Request &req, httplib::Response &res) {
-    updateUptime();  // Update uptime on each request
 
-    json response_json;
-    response_json["boot_count"] = boot_count.load();
-    response_json["uptime"] = total_uptime.load();
 
-    saveStatsToCSV();  // Save the stats to CSV after handling the request
-
-    std::cout << "[Request Received] Boot Count: " << boot_count.load() << ", Uptime: " << total_uptime.load() << " seconds\n";
-
-    res.set_header("Cache-Control", "no-store");
-    res.set_content(response_json.dump(), "application/json");
-}
+#include <iostream>
+#include <Poco/Net/HTTPClientSession.h>
+#include <Poco/Net/HTTPRequest.h>
+#include <Poco/Net/HTTPResponse.h>
+#include <Poco/JSON/Parser.h>
 
 int main() {
-    // Load the boot count from the file
-    int stored_boot_count = loadBootCount();
+    try {
+        // Create a session to connect to the server
+        Poco::Net::HTTPClientSession session("localhost", 8080);
 
-    // Check if the system has rebooted
-    if (hasSystemRebooted()) {
-        stored_boot_count += 1;  // Increment boot count only after a reboot
-        saveBootCount(stored_boot_count);  // Save the updated boot count
+        // Prepare the HTTP request
+        Poco::Net::HTTPRequest request(Poco::Net::HTTPRequest::HTTP_GET, "/stats", Poco::Net::HTTPMessage::HTTP_1_1);
+
+        // Send the request
+        session.sendRequest(request);
+
+        // Receive the response
+        Poco::Net::HTTPResponse response;
+        std::istream& responseStream = session.receiveResponse(response);
+
+        // Parse the JSON response
+        Poco::JSON::Parser parser;
+        Poco::Dynamic::Var result = parser.parse(responseStream);
+        Poco::JSON::Object::Ptr object = result.extract<Poco::JSON::Object::Ptr>();
+
+        // Retrieve and display the boot count and uptime
+        int bootCount = object->getValue<int>("boot_count");
+        long uptime = object->getValue<long>("uptime");
+
+        std::cout << "Boot Count: " << bootCount << std::endl;
+        std::cout << "Uptime: " << uptime << " seconds" << std::endl;
+
+    } catch (const Poco::Exception& ex) {
+        std::cerr << "Error: " << ex.displayText() << std::endl;
     }
-
-    boot_count.store(stored_boot_count);  // Store the boot count in atomic variable
-
-    std::cout << "=============================\n"
-              << " SYSTEM STAT LOGGING SERVER\n"
-              << "=============================\n";
-
-    std::cout << "Boot Count: " << boot_count.load() << "\n";
-    std::cout << "Server running at http://localhost:8080...\n";
-    std::cout << "Waiting for client requests...\n";
-
-    // Ensure system_stats.csv file exists and has headers if it's the first run
-    std::ifstream checkFile(file_path + "system_stats.csv");
-    if (!checkFile.is_open()) {
-        std::ofstream file(file_path + "system_stats.csv");
-        if (file.is_open()) {
-            file << "Date (YYYY-MM-DD), Time (HH-MM-SS), Boot Count, Uptime (seconds)\n";
-            file.close();
-        }
-    }
-    checkFile.close();
-
-    // Start the server and listen for requests
-    httplib::Server server;
-    server.Get("/stats", handleClientRequest);
-    server.listen("localhost", 8080);
 
     return 0;
 }
