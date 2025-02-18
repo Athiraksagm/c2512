@@ -132,7 +132,7 @@ int main() {
 
     // Check if the system has rebooted
     if (hasSystemRebooted()) {
-        stored_boot_count += 1;  // Increment boot count on reboot
+        stored_boot_count += 1;  // Increment boot count only after a reboot
         saveBootCount(stored_boot_count);  // Save the updated boot count
     }
 
