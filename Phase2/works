@@ -75,7 +75,7 @@ bool hasSystemRebooted() {
     // If the current boot time is different from the last boot time, increment boot count
     if (current_boot_time > 0 && current_boot_time != last_boot_time) {
         saveLastBootTime(current_boot_time);
-        return true;
+        return true;  // Reboot detected
     }
 
     return false;  // No reboot detected
@@ -127,11 +127,13 @@ void handleClientRequest(const httplib::Request &req, httplib::Response &res) {
 }
 
 int main() {
+    // Load the boot count from the file
     int stored_boot_count = loadBootCount();
 
+    // Check if the system has rebooted
     if (hasSystemRebooted()) {
         stored_boot_count += 1;  // Increment boot count on reboot
-        saveBootCount(stored_boot_count);
+        saveBootCount(stored_boot_count);  // Save the updated boot count
     }
 
     boot_count.store(stored_boot_count);  // Store the boot count in atomic variable
