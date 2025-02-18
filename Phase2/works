@@ -39,31 +39,35 @@ void saveBootCount(int count) {
     }
 }
 
-bool hasSystemRebooted() {
-    long current_boot_time = getSystemBootTime();
-    long last_boot_time = 0;
-
+long loadLastBootTime() {
     std::ifstream file(file_path + "last_boot_time.txt");
+    long last_boot_time = 0;
     if (file.is_open()) {
         file >> last_boot_time;
         file.close();
     }
+    return last_boot_time;
+}
 
-    if (last_boot_time == 0) { 
-        std::ofstream saveFile(file_path + "last_boot_time.txt");
-        if (saveFile.is_open()) {
-            saveFile << current_boot_time;
-            saveFile.close();
-        }
+void saveLastBootTime(long boot_time) {
+    std::ofstream file(file_path + "last_boot_time.txt");
+    if (file.is_open()) {
+        file << boot_time;
+        file.close();
+    }
+}
+
+bool hasSystemRebooted() {
+    long current_boot_time = getSystemBootTime();
+    long last_boot_time = loadLastBootTime();
+
+    if (last_boot_time == 0) {  // First run, store boot time
+        saveLastBootTime(current_boot_time);
         return false;
     }
 
     if (current_boot_time > 0 && current_boot_time != last_boot_time) {
-        std::ofstream saveFile(file_path + "last_boot_time.txt");
-        if (saveFile.is_open()) {
-            saveFile << current_boot_time;
-            saveFile.close();
-        }
+        saveLastBootTime(current_boot_time);
         return true;
     }
 
