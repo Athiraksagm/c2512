@@ -7,23 +7,12 @@
 #include <Poco/Thread.h>
 #include <Poco/Net/HTTPServerRequest.h>
 #include <Poco/Net/HTTPServerResponse.h>
-#include <Poco/JSON/Object.h>
-#include <Poco/JSON/Parser.h>
 #include <sys/sysinfo.h>
-#include <unistd.h>
+#include <ctime>
 
 const std::string BOOT_COUNT_FILE = "boot_count.txt";
 
-// Function to get the system's boot time as a Unix timestamp
-long getSystemBootTime() {
-    struct sysinfo info;
-    if (sysinfo(&info) == 0) {
-        return time(nullptr) - info.uptime;  // Absolute boot time = current time - uptime
-    }
-    return 0;
-}
-
-// Function to get the boot count from the file
+// Function to get system boot count
 int getBootCount() {
     std::ifstream file(BOOT_COUNT_FILE);
     int bootCount = 0;
@@ -36,7 +25,7 @@ int getBootCount() {
     return bootCount;
 }
 
-// Function to update the boot count in the file
+// Function to update boot count
 void updateBootCount(int bootCount) {
     std::ofstream file(BOOT_COUNT_FILE);
     if (file.is_open()) {
@@ -45,41 +34,55 @@ void updateBootCount(int bootCount) {
     }
 }
 
-// HTTP Request Handler for providing system stats
-class StatsRequestHandler : public Poco::Net::HTTPRequestHandler {
+// Function to get system uptime
+long getUptime() {
+    struct sysinfo info;
+    if (sysinfo(&info) == 0) {
+        return info.uptime;
+    }
+    return 0;
+}
+
+// Request handler for the server
+class RequestHandler : public Poco::Net::HTTPRequestHandler {
 public:
     void handleRequest(Poco::Net::HTTPServerRequest& request, Poco::Net::HTTPServerResponse& response) override {
-        // Retrieve boot count and uptime
-        int bootCount = getBootCount();
-        long uptime = sysinfo().uptime;
-
-        // Prepare the JSON response
-        Poco::JSON::Object jsonResponse;
-        jsonResponse.set("boot_count", bootCount);
-        jsonResponse.set("uptime", uptime);
-
-        std::ostream& ostr = response.send();
         response.setContentType("application/json");
-        response.setStatus(Poco::Net::HTTPResponse::HTTP_OK);
-        jsonResponse.stringify(ostr);
+        std::ostream& ostr = response.send();
+        
+        int bootCount = getBootCount();
+        long uptime = getUptime();
+
+        // Create JSON response
+        ostr << "{"
+             << "\"boot_count\": " << bootCount << ", "
+             << "\"uptime\": " << uptime
+             << "}";
     }
 };
 
-// Main function to start the HTTP server
+// Request handler factory
+class RequestHandlerFactory : public Poco::Net::HTTPRequestHandlerFactory {
+public:
+    Poco::Net::HTTPRequestHandler* createRequestHandler(const Poco::Net::HTTPServerRequest& request) override {
+        return new RequestHandler();
+    }
+};
+
 int main() {
+    // Step 1: Check for boot count file and update boot count
     int bootCount = getBootCount();
-    bootCount++;  // Increment boot count on each restart
-    updateBootCount(bootCount);  // Update boot count file
+    bootCount++;
+    updateBootCount(bootCount);
 
     std::cout << "=============================" << std::endl;
     std::cout << " SYSTEM STAT LOGGING SERVER " << std::endl;
     std::cout << "=============================" << std::endl;
     std::cout << "Boot Count: " << bootCount << std::endl;
     
-    // Start the HTTP server
+    // Step 2: Start the HTTP server
     Poco::Net::HTTPServerParams* pParams = new Poco::Net::HTTPServerParams;
-    Poco::Net::HTTPRequestHandlerFactory* pFactory = new Poco::Net::HTTPRequestHandlerFactoryImpl<StatsRequestHandler>();
-    Poco::Net::HTTPServer srv(pFactory, Poco::Net::ServerSocket(8080), pParams);
+    Poco::Net::HTTPServer srv(new RequestHandlerFactory(), Poco::Net::ServerSocket(8080), pParams);
     srv.start();
     
     std::cout << "Server running at http://localhost:8080..." << std::endl;
@@ -97,41 +100,43 @@ int main() {
 
 
 #include <iostream>
-#include <Poco/Net/HTTPClientSession.h>
-#include <Poco/Net/HTTPRequest.h>
-#include <Poco/Net/HTTPResponse.h>
-#include <Poco/JSON/Parser.h>
+#include <curl/curl.h>
+
+size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp) {
+    ((std::string*)userp)->append((char*)contents, size * nmemb);
+    return size * nmemb;
+}
 
 int main() {
-    try {
-        // Create a session to connect to the server
-        Poco::Net::HTTPClientSession session("localhost", 8080);
+    CURL* curl;
+    CURLcode res;
+    std::string readBuffer;
 
-        // Prepare the HTTP request
-        Poco::Net::HTTPRequest request(Poco::Net::HTTPRequest::HTTP_GET, "/stats", Poco::Net::HTTPMessage::HTTP_1_1);
+    curl_global_init(CURL_GLOBAL_DEFAULT);
+    curl = curl_easy_init();
 
-        // Send the request
-        session.sendRequest(request);
+    if(curl) {
+        // Set the URL of the server
+        curl_easy_setopt(curl, CURLOPT_URL, "http://localhost:8080");
 
-        // Receive the response
-        Poco::Net::HTTPResponse response;
-        std::istream& responseStream = session.receiveResponse(response);
+        // Set the write callback to capture the response
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
 
-        // Parse the JSON response
-        Poco::JSON::Parser parser;
-        Poco::Dynamic::Var result = parser.parse(responseStream);
-        Poco::JSON::Object::Ptr object = result.extract<Poco::JSON::Object::Ptr>();
+        // Perform the request
+        res = curl_easy_perform(curl);
 
-        // Retrieve and display the boot count and uptime
-        int bootCount = object->getValue<int>("boot_count");
-        long uptime = object->getValue<long>("uptime");
+        // Check for errors
+        if(res != CURLE_OK) {
+            std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << std::endl;
+        } else {
+            std::cout << "Response from server: " << readBuffer << std::endl;
+        }
 
-        std::cout << "Boot Count: " << bootCount << std::endl;
-        std::cout << "Uptime: " << uptime << " seconds" << std::endl;
-
-    } catch (const Poco::Exception& ex) {
-        std::cerr << "Error: " << ex.displayText() << std::endl;
+        // Clean up
+        curl_easy_cleanup(curl);
     }
 
+    curl_global_cleanup();
     return 0;
 }
