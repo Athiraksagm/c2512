@@ -7,7 +7,10 @@ set(CMAKE_CXX_STANDARD 14)
 include_directories(include)
 link_directories(${CMAKE_SOURCE_DIR}/lib)
 
-# Add GTest
+# Find Poco libraries (WebSocket, Net, JSON, Util, Foundation)
+find_package(Poco REQUIRED COMPONENTS Foundation Net Util JSON)
+
+# Find GTest
 find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS})
 
@@ -21,9 +24,11 @@ add_executable(test_system_stats test/test_system_stats.cpp)
 # Link GTest with the tests
 target_link_libraries(test_system_stats ${GTEST_LIBRARIES} pthread)
 
-# Link server and client with necessary libraries
-target_link_libraries(server pthread tinyxml2)
-target_link_libraries(client pthread)
+# Link server with Poco WebSockets and other necessary libraries
+target_link_libraries(server pthread tinyxml2 ${Poco_LIBRARIES})
+
+# Link client with necessary libraries
+target_link_libraries(client pthread ${Poco_LIBRARIES})
 
 # Install CMake files
 install(TARGETS server client DESTINATION bin)
