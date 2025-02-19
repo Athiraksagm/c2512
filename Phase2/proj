@@ -9,7 +9,8 @@
 #include <array>
 #include <memory>
 #include <thread>
-#include <chrono>
+#include <vector>
+#include <mutex>
 
 using json = nlohmann::json;
 using namespace tinyxml2;
@@ -17,6 +18,8 @@ using namespace tinyxml2;
 std::atomic<int> boot_count(0);
 std::atomic<long> total_uptime(0);
 int logging_interval = 10;  // Default logging interval in seconds
+std::vector<httplib::Response *> clients;
+std::mutex client_mutex;
 
 // Load logging interval from XML configuration
 void loadConfig()
@@ -71,27 +74,41 @@ void updateUptime()
     }
 }
 
-// Periodically send statistics to the client
-void sendStatsPeriodically(httplib::Response &res)
+// Periodically send statistics to all connected clients
+void sendStatsPeriodically()
 {
     while (true)
     {
+        std::this_thread::sleep_for(std::chrono::seconds(logging_interval));
+
         updateUptime();
         json response_json;
         response_json["boot_count"] = boot_count.load();
         response_json["uptime"] = total_uptime.load();
 
-        res.set_content(response_json.dump(), "application/json");
-        std::this_thread::sleep_for(std::chrono::seconds(logging_interval));
+        std::string response_data = "data: " + response_json.dump() + "\n\n";
+
+        std::lock_guard<std::mutex> lock(client_mutex);
+        for (auto client : clients)
+        {
+            client->write(response_data.c_str(), response_data.size());
+        }
     }
 }
 
-// Handle client request and start periodic updates
-void handleClientRequest(const httplib::Request &req, httplib::Response &res)
+// Handle client request for live updates
+void handleClientRequest(const httplib::Request &, httplib::Response &res)
 {
-    std::cout << "[Client Connected] Sending periodic statistics...\n";
-    std::thread periodic_thread(sendStatsPeriodically, std::ref(res));
-    periodic_thread.detach();
+    std::lock_guard<std::mutex> lock(client_mutex);
+    clients.push_back(&res);
+    
+    res.set_content_provider(
+        "text/event-stream",
+        [=](size_t, httplib::DataSink &sink)
+        {
+            sink.os << "event: connected\n";
+            sink.os << "data: {\"message\": \"Connected to server\"}\n\n";
+        });
 }
 
 int main()
@@ -104,16 +121,17 @@ int main()
               << "=============================\n";
     std::cout << "Boot Count: " << boot_count.load() << "\n";
     std::cout << "Server running at http://localhost:8080...\n";
-    std::cout << "Waiting for client requests...\n";
 
     httplib::Server server;
     server.Get("/stats", handleClientRequest);
+
+    std::thread periodic_thread(sendStatsPeriodically);
+    periodic_thread.detach();
+
     server.listen("localhost", 8080);
 
     return 0;
 }
-
-
 
 
 
@@ -124,9 +142,11 @@ int main()
 #include <json.hpp>
 #include <fstream>
 #include <thread>
-#include <chrono>
+#include <ctime>
 
 using json = nlohmann::json;
+
+bool enable_csv_logging = false;
 
 // Function to save statistics to a CSV file
 void saveStatsToCSV(int boot_count, long uptime)
@@ -152,17 +172,22 @@ void saveStatsToCSV(int boot_count, long uptime)
     }
 }
 
-// Function to request and receive periodic statistics
+// Function to receive real-time system stats
 void receiveStats()
 {
     httplib::Client client("http://localhost:8080");
 
+    client.set_read_timeout(300, 0); // Increase timeout for long connections
+
     auto res = client.Get("/stats");
+
     if (!res || res->status != 200)
     {
         std::cerr << "Failed to establish connection with server.\n";
         return;
     }
+
+    std::cout << "[Connected] Waiting for updates...\n";
 
     while (true)
     {
@@ -170,41 +195,57 @@ void receiveStats()
 
         if (response && response->status == 200)
         {
-            json stats = json::parse(response->body);
-            std::cout << "Received stats:\n";
-            std::cout << "Boot Count: " << stats["boot_count"] << "\n";
-            std::cout << "Uptime: " << stats["uptime"] << " seconds\n";
+            try
+            {
+                json stats = json::parse(response->body);
+                std::cout << "Received stats:\n";
+                std::cout << "Boot Count: " << stats["boot_count"] << "\n";
+                std::cout << "Uptime: " << stats["uptime"] << " seconds\n";
 
-            // Save received statistics to CSV
-            saveStatsToCSV(stats["boot_count"], stats["uptime"]);
+                if (enable_csv_logging)
+                {
+                    saveStatsToCSV(stats["boot_count"], stats["uptime"]);
+                }
+            }
+            catch (const json::parse_error &e)
+            {
+                std::cerr << "JSON Parse Error: " << e.what() << "\n";
+            }
         }
         else
         {
             std::cerr << "Failed to get stats from server.\n";
         }
-
-        std::this_thread::sleep_for(std::chrono::seconds(10));
     }
 }
 
-int main()
+int main(int argc, char *argv[])
 {
+    if (argc > 1 && std::string(argv[1]) == "--enable-csv")
+    {
+        enable_csv_logging = true;
+    }
+
     std::cout << "=============================\n"
               << " SYSTEM STAT LOGGING CLIENT\n"
               << "=============================\n";
-    std::cout << "Client is requesting stats from server...\n";
+    std::cout << "Waiting for server updates...\n";
 
-    std::ifstream checkFile("../system_stats.csv");
-    if (!checkFile.is_open())
+    // Create CSV file if logging is enabled
+    if (enable_csv_logging)
     {
-        std::ofstream file("../system_stats.csv");
-        if (file.is_open())
+        std::ifstream checkFile("../system_stats.csv");
+        if (!checkFile.is_open())
         {
-            file << "Date (YYYY-MM-DD), Time (HH:MM:SS), Boot Count, Uptime (seconds)\n";
-            file.close();
+            std::ofstream file("../system_stats.csv");
+            if (file.is_open())
+            {
+                file << "Date (YYYY-MM-DD), Time (HH:MM:SS), Boot Count, Uptime (seconds)\n";
+                file.close();
+            }
         }
+        checkFile.close();
     }
-    checkFile.close();
 
     receiveStats();
     return 0;
