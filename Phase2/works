@@ -1,37 +1,10 @@
-cmake_minimum_required(VERSION 3.10)
-project(SystemStatLogging)
-
-set(CMAKE_CXX_STANDARD 14)
-
-# Add paths for the includes and libraries
-include_directories(include)
-link_directories(${CMAKE_SOURCE_DIR}/lib)
-
-# Add GTest
-find_package(GTest REQUIRED)
-include_directories(${GTEST_INCLUDE_DIRS})
-
-# Add the server and client executables with their respective source files
-add_executable(server 
-    source/server.cpp 
-    source/system_stats.cpp 
-    source/server_utils.cpp
-)
-
-add_executable(client 
-    source/client.cpp 
-    source/client_utils.cpp
-)
-
-# Add the tests
-add_executable(test_system_stats test/test_system_stats.cpp source/system_stats.cpp)
-
-# Link GTest with the tests
-target_link_libraries(test_system_stats ${GTEST_LIBRARIES} pthread)
-
-# Link server and client with necessary libraries
-target_link_libraries(server pthread tinyxml2)
-target_link_libraries(client pthread)
-
-# Install CMake files
-install(TARGETS server client DESTINATION bin)
+athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLoggingMicroservice/build$ make
+Consolidate compiler generated dependencies of target server
+[ 10%] Building CXX object CMakeFiles/server.dir/source/system_stats.cpp.o
+/mnt/c/Users/2022004/Documents/SystemStatLoggingMicroservice/source/system_stats.cpp: In function ‘long int getSystemBootTime()’:
+/mnt/c/Users/2022004/Documents/SystemStatLoggingMicroservice/source/system_stats.cpp:31:35: error: variable ‘std::istringstream ss’ has initializer but incomplete type
+   31 |         std::istringstream ss(line);
+      |                                   ^
+make[2]: *** [CMakeFiles/server.dir/build.make:90: CMakeFiles/server.dir/source/system_stats.cpp.o] Error 1
+make[1]: *** [CMakeFiles/Makefile2:87: CMakeFiles/server.dir/all] Error 2
+make: *** [Makefile:136: all] Error 2
