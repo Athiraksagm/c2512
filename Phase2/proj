@@ -1,9 +1,60 @@
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/build$ ./client
-=============================
- SYSTEM STAT LOGGING CLIENT
-=============================
-Do you want to save stats to CSV? (y/n): y
-Connected to server. Waiting for periodic updates...
-terminate called after throwing an instance of 'nlohmann::json_abi_v3_11_3::detail::parse_error'
-  what():  [json.exception.parse_error.101] parse error at line 1, column 1: attempting to parse an empty input; check that your input string or stream contains the expected JSON
-Aborted (core dumped)
+void handleClientRequest(const httplib::Request &req, httplib::Response &res)
+{
+    std::lock_guard<std::mutex> lock(client_mutex);
+    
+    // Send an immediate response
+    updateUptime();
+    json response_json;
+    response_json["boot_count"] = boot_count.load();
+    response_json["uptime"] = total_uptime.load();
+
+    res.set_header("Cache-Control", "no-store");
+    res.set_content(response_json.dump(), "application/json");
+
+    std::cout << "[Client Connected] Sent immediate response.\n";
+
+    // Add client for periodic updates
+    clients.push_back(&res);
+}
+
+
+
+void receiveStats()
+{
+    httplib::Client client("http://localhost:8080");
+
+    auto res = client.Get("/stats");
+    if (!res || res->status != 200 || res->body.empty())
+    {
+        std::cerr << "Failed to request stats from server or received an empty response.\n";
+        return;
+    }
+
+    std::cout << "Connected to server. Waiting for periodic updates...\n";
+
+    while (true)
+    {
+        res = client.Get("/stats");
+        if (res && res->status == 200 && !res->body.empty())
+        {
+            json stats = json::parse(res->body);
+            int boot_count = stats["boot_count"];
+            long uptime = stats["uptime"];
+
+            std::cout << "\nReceived stats:\n";
+            std::cout << "Boot Count: " << boot_count << "\n";
+            std::cout << "Uptime: " << uptime << " seconds\n";
+
+            if (save_to_csv)
+            {
+                saveStatsToCSV(boot_count, uptime);
+                std::cout << "Stats saved to system_stats.csv\n";
+            }
+        }
+        else
+        {
+            std::cerr << "Server disconnected or failed to send updates.\n";
+            break;
+        }
+    }
+}
