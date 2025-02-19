@@ -15,7 +15,7 @@ using namespace boost::beast;
 using json = nlohmann::json;
 using namespace tinyxml2;
 
-std::atomic<int> boot_count(0);
+std::atomic<int> boot_count(10);
 std::unordered_set<std::shared_ptr<websocket::stream<ip::tcp::socket>>> clients;
 std::mutex clients_mutex;
 int logging_interval = 10; // Default logging interval
@@ -42,25 +42,29 @@ long getUptime() {
     return info.uptime;
 }
 
-// Periodically send stats to clients
+// Periodically send stats to all connected clients
 void broadcastStats() {
     while (true) {
         json stats;
         stats["uptime"] = getUptime();
         stats["boot_count"] = boot_count.load();
 
+        std::string message = stats.dump();
         std::lock_guard<std::mutex> lock(clients_mutex);
+
         for (auto &client : clients) {
-            boost::beast::flat_buffer buffer;
             boost::system::error_code ec;
-            client->write(boost::asio::buffer(stats.dump()), ec);
+            client->write(boost::asio::buffer(message), ec);
+            if (ec) {
+                std::cerr << "Failed to send stats: " << ec.message() << "\n";
+            }
         }
 
         std::this_thread::sleep_for(std::chrono::seconds(logging_interval));
     }
 }
 
-// Handle WebSocket connection
+// Handle WebSocket connections
 void handleClient(ip::tcp::socket socket) {
     try {
         auto ws = std::make_shared<websocket::stream<ip::tcp::socket>>(std::move(socket));
@@ -72,7 +76,16 @@ void handleClient(ip::tcp::socket socket) {
         }
 
         boost::beast::flat_buffer buffer;
-        while (ws->read(buffer)) {} // Keep connection open
+        while (true) {
+            boost::system::error_code ec;
+            ws->read(buffer, ec);
+            if (ec == websocket::error::closed) {
+                break;
+            }
+        }
+
+        std::lock_guard<std::mutex> lock(clients_mutex);
+        clients.erase(ws);
     } catch (...) {
         std::cerr << "Client disconnected.\n";
     }
@@ -80,7 +93,6 @@ void handleClient(ip::tcp::socket socket) {
 
 int main() {
     loadConfig();
-    boot_count.store(10); // Placeholder boot count
 
     io_context ioc;
     ip::tcp::acceptor acceptor(ioc, ip::tcp::endpoint(ip::tcp::v4(), 8080));
@@ -133,7 +145,7 @@ void saveStatsToCSV(int boot_count, long uptime) {
          << uptime << "\n";
 }
 
-// Connect to WebSocket server
+// Connect to WebSocket server and continuously receive data
 void connectToServer() {
     io_context ioc;
     ip::tcp::resolver resolver(ioc);
@@ -147,9 +159,15 @@ void connectToServer() {
 
     while (true) {
         boost::beast::flat_buffer buffer;
-        ws.read(buffer);
-        std::string data = boost::beast::buffers_to_string(buffer.data());
+        boost::system::error_code ec;
+        ws.read(buffer, ec);
 
+        if (ec) {
+            std::cerr << "Error receiving stats: " << ec.message() << "\n";
+            break;
+        }
+
+        std::string data = boost::beast::buffers_to_string(buffer.data());
         json stats = json::parse(data);
         saveStatsToCSV(stats["boot_count"], stats["uptime"]);
 
@@ -168,17 +186,3 @@ int main() {
     connectToServer();
     return 0;
 }
-
-
-
-
-cmake_minimum_required(VERSION 3.10)
-project(SystemStatLoggingMicroservice)
-
-find_package(Boost REQUIRED)
-
-add_executable(server source/server.cpp)
-target_link_libraries(server Boost::boost)
-
-add_executable(client source/client.cpp)
-target_link_libraries(client Boost::boost)
