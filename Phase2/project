@@ -1,281 +1,33 @@
-#include "Poco/Net/HTTPServer.h"
-#include "Poco/Net/HTTPServerRequest.h"
-#include "Poco/Net/HTTPServerResponse.h"
-#include "Poco/Net/HTTPServerParams.h"
-#include "Poco/Net/WebSocket.h"
-#include "Poco/Net/NetException.h"
-#include "Poco/Thread.h"
-#include "Poco/Util/ServerApplication.h"
-#include "Poco/JSON/Object.h"
-#include "tinyxml2.h"
-#include <iostream>
-#include <fstream>
-#include <sys/sysinfo.h>
-#include <unistd.h>
-#include <vector>
-#include <mutex>
-#include <atomic>
-#include <thread>
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/build$ make
+Consolidate compiler generated dependencies of target server
+[ 16%] Building CXX object CMakeFiles/server.dir/source/server.cpp.o
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/source/server.cpp:117:40: error: invalid use of incomplete type ‘class Poco::Net::HTTPRequestHandler’
+  117 | class WebSocketRequestHandler : public HTTPRequestHandler
+      |                                        ^~~~~~~~~~~~~~~~~~
+In file included from /usr/include/Poco/Net/HTTPServer.h:23,
+                 from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/source/server.cpp:1:
+/usr/include/Poco/Net/HTTPRequestHandlerFactory.h:32:7: note: forward declaration of ‘class Poco::Net::HTTPRequestHandler’
+   32 | class HTTPRequestHandler;
+      |       ^~~~~~~~~~~~~~~~~~
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/source/server.cpp:120:10: error: ‘void WebSocketRequestHandler::handleRequest(Poco::Net::HTTPServerRequest&, Poco::Net::HTTPServerResponse&)’ marked ‘override’, but does not override
+  120 |     void handleRequest(HTTPServerRequest &request, HTTPServerResponse &response) override
+      |          ^~~~~~~~~~~~~
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/source/server.cpp: In member function ‘virtual int ServerApp::main(const std::vector<std::__cxx11::basic_string<char> >&)’:
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/source/server.cpp:162:31: error: ‘Poco::Net::HTTPRequestHandlerFactory’ is not a template
+  162 |         HTTPServer server(new HTTPRequestHandlerFactory<WebSocketRequestHandler>(), ServerSocket(8080), new HTTPServerParams);
+      |                               ^~~~~~~~~~~~~~~~~~~~~~~~~
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/source/server.cpp:162:82: error: invalid new-expression of abstract class type ‘Poco::Net::HTTPRequestHandlerFactory’
+  162 | TPRequestHandlerFactory<WebSocketRequestHandler>(), ServerSocket(8080), new HTTPServerParams);
+      |                                                  ^
 
-using namespace Poco::Net;
-using namespace Poco::Util;
-using namespace Poco::JSON;
-using namespace tinyxml2;
-
-std::atomic<int> boot_count(0);
-std::atomic<long> total_uptime(0);
-int logging_interval = 10;
-
-std::vector<WebSocket*> clients;
-std::mutex clients_mutex;
-
-// Load interval from XML config
-void loadConfig()
-{
-    XMLDocument doc;
-    if (doc.LoadFile("../config.xml") == XML_SUCCESS)
-    {
-        XMLElement *root = doc.FirstChildElement("config");
-        if (root)
-        {
-            XMLElement *intervalElement = root->FirstChildElement("logging_interval");
-            if (intervalElement)
-            {
-                logging_interval = std::stoi(intervalElement->GetText());
-                std::cout << "Logging interval set to: " << logging_interval << " seconds\n";
-            }
-        }
-    }
-    else
-    {
-        std::cerr << "Error: Failed to load config.xml. Using default interval.\n";
-    }
-}
-
-// Get boot count from `last reboot`
-int getBootCount()
-{
-    char buffer[128];
-    FILE *pipe = popen("last reboot | wc -l", "r");
-    if (!pipe)
-    {
-        std::cerr << "Failed to run command.\n";
-        return -1;
-    }
-    fgets(buffer, sizeof(buffer), pipe);
-    pclose(pipe);
-    return std::stoi(buffer);
-}
-
-// Update system uptime
-void updateUptime()
-{
-    struct sysinfo info;
-    if (sysinfo(&info) == 0)
-    {
-        total_uptime.store(info.uptime);
-    }
-}
-
-// Broadcast updated stats to all clients
-void broadcastStats()
-{
-    Object stats;
-    stats.set("boot_count", boot_count.load());
-    stats.set("uptime", total_uptime.load());
-
-    std::ostringstream oss;
-    stats.stringify(oss);
-
-    std::lock_guard<std::mutex> lock(clients_mutex);
-    for (auto ws : clients)
-    {
-        try
-        {
-            ws->sendFrame(oss.str().c_str(), oss.str().length(), WebSocket::FRAME_TEXT);
-        }
-        catch (...)
-        {
-            // Remove disconnected clients
-            clients.erase(std::remove(clients.begin(), clients.end(), ws), clients.end());
-        }
-    }
-}
-
-// Update stats and notify clients
-void updateStatsPeriodically()
-{
-    while (true)
-    {
-        updateUptime();
-        broadcastStats();
-        std::this_thread::sleep_for(std::chrono::seconds(logging_interval));
-    }
-}
-
-// WebSocket handler
-class WebSocketRequestHandler : public HTTPRequestHandler
-{
-public:
-    void handleRequest(HTTPServerRequest &request, HTTPServerResponse &response) override
-    {
-        try
-        {
-            WebSocket ws(request, response);
-            std::cout << "New WebSocket connection established.\n";
-
-            {
-                std::lock_guard<std::mutex> lock(clients_mutex);
-                clients.push_back(&ws);
-            }
-
-            char buffer[1024];
-            int flags;
-            while (true)
-            {
-                int n = ws.receiveFrame(buffer, sizeof(buffer), flags);
-                if (n <= 0)
-                {
-                    break;
-                }
-            }
-        }
-        catch (WebSocketException &e)
-        {
-            std::cerr << "WebSocket error: " << e.displayText() << "\n";
-        }
-    }
-};
-
-// HTTP server with WebSocket support
-class ServerApp : public ServerApplication
-{
-protected:
-    int main(const std::vector<std::string> &) override
-    {
-        loadConfig();
-        boot_count.store(getBootCount());
-
-        std::thread stats_thread(updateStatsPeriodically);
-        stats_thread.detach();
-
-        HTTPServer server(new HTTPRequestHandlerFactory<WebSocketRequestHandler>(), ServerSocket(8080), new HTTPServerParams);
-        server.start();
-
-        std::cout << "WebSocket server running at ws://localhost:8080\n";
-        waitForTerminationRequest();
-        return 0;
-    }
-};
-
-int main(int argc, char **argv)
-{
-    ServerApp app;
-    return app.run(argc, argv);
-}
-
-
-
-
-
-
-
-
-#include "Poco/Net/WebSocket.h"
-#include "Poco/Net/HTTPClientSession.h"
-#include "Poco/Net/HTTPRequest.h"
-#include "Poco/Net/HTTPResponse.h"
-#include "Poco/JSON/Parser.h"
-#include "Poco/Exception.h"
-#include <iostream>
-#include <fstream>
-#include <thread>
-#include <ctime>
-
-using namespace Poco::Net;
-using namespace Poco::JSON;
-using namespace Poco;
-
-// Save statistics to CSV file
-void saveStatsToCSV(int boot_count, long uptime)
-{
-    std::ofstream file("../system_stats.csv", std::ios_base::app);
-    if (file.is_open())
-    {
-        std::time_t now = std::time(nullptr);
-        std::tm *local_time = std::localtime(&now);
-
-        file << 1900 + local_time->tm_year << "-"
-             << 1 + local_time->tm_mon << "-"
-             << local_time->tm_mday << ", "
-             << local_time->tm_hour << ":"
-             << local_time->tm_min << ":"
-             << local_time->tm_sec << ", "
-             << boot_count << ", "
-             << uptime << "\n";
-    }
-    else
-    {
-        std::cerr << "Error opening CSV file!" << std::endl;
-    }
-}
-
-// Function to receive real-time server updates
-void receiveStats()
-{
-    try
-    {
-        HTTPClientSession session("localhost", 8080);
-        HTTPRequest request(HTTPRequest::HTTP_GET, "/stats", HTTPMessage::HTTP_1_1);
-        HTTPResponse response;
-        WebSocket ws(session, request, response);
-
-        char buffer[1024];
-        int flags;
-
-        while (true)
-        {
-            int n = ws.receiveFrame(buffer, sizeof(buffer), flags);
-            if (n > 0)
-            {
-                std::string data(buffer, n);
-                std::cout << "[DEBUG] Received: " << data << std::endl;
-
-                try
-                {
-                    Parser parser;
-                    Var result = parser.parse(data);
-                    Object::Ptr stats = result.extract<Object::Ptr>();
-
-                    int boot_count = stats->getValue<int>("boot_count");
-                    long uptime = stats->getValue<long>("uptime");
-
-                    std::cout << "Received stats:\n";
-                    std::cout << "Boot Count: " << boot_count << "\n";
-                    std::cout << "Uptime: " << uptime << " seconds\n";
-
-                    saveStatsToCSV(boot_count, uptime);
-                }
-                catch (Exception &e)
-                {
-                    std::cerr << "JSON Parse Error: " << e.displayText() << "\n";
-                }
-            }
-        }
-    }
-    catch (Exception &e)
-    {
-        std::cerr << "WebSocket error: " << e.displayText() << "\n";
-    }
-}
-
-int main()
-{
-    std::cout << "=============================\n"
-              << " SYSTEM STAT LOGGING CLIENT\n"
-              << "=============================\n";
-    std::cout << "Waiting for server updates...\n";
-
-    receiveStats();
-    return 0;
-}
+In file included from /usr/include/Poco/Net/HTTPServer.h:23,
+                 from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/source/server.cpp:1:
+/usr/include/Poco/Net/HTTPRequestHandlerFactory.h:35:15: note:   because the following virtual functions are pure within ‘Poco::Net::HTTPRequestHandlerFactory’:
+   35 | class Net_API HTTPRequestHandlerFactory
+      |               ^~~~~~~~~~~~~~~~~~~~~~~~~
+/usr/include/Poco/Net/HTTPRequestHandlerFactory.h:49:37: note:     ‘virtual Poco::Net::HTTPRequestHandler* Poco::Net::HTTPRequestHandlerFactory::createRequestHandler(const Poco::Net::HTTPServerRequest&)’
+   49 |         virtual HTTPRequestHandler* createRequestHandler(const HTTPServerRequest& request) = 0;
+      |                                     ^~~~~~~~~~~~~~~~~~~~
+make[2]: *** [CMakeFiles/server.dir/build.make:76: CMakeFiles/server.dir/source/server.cpp.o] Error 1
+make[1]: *** [CMakeFiles/Makefile2:87: CMakeFiles/server.dir/all] Error 2
+make: *** [Makefile:136: all] Error 2
