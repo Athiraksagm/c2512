@@ -1,78 +1,3 @@
-#include <boost/asio.hpp>
-#include <boost/beast.hpp>
-#include <boost/beast/websocket.hpp>
-#include "json.hpp"
-#include "tinyxml2.h"
-#include <iostream>
-#include <unordered_set>
-#include <mutex>
-#include <thread>
-#include <sys/sysinfo.h>
-#include <atomic>
-
-using namespace boost::asio;
-using namespace boost::beast;
-using json = nlohmann::json;
-using namespace tinyxml2;
-
-std::atomic<int> boot_count(0);
-std::unordered_set<std::shared_ptr<websocket::stream<ip::tcp::socket>>> clients;
-std::mutex clients_mutex;
-int logging_interval = 10; // Default interval
-
-// Get boot count using "last reboot"
-int getBootCount() {
-    FILE *pipe = popen("last reboot | wc -l", "r");
-    if (!pipe) return -1;
-    char buffer[128];
-    fgets(buffer, sizeof(buffer), pipe);
-    pclose(pipe);
-    return std::stoi(buffer);
-}
-
-// Get system uptime
-long getUptime() {
-    struct sysinfo info;
-    sysinfo(&info);
-    return info.uptime;
-}
-
-// Load logging interval from config.xml
-void loadConfig() {
-    XMLDocument doc;
-    if (doc.LoadFile("../config.xml") == XML_SUCCESS) {
-        XMLElement *root = doc.FirstChildElement("config");
-        if (root) {
-            XMLElement *intervalElement = root->FirstChildElement("logging_interval");
-            if (intervalElement) {
-                logging_interval = std::stoi(intervalElement->GetText());
-            }
-        }
-    }
-}
-
-// Send stats to all clients
-void broadcastStats() {
-    while (true) {
-        json stats;
-        stats["boot_count"] = boot_count.load();
-        stats["uptime"] = getUptime();
-        std::string message = stats.dump();
-
-        std::lock_guard<std::mutex> lock(clients_mutex);
-        for (auto &client : clients) {
-            boost::system::error_code ec;
-            client->write(net::buffer(message), ec);
-            if (ec) {
-                std::cerr << "Failed to send stats: " << ec.message() << "\n";
-            }
-        }
-
-        std::this_thread::sleep_for(std::chrono::seconds(logging_interval));
-    }
-}
-
-// Handle individual client connection
 void handleClient(ip::tcp::socket socket) {
     try {
         auto ws = std::make_shared<websocket::stream<ip::tcp::socket>>(std::move(socket));
@@ -83,11 +8,11 @@ void handleClient(ip::tcp::socket socket) {
             clients.insert(ws);
         }
 
-        // ✅ Send first stat immediately after connection
+        // ✅ Immediately send first stat after client connects
         json firstStat;
         firstStat["boot_count"] = boot_count.load();
         firstStat["uptime"] = getUptime();
-        ws->write(net::buffer(firstStat.dump()));
+        ws->write(net::buffer(firstStat.dump()));  // 🔥 First stat sent instantly
 
         std::cout << "[New Client] First stat sent: " << firstStat.dump() << "\n";
 
@@ -107,63 +32,11 @@ void handleClient(ip::tcp::socket socket) {
     }
 }
 
-int main() {
-    loadConfig();
-    boot_count.store(getBootCount());
-
-    io_context ioc;
-    ip::tcp::acceptor acceptor(ioc, ip::tcp::endpoint(ip::tcp::v4(), 8080));
-
-    std::cout << "WebSocket server running on port 8080...\n";
-
-    std::thread logger(broadcastStats);
-    logger.detach();
-
-    while (true) {
-        ip::tcp::socket socket(ioc);
-        acceptor.accept(socket);
-        std::thread(handleClient, std::move(socket)).detach();
-    }
-
-    return 0;
-}
 
 
 
 
 
-
-
-
-#include <boost/asio.hpp>
-#include <boost/beast.hpp>
-#include <boost/beast/websocket.hpp>
-#include "json.hpp"
-#include <iostream>
-#include <fstream>
-#include <ctime>
-
-using namespace boost::asio;
-using namespace boost::beast;
-using json = nlohmann::json;
-
-// Save stats to CSV
-void saveStatsToCSV(int boot_count, long uptime) {
-    std::ofstream file("../system_stats.csv", std::ios_base::app);
-    std::time_t now = std::time(nullptr);
-    std::tm *local_time = std::localtime(&now);
-
-    file << 1900 + local_time->tm_year << "-"
-         << 1 + local_time->tm_mon << "-"
-         << local_time->tm_mday << ", "
-         << local_time->tm_hour << ":"
-         << local_time->tm_min << ":"
-         << local_time->tm_sec << ", "
-         << boot_count << ", "
-         << uptime << "\n";
-}
-
-// Connect to WebSocket server and receive data
 void connectToServer() {
     io_context ioc;
     ip::tcp::resolver resolver(ioc);
@@ -192,15 +65,4 @@ void connectToServer() {
         std::cout << "[Received Stats] Boot Count: " << stats["boot_count"]
                   << ", Uptime: " << stats["uptime"] << " seconds\n";
     }
-}
-
-int main() {
-    std::ifstream checkFile("../system_stats.csv");
-    if (!checkFile.is_open()) {
-        std::ofstream file("../system_stats.csv");
-        file << "Date (YYYY-MM-DD), Time (HH:MM:SS), Boot Count, Uptime (seconds)\n";
-    }
-
-    connectToServer();
-    return 0;
 }
