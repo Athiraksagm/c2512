@@ -1,34 +1,98 @@
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/build$ make
-Consolidate compiler generated dependencies of target server
-[ 16%] Building CXX object CMakeFiles/server.dir/source/server.cpp.o
-[ 33%] Linking CXX executable server
-[ 33%] Built target server
-Consolidate compiler generated dependencies of target client
-[ 50%] Building CXX object CMakeFiles/client.dir/source/client.cpp.o
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/source/client.cpp: In function ‘void receiveStats()’:
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/source/client.cpp:64:21: error: ‘Var’ was not declared in this scope; did you mean ‘Poco::Dynamic::Var’?
-   64 |                     Var result = parser.parse(data);
-      |                     ^~~
-      |                     Poco::Dynamic::Var
-In file included from /usr/include/Poco/JSON/Array.h:23,
-                 from /usr/include/Poco/JSON/Object.h:22,
-                 from /usr/include/Poco/JSON/ParserImpl.h:22,
-                 from /usr/include/Poco/JSON/Parser.h:22,
-                 from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/source/client.cpp:5:
-/usr/include/Poco/Dynamic/Var.h:41:22: note: ‘Poco::Dynamic::Var’ declared here
-   41 | class Foundation_API Var
-      |                      ^~~
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/source/client.cpp:65:41: error: ‘result’ was not declared in this scope
-   65 |                     Object::Ptr stats = result.extract<Object::Ptr>();
-      |                                         ^~~~~~
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/source/client.cpp:65:67: error: expected primary-expression before ‘>’ token
-   65 |           Object::Ptr stats = result.extract<Object::Ptr>();
-      |                                                         ^
+#include <iostream>
+#include <Poco/Net/WebSocket.h>
+#include <Poco/Net/HTTPClientSession.h>
+#include <Poco/Net/HTTPRequest.h>
+#include <Poco/Net/HTTPResponse.h>
+#include <Poco/StreamCopier.h>
+#include <Poco/JSON/Parser.h>
+#include <Poco/JSON/Object.h>
+#include <Poco/Dynamic/Var.h>
+#include <fstream>
+#include <thread>
+#include <ctime>
 
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/source/client.cpp:65:69: error: expected primary-expression before ‘)’ token
-   65 |           Object::Ptr stats = result.extract<Object::Ptr>();
-      |                                                           ^
+using namespace Poco::Net;
+using namespace Poco::JSON;
+using namespace Poco::Dynamic;
 
-make[2]: *** [CMakeFiles/client.dir/build.make:76: CMakeFiles/client.dir/source/client.cpp.o] Error 1
-make[1]: *** [CMakeFiles/Makefile2:113: CMakeFiles/client.dir/all] Error 2
-make: *** [Makefile:136: all] Error 2
+// Save statistics to CSV file
+void saveStatsToCSV(int boot_count, long uptime)
+{
+    std::ofstream file("../system_stats.csv", std::ios_base::app);
+    if (file.is_open())
+    {
+        std::time_t now = std::time(nullptr);
+        std::tm *local_time = std::localtime(&now);
+
+        file << 1900 + local_time->tm_year << "-"
+             << 1 + local_time->tm_mon << "-"
+             << local_time->tm_mday << ", "
+             << local_time->tm_hour << ":"
+             << local_time->tm_min << ":"
+             << local_time->tm_sec << ", "
+             << boot_count << ", "
+             << uptime << "\n";
+    }
+    else
+    {
+        std::cerr << "Error opening CSV file!" << std::endl;
+    }
+}
+
+// Function to listen for real-time server updates using WebSocket
+void receiveStats()
+{
+    try
+    {
+        HTTPClientSession session("localhost", 8080);
+        HTTPRequest request(HTTPRequest::HTTP_GET, "/stats", HTTPMessage::HTTP_1_1);
+        HTTPResponse response;
+
+        WebSocket ws(session, request, response);
+        char buffer[1024];
+        int flags;
+
+        while (true)
+        {
+            int received = ws.receiveFrame(buffer, sizeof(buffer), flags);
+            if (received > 0)
+            {
+                std::string data(buffer, received);
+                std::cout << "[DEBUG] Raw Response: " << data << std::endl;
+
+                try
+                {
+                    Parser parser;
+                    Var result = parser.parse(data);
+                    Object::Ptr stats = result.extract<Object::Ptr>();
+
+                    std::cout << "Received stats:\n";
+                    std::cout << "Boot Count: " << stats->getValue<int>("boot_count") << "\n";
+                    std::cout << "Uptime: " << stats->getValue<long>("uptime") << " seconds\n";
+
+                    saveStatsToCSV(stats->getValue<int>("boot_count"), stats->getValue<long>("uptime"));
+                }
+                catch (const Poco::Exception &e)
+                {
+                    std::cerr << "Poco JSON Parsing Error: " << e.displayText() << "\n";
+                    std::cerr << "Raw Response: " << data << "\n";
+                }
+            }
+        }
+    }
+    catch (const Poco::Exception &e)
+    {
+        std::cerr << "WebSocket Error: " << e.displayText() << "\n";
+    }
+}
+
+int main()
+{
+    std::cout << "=============================\n"
+              << " SYSTEM STAT LOGGING CLIENT\n"
+              << "=============================\n";
+    std::cout << "Waiting for server updates...\n";
+
+    receiveStats();
+    return 0;
+}
