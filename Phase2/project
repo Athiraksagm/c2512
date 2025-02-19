@@ -20,7 +20,7 @@ std::unordered_set<std::shared_ptr<websocket::stream<ip::tcp::socket>>> clients;
 std::mutex clients_mutex;
 int logging_interval = 10; // Default interval
 
-// Load boot count from system
+// Get boot count using "last reboot"
 int getBootCount() {
     FILE *pipe = popen("last reboot | wc -l", "r");
     if (!pipe) return -1;
@@ -51,7 +51,7 @@ void loadConfig() {
     }
 }
 
-// Send stats to all connected clients
+// Send stats to all clients
 void broadcastStats() {
     while (true) {
         json stats;
@@ -72,7 +72,7 @@ void broadcastStats() {
     }
 }
 
-// Handle client connections
+// Handle individual client connection
 void handleClient(ip::tcp::socket socket) {
     try {
         auto ws = std::make_shared<websocket::stream<ip::tcp::socket>>(std::move(socket));
@@ -82,6 +82,14 @@ void handleClient(ip::tcp::socket socket) {
             std::lock_guard<std::mutex> lock(clients_mutex);
             clients.insert(ws);
         }
+
+        // Send first stat immediately after connection
+        json firstStat;
+        firstStat["boot_count"] = boot_count.load();
+        firstStat["uptime"] = getUptime();
+        ws->write(net::buffer(firstStat.dump()));
+
+        std::cout << "[New Client] First stat sent: " << firstStat.dump() << "\n";
 
         boost::beast::flat_buffer buffer;
         while (true) {
@@ -126,6 +134,7 @@ int main() {
 
 
 
+
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
 #include <boost/beast/websocket.hpp>
@@ -154,7 +163,7 @@ void saveStatsToCSV(int boot_count, long uptime) {
          << uptime << "\n";
 }
 
-// Connect to WebSocket server and continuously receive data
+// Connect to WebSocket server and receive data
 void connectToServer() {
     io_context ioc;
     ip::tcp::resolver resolver(ioc);
@@ -195,3 +204,4 @@ int main() {
     connectToServer();
     return 0;
 }
+
