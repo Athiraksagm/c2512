@@ -1,3 +1,5 @@
+//client
+
 #include <iostream>
 #include <Poco/Net/WebSocket.h>
 #include <Poco/Net/HTTPClientSession.h>
@@ -95,4 +97,197 @@ int main()
 
     receiveStats();
     return 0;
+}
+
+//server
+
+#include "Poco/Net/HTTPServer.h"
+#include "Poco/Net/HTTPRequestHandler.h"
+#include "Poco/Net/HTTPRequestHandlerFactory.h"
+#include "Poco/Net/ServerSocket.h"
+#include "Poco/Net/HTTPServerRequest.h"
+#include "Poco/Net/HTTPServerResponse.h"
+#include "Poco/Net/WebSocket.h"
+#include "Poco/Net/NetException.h"
+#include "Poco/Util/ServerApplication.h"
+#include "Poco/Util/Application.h"
+#include "Poco/Util/OptionSet.h"
+#include "tinyxml2.h"
+#include <iostream>
+#include <vector>
+#include <thread>
+#include <atomic>
+#include <mutex>
+#include <sys/sysinfo.h>
+#include <unistd.h>
+#include <array>
+#include <memory>
+
+using namespace Poco::Net;
+using namespace Poco::Util;
+using namespace tinyxml2;
+
+std::atomic<int> boot_count(0);
+std::atomic<long> total_uptime(0);
+int logging_interval = 10; // Default interval
+
+std::mutex clients_mutex;
+std::vector<WebSocket *> clients;
+
+// Load interval from XML config
+void loadConfig()
+{
+    XMLDocument doc;
+    if (doc.LoadFile("../config.xml") == XML_SUCCESS)
+    {
+        XMLElement *root = doc.FirstChildElement("config");
+        if (root)
+        {
+            XMLElement *intervalElement = root->FirstChildElement("logging_interval");
+            if (intervalElement)
+            {
+                logging_interval = std::stoi(intervalElement->GetText());
+                std::cout << "Logging interval set to: " << logging_interval << " seconds\n";
+            }
+        }
+    }
+    else
+    {
+        std::cerr << "Error: Failed to load config.xml. Using default interval.\n";
+    }
+}
+
+// Get boot count from `last reboot`
+int getBootCount()
+{
+    std::array<char, 128> buffer;
+    std::string result;
+    std::shared_ptr<FILE> pipe(popen("last reboot | wc -l", "r"), pclose);
+    if (!pipe)
+    {
+        std::cerr << "Failed to run command." << std::endl;
+        return -1;
+    }
+
+    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr)
+    {
+        result += buffer.data();
+    }
+
+    return std::stoi(result);
+}
+
+// Update system uptime
+void updateUptime()
+{
+    struct sysinfo info;
+    if (sysinfo(&info) == 0)
+    {
+        total_uptime.store(info.uptime);
+    }
+}
+
+// Periodically send stats to all connected WebSocket clients
+void sendStatsPeriodically()
+{
+    while (true)
+    {
+        updateUptime();
+        std::string stats = "{\"boot_count\": " + std::to_string(boot_count.load()) +
+                            ", \"uptime\": " + std::to_string(total_uptime.load()) + "}";
+
+        std::lock_guard<std::mutex> lock(clients_mutex);
+        for (auto it = clients.begin(); it != clients.end();)
+        {
+            try
+            {
+                (*it)->sendFrame(stats.c_str(), stats.size(), WebSocket::FRAME_TEXT);
+                ++it;
+            }
+            catch (const Poco::Exception &e)
+            {
+                std::cerr << "WebSocket send error: " << e.displayText() << "\n";
+                it = clients.erase(it);
+            }
+        }
+
+        std::this_thread::sleep_for(std::chrono::seconds(logging_interval));
+    }
+}
+
+// WebSocket request handler
+class WebSocketRequestHandler : public HTTPRequestHandler
+{
+public:
+    void handleRequest(HTTPServerRequest &request, HTTPServerResponse &response) override
+    {
+        try
+        {
+            Poco::Net::WebSocket *ws = new WebSocket(request, response);
+            std::cout << "New WebSocket connection established.\n";
+
+            {
+                std::lock_guard<std::mutex> lock(clients_mutex);
+                clients.push_back(ws);
+            }
+
+            char buffer[1024];
+            int flags;
+            while (true)
+            {
+                int n = ws->receiveFrame(buffer, sizeof(buffer), flags);
+                if (n <= 0)
+                {
+                    break;
+                }
+            }
+        }
+        catch (Poco::Net::WebSocketException &e)
+        {
+            std::cerr << "WebSocket error: " << e.displayText() << "\n";
+        }
+    }
+};
+
+// Factory to create WebSocket handlers
+class WebSocketRequestHandlerFactory : public HTTPRequestHandlerFactory
+{
+public:
+    HTTPRequestHandler *createRequestHandler(const HTTPServerRequest &) override
+    {
+        return new WebSocketRequestHandler();
+    }
+};
+
+// Main server application
+class ServerApp : public ServerApplication
+{
+protected:
+    int main(const std::vector<std::string> &) override
+    {
+        loadConfig();
+        boot_count.store(getBootCount());
+
+        std::cout << "=============================\n"
+                  << " SYSTEM STAT LOGGING SERVER\n"
+                  << "=============================\n";
+        std::cout << "Boot Count: " << boot_count.load() << "\n";
+        std::cout << "Server running at ws://localhost:8080...\n";
+
+        std::thread stats_thread(sendStatsPeriodically);
+        stats_thread.detach();
+
+        HTTPServer server(new WebSocketRequestHandlerFactory(), ServerSocket(8080), new HTTPServerParams);
+        server.start();
+        waitForTerminationRequest();
+        server.stop();
+
+        return 0;
+    }
+};
+
+int main(int argc, char **argv)
+{
+    ServerApp app;
+    return app.run(argc, argv);
 }
