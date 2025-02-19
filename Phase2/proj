@@ -1,36 +1,73 @@
-Invalid response (not JSON):
-Invalid response (not JSON):
-Invalid response (not JSON):
-Invalid response (not JSON):
-Invalid response (not JSON):
-Invalid response (not JSON):
-Invalid response (not JSON):
-Invalid response (not JSON):
-Invalid response (not JSON):
-Invalid response (not JSON):
-Invalid response (not JSON):
-Invalid response (not JSON):
-Invalid response (not JSON):
-Invalid response (not JSON):
-Invalid response (not JSON):
-Invalid response (not JSON):
-Invalid response (not JSON):
-Invalid response (not JSON):
-Invalid response (not JSON):
-Invalid response (not JSON):
-Invalid response (not JSON):
-Invalid response (not JSON):
-Invalid response (not JSON):
-Invalid response (not JSON):
-Invalid response (not JSON):
-Invalid response (not JSON):
-Invalid response (not JSON):
-Invalid response (not JSON):
-Invalid response (not JSON):
-Invalid response (not JSON):
-Invalid response (not JSON):
-Invalid response (not JSON):
-Invalid response (not JSON):
-Invalid response (not JSON):
-Invalid response (not JSON):
-Invali
+void sendStatsPeriodically()
+{
+    while (true)
+    {
+        updateUptime();
+        json response_json;
+        response_json["boot_count"] = boot_count.load();
+        response_json["uptime"] = total_uptime.load();
+
+        std::string response_data = response_json.dump();
+        std::cout << "[DEBUG] Sending JSON: " << response_data << std::endl; // Debugging
+
+        std::this_thread::sleep_for(std::chrono::seconds(logging_interval));
+    }
+}
+
+
+
+
+void handleClientRequest(const httplib::Request &req, httplib::Response &res)
+{
+    json response_json;
+    response_json["boot_count"] = boot_count.load();
+    response_json["uptime"] = total_uptime.load();
+
+    res.set_content(response_json.dump(), "application/json");
+}
+
+
+
+
+void receiveStats()
+{
+    httplib::Client client("http://localhost:8080");
+
+    while (true)
+    {
+        auto response = client.Get("/stats");
+
+        if (response && response->status == 200)
+        {
+            std::string body = response->body;
+            std::cout << "[DEBUG] Raw Response: " << body << std::endl; // Debugging
+
+            try
+            {
+                // Ensure response starts with '{' to be valid JSON
+                if (body.empty() || body[0] != '{')
+                {
+                    std::cerr << "Invalid response (not JSON): " << body << "\n";
+                    continue;
+                }
+
+                json stats = json::parse(body);
+                std::cout << "Received stats:\n";
+                std::cout << "Boot Count: " << stats["boot_count"] << "\n";
+                std::cout << "Uptime: " << stats["uptime"] << " seconds\n";
+
+                saveStatsToCSV(stats["boot_count"], stats["uptime"]);
+            }
+            catch (const json::parse_error &e)
+            {
+                std::cerr << "JSON Parse Error: " << e.what() << "\n";
+                std::cerr << "Raw Response: " << body << "\n"; // Debugging
+            }
+        }
+        else
+        {
+            std::cerr << "Failed to get stats from server.\n";
+        }
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+    }
+}
