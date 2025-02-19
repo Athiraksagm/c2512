@@ -1,5 +1,6 @@
 #include "httplib.h"
 #include "json.hpp"
+#include "tinyxml2.h"
 #include <iostream>
 #include <fstream>
 #include <atomic>
@@ -7,35 +8,65 @@
 #include <unistd.h>
 #include <array>
 #include <memory>
+#include <thread>
+#include <chrono>
 
 using json = nlohmann::json;
+using namespace tinyxml2;
 
 std::atomic<int> boot_count(0);
 std::atomic<long> total_uptime(0);
+int logging_interval = 10;  // Default logging interval in seconds
 
-// Function to get the system's boot count from `last reboot`
+// Load logging interval from XML configuration
+void loadConfig()
+{
+    XMLDocument doc;
+    if (doc.LoadFile("../config.xml") == XML_SUCCESS)
+    {
+        XMLElement *root = doc.FirstChildElement("config");
+        if (root)
+        {
+            XMLElement *intervalElement = root->FirstChildElement("logging_interval");
+            if (intervalElement)
+            {
+                logging_interval = std::stoi(intervalElement->GetText());
+                std::cout << "Logging interval set to: " << logging_interval << " seconds\n";
+            }
+        }
+    }
+    else
+    {
+        std::cerr << "Error: Failed to load config.xml. Using default interval.\n";
+    }
+}
+
+// Get system boot count using `last reboot`
 int getBootCount()
 {
     std::array<char, 128> buffer;
     std::string result;
     std::shared_ptr<FILE> pipe(popen("last reboot | wc -l", "r"), pclose);
-    if (!pipe) {
+    if (!pipe)
+    {
         std::cerr << "Failed to run command." << std::endl;
         return -1;
     }
-    
-    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+
+    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr)
+    {
         result += buffer.data();
     }
 
     return std::stoi(result);  // Convert output to integer
 }
 
-// Save system stats to CSV
-void saveStatsToCSV() 
+// Save system statistics to CSV
+void saveStatsToCSV()
 {
     std::ofstream file("../system_stats.csv", std::ios_base::app);
-    if (file.is_open()) {
+    if (file.is_open())
+    {
         std::time_t now = std::time(nullptr);
         std::tm *local_time = std::localtime(&now);
 
@@ -48,40 +79,58 @@ void saveStatsToCSV()
              << local_time->tm_sec << ", "
              << boot_count.load() << ", "
              << total_uptime.load() << "\n";
-    } else {
+    }
+    else
+    {
         std::cerr << "Error opening CSV file!" << std::endl;
     }
 }
 
-// Update the system uptime
-void updateUptime() 
+// Update system uptime using `sysinfo()`
+void updateUptime()
 {
     struct sysinfo info;
-    if (sysinfo(&info) == 0) {
+    if (sysinfo(&info) == 0)
+    {
         total_uptime.store(info.uptime);  // Store uptime in atomic variable
     }
 }
 
-// Handle the client request to fetch stats
-void handleClientRequest(const httplib::Request &req, httplib::Response &res) 
+// Handle client requests to fetch system statistics
+void handleClientRequest(const httplib::Request &req, httplib::Response &res)
 {
-    updateUptime();  
+    updateUptime();
 
     json response_json;
     response_json["boot_count"] = boot_count.load();
     response_json["uptime"] = total_uptime.load();
 
-    saveStatsToCSV(); 
+    saveStatsToCSV();  // Save stats before responding
 
-    std::cout << "[Request Received] Boot Count: " << boot_count.load() << ", Uptime: " << total_uptime.load() << " seconds\n";
+    std::cout << "[Request Received] Boot Count: " << boot_count.load()
+              << ", Uptime: " << total_uptime.load() << " seconds\n";
 
     res.set_header("Cache-Control", "no-store");
     res.set_content(response_json.dump(), "application/json");
 }
 
-int main() 
+// Periodically log system stats at configured intervals
+void periodicLogging()
 {
-    // Load the boot count from the system
+    while (true)
+    {
+        updateUptime();
+        saveStatsToCSV();
+        std::cout << "[Auto-Logging] Boot Count: " << boot_count.load()
+                  << ", Uptime: " << total_uptime.load() << " seconds\n";
+
+        std::this_thread::sleep_for(std::chrono::seconds(logging_interval)); // Wait for configured interval
+    }
+}
+
+int main()
+{
+    loadConfig(); // Load logging interval from XML
     boot_count.store(getBootCount());
 
     std::cout << "=============================\n"
@@ -92,21 +141,38 @@ int main()
     std::cout << "Server running at http://localhost:8080...\n";
     std::cout << "Waiting for client requests...\n";
 
-    // Ensure system_stats.csv file exists and has headers if it's the first run
+    // Ensure system_stats.csv file exists
     std::ifstream checkFile("../system_stats.csv");
-    if (!checkFile.is_open()) {
+    if (!checkFile.is_open())
+    {
         std::ofstream file("../system_stats.csv");
-        if (file.is_open()) {
+        if (file.is_open())
+        {
             file << "Date (YYYY-MM-DD), Time (HH:MM:SS), Boot Count, Uptime (seconds)\n";
             file.close();
         }
     }
     checkFile.close();
 
-    // Start the server and listen for requests
+    // Start periodic logging in a background thread
+    std::thread logger(periodicLogging);
+    logger.detach(); // Runs independently in the background
+
+    // Start the HTTP server
     httplib::Server server;
     server.Get("/stats", handleClientRequest);
     server.listen("localhost", 8080);
 
     return 0;
 }
+
+
+
+
+
+
+
+
+<config>
+    <logging_interval>10</logging_interval>  <!-- Interval in seconds -->
+</config>
