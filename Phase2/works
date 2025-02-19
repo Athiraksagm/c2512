@@ -1,3 +1,26 @@
+This is the requirements i needed.
+1 Server Application
+
+1.	Monitor the number of boots and total uptime of the system.
+2.	Configurable interval for sending statistics (defined in an XML file).
+3.	Client shall request the server using REST API.
+4.	Respond to client requests with current statistics in JSON format.
+5.	Send periodic updates to clients based on the configured interval.
+6.	Handle multiple client requests concurrently.
+2.2.2 Client Application
+1.	Request system statistics from the server.
+2.	Receive and parse JSON responses.
+3.	Store system statistics in a CSV file when enabled via a command-line option.
+4.	The CSV file should include date, time, number of boots, and total uptime with proper heading.
+
+
+according to these requirements i want changes in my server and client codes.
+1. according to the config intervel server should send statistics based on client request.
+2. not like client sent request to client in every 10 seconds.i dont need this logic.
+3. save the data recieved by client to csv file.so the save to csv file function should present in client side. Csv related things should be there in client side.
+
+server.cpp 
+
 #include "httplib.h"
 #include "json.hpp"
 #include "tinyxml2.h"
@@ -166,13 +189,43 @@ int main()
     return 0;
 }
 
+client.cpp
 
+#include <iostream>
+#include <httplib.h>
+#include <json.hpp>
+#include <thread>
+#include <chrono>
 
+using json = nlohmann::json;
 
+//Function to continuously request system statistics from the server
+void requestStats() 
+{
+    httplib::Client client("http://localhost:8080");
 
+    while (true) {
+        auto res = client.Get("/stats");
 
+        if (res && res->status == 200) {
+            json stats = json::parse(res->body);
 
+            std::cout << "Received stats:\n";
+            std::cout << "Boot Count: " << stats["boot_count"] << "\n";
+            std::cout << "Uptime: " << stats["uptime"] << " seconds\n";
+        } else {
+            std::cerr << "Failed to get stats from server.\n";
+        }
 
-<config>
-    <logging_interval>10</logging_interval>  <!-- Interval in seconds -->
-</config>
+        std::this_thread::sleep_for(std::chrono::seconds(10));
+    }
+}
+
+//Main function to initialize the client and start requesting stats 
+int main() 
+{
+    std::cout << "=============================\n" << " SYSTEM STAT LOGGING CLIENT\n" << "=============================\n";
+    std::cout << "Client is requesting stats from server...\n";
+    requestStats();
+    return 0;
+}
