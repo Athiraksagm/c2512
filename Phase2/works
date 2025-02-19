@@ -185,5 +185,88 @@ void requestStats();
 
 source/client_utils.cpp
 
-#include "client_utils
+#include "client_utils.h"
+#include <httplib.h>
+#include <json.hpp>
+#include <iostream>
+#include <thread>
+#include <chrono>
+
+using json = nlohmann::json;
+
+void requestStats() {
+    httplib::Client client("http://localhost:8080");
+    while (true) {
+        auto res = client.Get("/stats");
+        if (res && res->status == 200) {
+            json stats = json::parse(res->body);
+            std::cout << "Received stats:\n";
+            std::cout << "Boot Count: " << stats["boot_count"] << "\n";
+            std::cout << "Uptime: " << stats["uptime"] << " seconds\n";
+        } else {
+            std::cerr << "Failed to get stats from server.\n";
+        }
+        std::this_thread::sleep_for(std::chrono::seconds(10));
+    }
+}
+
+
+---
+
+Updated server.cpp
+
+#include "httplib.h"
+#include "server_utils.h"
+#include "system_stats.h"
+#include <iostream>
+
+int main() {
+    boot_count.store(getBootCount());
+    
+    std::cout << "=============================\n"
+              << " SYSTEM STAT LOGGING SERVER\n"
+              << "=============================\n";
+    std::cout << "Boot Count: " << boot_count.load() << "\n";
+    std::cout << "Server running at http://localhost:8080...\n";
+
+    httplib::Server server;
+    server.Get("/stats", handleClientRequest);
+    server.listen("localhost", 8080);
+
+    return 0;
+}
+
+
+---
+
+Updated client.cpp
+
+#include "client_utils.h"
+#include <iostream>
+
+int main() {
+    std::cout << "=============================\n"
+              << " SYSTEM STAT LOGGING CLIENT\n"
+              << "=============================\n";
+    std::cout << "Client is requesting stats from server...\n";
+    requestStats();
+    return 0;
+}
+
+
+---
+
+Benefits of This Modularization
+
+1. Better Readability – Each module has a clear purpose.
+
+
+2. Code Reusability – Server utilities and system stats functions can be reused in other programs.
+
+
+3. Easier Maintenance – Changes to system stats logic won't affect server/client code directly.
+
+
+
+Would you like any further refinements?
 
