@@ -1,50 +1,36 @@
-void handleClientRequest(const httplib::Request &, httplib::Response &res) {
-    std::lock_guard<std::mutex> lock(client_mutex);
-    clients.push_back(std::make_shared<httplib::Response>(res));
-}
-
-
-
-
-void receiveStats()
-{
-    httplib::Client client("http://localhost:8080");
-
-    while (true)
-    {
-        auto response = client.Get("/stats");
-
-        if (response && response->status == 200)
-        {
-            try
-            {
-                // Ensure the response starts with '{' (valid JSON)
-                if (response->body.empty() || response->body[0] != '{')
-                {
-                    std::cerr << "Invalid response (not JSON): " << response->body << "\n";
-                    continue; // Skip invalid responses
-                }
-
-                json stats = json::parse(response->body);
-                std::cout << "Received stats:\n";
-                std::cout << "Boot Count: " << stats["boot_count"] << "\n";
-                std::cout << "Uptime: " << stats["uptime"] << " seconds\n";
-
-                if (enable_csv_logging)
-                {
-                    saveStatsToCSV(stats["boot_count"], stats["uptime"]);
-                }
-            }
-            catch (const json::parse_error &e)
-            {
-                std::cerr << "JSON Parse Error: " << e.what() << "\n";
-                std::cerr << "Raw Response: " << response->body << "\n"; // Debugging
-            }
-        }
-        else
-        {
-            std::cerr << "Failed to get stats from server.\n";
-        }
-        std::this_thread::sleep_for(std::chrono::seconds(2)); // Avoid spamming
-    }
-}
+Invalid response (not JSON):
+Invalid response (not JSON):
+Invalid response (not JSON):
+Invalid response (not JSON):
+Invalid response (not JSON):
+Invalid response (not JSON):
+Invalid response (not JSON):
+Invalid response (not JSON):
+Invalid response (not JSON):
+Invalid response (not JSON):
+Invalid response (not JSON):
+Invalid response (not JSON):
+Invalid response (not JSON):
+Invalid response (not JSON):
+Invalid response (not JSON):
+Invalid response (not JSON):
+Invalid response (not JSON):
+Invalid response (not JSON):
+Invalid response (not JSON):
+Invalid response (not JSON):
+Invalid response (not JSON):
+Invalid response (not JSON):
+Invalid response (not JSON):
+Invalid response (not JSON):
+Invalid response (not JSON):
+Invalid response (not JSON):
+Invalid response (not JSON):
+Invalid response (not JSON):
+Invalid response (not JSON):
+Invalid response (not JSON):
+Invalid response (not JSON):
+Invalid response (not JSON):
+Invalid response (not JSON):
+Invalid response (not JSON):
+Invalid response (not JSON):
+Invali
