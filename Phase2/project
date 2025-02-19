@@ -15,24 +15,19 @@ using namespace boost::beast;
 using json = nlohmann::json;
 using namespace tinyxml2;
 
-std::atomic<int> boot_count(10);
+std::atomic<int> boot_count(0);
 std::unordered_set<std::shared_ptr<websocket::stream<ip::tcp::socket>>> clients;
 std::mutex clients_mutex;
-int logging_interval = 10; // Default logging interval
+int logging_interval = 10; // Default interval
 
-// Load config.xml
-void loadConfig() {
-    XMLDocument doc;
-    if (doc.LoadFile("../config.xml") == XML_SUCCESS) {
-        XMLElement *root = doc.FirstChildElement("config");
-        if (root) {
-            XMLElement *intervalElement = root->FirstChildElement("logging_interval");
-            if (intervalElement) {
-                logging_interval = std::stoi(intervalElement->GetText());
-                std::cout << "Logging interval set to: " << logging_interval << " seconds\n";
-            }
-        }
-    }
+// Load boot count from system
+int getBootCount() {
+    FILE *pipe = popen("last reboot | wc -l", "r");
+    if (!pipe) return -1;
+    char buffer[128];
+    fgets(buffer, sizeof(buffer), pipe);
+    pclose(pipe);
+    return std::stoi(buffer);
 }
 
 // Get system uptime
@@ -42,19 +37,32 @@ long getUptime() {
     return info.uptime;
 }
 
-// Periodically send stats to all connected clients
+// Load logging interval from config.xml
+void loadConfig() {
+    XMLDocument doc;
+    if (doc.LoadFile("../config.xml") == XML_SUCCESS) {
+        XMLElement *root = doc.FirstChildElement("config");
+        if (root) {
+            XMLElement *intervalElement = root->FirstChildElement("logging_interval");
+            if (intervalElement) {
+                logging_interval = std::stoi(intervalElement->GetText());
+            }
+        }
+    }
+}
+
+// Send stats to all connected clients
 void broadcastStats() {
     while (true) {
         json stats;
-        stats["uptime"] = getUptime();
         stats["boot_count"] = boot_count.load();
-
+        stats["uptime"] = getUptime();
         std::string message = stats.dump();
-        std::lock_guard<std::mutex> lock(clients_mutex);
 
+        std::lock_guard<std::mutex> lock(clients_mutex);
         for (auto &client : clients) {
             boost::system::error_code ec;
-            client->write(boost::asio::buffer(message), ec);
+            client->write(net::buffer(message), ec);
             if (ec) {
                 std::cerr << "Failed to send stats: " << ec.message() << "\n";
             }
@@ -64,7 +72,7 @@ void broadcastStats() {
     }
 }
 
-// Handle WebSocket connections
+// Handle client connections
 void handleClient(ip::tcp::socket socket) {
     try {
         auto ws = std::make_shared<websocket::stream<ip::tcp::socket>>(std::move(socket));
@@ -93,11 +101,12 @@ void handleClient(ip::tcp::socket socket) {
 
 int main() {
     loadConfig();
+    boot_count.store(getBootCount());
 
     io_context ioc;
     ip::tcp::acceptor acceptor(ioc, ip::tcp::endpoint(ip::tcp::v4(), 8080));
 
-    std::cout << "WebSocket server started on port 8080...\n";
+    std::cout << "WebSocket server running on port 8080...\n";
 
     std::thread logger(broadcastStats);
     logger.detach();
