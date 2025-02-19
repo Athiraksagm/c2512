@@ -83,7 +83,7 @@ void handleClient(ip::tcp::socket socket) {
             clients.insert(ws);
         }
 
-        // Send first stat immediately after connection
+        // ✅ Send first stat immediately after connection
         json firstStat;
         firstStat["boot_count"] = boot_count.load();
         firstStat["uptime"] = getUptime();
@@ -204,4 +204,3 @@ int main() {
     connectToServer();
     return 0;
 }
-
