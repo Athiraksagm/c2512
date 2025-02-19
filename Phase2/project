@@ -1,8 +1,41 @@
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/build$ ./client
-=============================
- SYSTEM STAT LOGGING CLIENT
-=============================
-Client is requesting stats from server...
-terminate called after throwing an instance of 'nlohmann::json_abi_v3_11_3::detail::parse_error'
-  what():  [json.exception.parse_error.101] parse error at line 1, column 1: attempting to parse an empty input; check that your input string or stream contains the expected JSON
-Aborted (core dumped)
+void requestStats(int interval)
+{
+    httplib::Client client("http://localhost:8080");
+
+    while (true)
+    {
+        auto res = client.Get("/stats");
+
+        if (res && res->status == 200)
+        {
+            if (res->body.empty())  // Check if response body is empty
+            {
+                std::cerr << "Error: Received empty response from server.\n";
+            }
+            else
+            {
+                try
+                {
+                    json stats = json::parse(res->body);
+                    std::cout << "Received stats:\n";
+                    std::cout << "Boot Count: " << stats["boot_count"] << "\n";
+                    std::cout << "Uptime: " << stats["uptime"] << " seconds\n";
+
+                    // Save received statistics to CSV
+                    saveStatsToCSV(stats["boot_count"], stats["uptime"]);
+                }
+                catch (const json::parse_error &e)
+                {
+                    std::cerr << "JSON Parse Error: " << e.what() << "\n";
+                }
+            }
+        }
+        else
+        {
+            std::cerr << "Failed to get stats from server. Response status: " 
+                      << (res ? std::to_string(res->status) : "No Response") << "\n";
+        }
+
+        std::this_thread::sleep_for(std::chrono::seconds(interval));
+    }
+}
