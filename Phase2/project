@@ -248,3 +248,20 @@ int main()
     receiveStats();
     return 0;
 }
+
+
+server requirements are
+1.	Configurable interval for sending statistics (defined in an XML file).
+2.	Client shall request the server using REST API.
+3.	Respond to client requests with current statistics in JSON format.
+4.	Send periodic updates to clients based on the configured interval.
+5.	Handle multiple client requests concurrently.
+
+client requirements are
+
+1.	Request system statistics from the server.
+2.	Receive and parse JSON responses.
+3.	Store system statistics in a CSV file when enabled via a command-line option.
+4.	The CSV file should include date, time, number of boots, and total uptime with proper heading.
+
+Follow these requirements
