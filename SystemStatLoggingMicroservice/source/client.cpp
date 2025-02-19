@@ -6,6 +6,7 @@
 
 using json = nlohmann::json;
 
+//Function to continuously request system statistics from the server
 void requestStats() 
 {
     httplib::Client client("http://localhost:8080");
@@ -27,7 +28,9 @@ void requestStats()
     }
 }
 
-int main() {
+//Main function to initialize the client and start requesting stats 
+int main() 
+{
     std::cout << "=============================\n" << " SYSTEM STAT LOGGING CLIENT\n" << "=============================\n";
     std::cout << "Client is requesting stats from server...\n";
     requestStats();
