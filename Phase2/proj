@@ -1,5 +1,4 @@
 //client
-
 #include <iostream>
 #include <httplib.h>
 #include <json.hpp>
@@ -8,8 +7,6 @@
 #include <ctime>
 
 using json = nlohmann::json;
-
-bool enable_csv_logging = false;
 
 // Save statistics to CSV file
 void saveStatsToCSV(int boot_count, long uptime)
@@ -35,10 +32,12 @@ void saveStatsToCSV(int boot_count, long uptime)
     }
 }
 
-// Function to receive system stats
+// Function to listen for real-time server updates
 void receiveStats()
 {
     httplib::Client client("http://localhost:8080");
+
+    client.set_read_timeout(60, 0); // Set timeout for long polling
 
     while (true)
     {
@@ -47,17 +46,10 @@ void receiveStats()
         if (response && response->status == 200)
         {
             std::string body = response->body;
-            std::cout << "[DEBUG] Raw Response: " << body << std::endl; // Debugging
+            std::cout << "[DEBUG] Raw Response: " << body << std::endl;
 
             try
             {
-                // Ensure response starts with '{' to be valid JSON
-                if (body.empty() || body[0] != '{')
-                {
-                    std::cerr << "Invalid response (not JSON): " << body << "\n";
-                    continue;
-                }
-
                 json stats = json::parse(body);
                 std::cout << "Received stats:\n";
                 std::cout << "Boot Count: " << stats["boot_count"] << "\n";
@@ -68,47 +60,30 @@ void receiveStats()
             catch (const json::parse_error &e)
             {
                 std::cerr << "JSON Parse Error: " << e.what() << "\n";
-                std::cerr << "Raw Response: " << body << "\n"; // Debugging
+                std::cerr << "Raw Response: " << body << "\n";
             }
         }
         else
         {
             std::cerr << "Failed to get stats from server.\n";
         }
-        std::this_thread::sleep_for(std::chrono::seconds(2));
+
+        std::this_thread::sleep_for(std::chrono::seconds(1)); // Wait before re-requesting
     }
 }
 
-int main(int argc, char *argv[])
+int main()
 {
-    if (argc > 1 && std::string(argv[1]) == "--enable-csv")
-    {
-        enable_csv_logging = true;
-    }
-
     std::cout << "=============================\n"
               << " SYSTEM STAT LOGGING CLIENT\n"
               << "=============================\n";
     std::cout << "Waiting for server updates...\n";
 
-    if (enable_csv_logging)
-    {
-        std::ifstream checkFile("../system_stats.csv");
-        if (!checkFile.is_open())
-        {
-            std::ofstream file("../system_stats.csv");
-            if (file.is_open())
-            {
-                file << "Date (YYYY-MM-DD), Time (HH:MM:SS), Boot Count, Uptime (seconds)\n";
-                file.close();
-            }
-        }
-        checkFile.close();
-    }
-
     receiveStats();
     return 0;
 }
+
+
 
 
 //server
@@ -134,8 +109,8 @@ std::atomic<int> boot_count(0);
 std::atomic<long> total_uptime(0);
 int logging_interval = 10;  // Default interval in seconds
 
-std::vector<std::shared_ptr<httplib::Response>> clients;
-std::mutex client_mutex;
+std::mutex data_mutex;
+json latest_stats;
 
 // Load interval from XML config
 void loadConfig()
@@ -190,31 +165,28 @@ void updateUptime()
     }
 }
 
-// Function to send stats to connected clients
-void sendStatsPeriodically()
+// Function to update stats periodically
+void updateStatsPeriodically()
 {
     while (true)
     {
         updateUptime();
-        json response_json;
-        response_json["boot_count"] = boot_count.load();
-        response_json["uptime"] = total_uptime.load();
 
-        std::string response_data = response_json.dump();
-        std::cout << "[DEBUG] Sending JSON: " << response_data << std::endl; // Debugging
+        std::lock_guard<std::mutex> lock(data_mutex);
+        latest_stats["boot_count"] = boot_count.load();
+        latest_stats["uptime"] = total_uptime.load();
+
+        std::cout << "[DEBUG] Updated Stats: " << latest_stats.dump() << std::endl;
 
         std::this_thread::sleep_for(std::chrono::seconds(logging_interval));
     }
 }
 
-// Handle client request for updates
+// Handle client request for stats
 void handleClientRequest(const httplib::Request &req, httplib::Response &res)
 {
-    json response_json;
-    response_json["boot_count"] = boot_count.load();
-    response_json["uptime"] = total_uptime.load();
-
-    res.set_content(response_json.dump(), "application/json");
+    std::lock_guard<std::mutex> lock(data_mutex);
+    res.set_content(latest_stats.dump(), "application/json");
 }
 
 int main()
@@ -228,11 +200,14 @@ int main()
     std::cout << "Boot Count: " << boot_count.load() << "\n";
     std::cout << "Server running at http://localhost:8080...\n";
 
+    latest_stats["boot_count"] = boot_count.load();
+    latest_stats["uptime"] = 0;
+
+    std::thread stats_thread(updateStatsPeriodically);
+    stats_thread.detach();
+
     httplib::Server server;
     server.Get("/stats", handleClientRequest);
-
-    std::thread periodic_thread(sendStatsPeriodically);
-    periodic_thread.detach();
 
     server.listen("localhost", 8080);
 
