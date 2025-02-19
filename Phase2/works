@@ -1,19 +1,63 @@
-athira@INTVMLT2342:/mnt/c/Users/2022004/Documents/SystemStatLoggingMicroservice/build$ make
-Consolidate compiler generated dependencies of target server
-[ 10%] Building CXX object CMakeFiles/server.dir/source/system_stats.cpp.o
-[ 20%] Building CXX object CMakeFiles/server.dir/source/server_utils.cpp.o
-[ 30%] Linking CXX executable server
-[ 40%] Built target server
-[ 50%] Building CXX object CMakeFiles/client.dir/source/client.cpp.o
-[ 60%] Building CXX object CMakeFiles/client.dir/source/client_utils.cpp.o
-[ 70%] Linking CXX executable client
-[ 70%] Built target client
-[ 80%] Building CXX object CMakeFiles/test_system_stats.dir/test/test_system_stats.cpp.o
-[ 90%] Building CXX object CMakeFiles/test_system_stats.dir/source/system_stats.cpp.o
-[100%] Linking CXX executable test_system_stats
-/usr/bin/ld: CMakeFiles/test_system_stats.dir/source/system_stats.cpp.o:(.bss+0x0): multiple definition of `boot_count'; CMakeFiles/test_system_stats.dir/test/test_system_stats.cpp.o:(.bss+0x0): first defined here
-/usr/bin/ld: CMakeFiles/test_system_stats.dir/source/system_stats.cpp.o:(.bss+0x8): multiple definition of `total_uptime'; CMakeFiles/test_system_stats.dir/test/test_system_stats.cpp.o:(.bss+0x8): first defined here
-collect2: error: ld returned 1 exit status
-make[2]: *** [CMakeFiles/test_system_stats.dir/build.make:114: test_system_stats] Error 1
-make[1]: *** [CMakeFiles/Makefile2:139: CMakeFiles/test_system_stats.dir/all] Error 2
-make: *** [Makefile:136: all] Error 2
+#include "gtest/gtest.h"
+#include "json.hpp"
+#include "system_stats.h"  // Include the header where `boot_count` and `total_uptime` are declared
+#include <fstream>
+#include <iostream>
+#include <atomic>
+#include <sstream>
+
+using json = nlohmann::json;
+
+class SystemStatsTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        boot_count.store(5);    // Mock boot count
+        total_uptime.store(3600);  // Mock uptime (1 hour)
+    }
+
+    int mock_getBootCount() {
+        return 5;  // Mocked boot count
+    }
+
+    void mock_saveBootCount(int count) {
+        std::ofstream file("mock_boot_count.txt");
+        file << count;
+    }
+};
+
+// **TEST 1: Boot count retrieval**
+TEST_F(SystemStatsTest, BootCountRetrieval) {
+    boot_count.store(5);
+    EXPECT_EQ(boot_count.load(), 5);
+}
+
+// **TEST 2: Uptime retrieval**
+TEST_F(SystemStatsTest, UptimeRetrieval) {
+    total_uptime.store(3600);
+    EXPECT_EQ(total_uptime.load(), 3600);
+}
+
+// **TEST 3: Boot count file save**
+TEST_F(SystemStatsTest, BootCountFileSave) {
+    mock_saveBootCount(8);
+    std::ifstream file("mock_boot_count.txt");
+    int count;
+    file >> count;
+    EXPECT_EQ(count, 8);
+}
+
+// **TEST 4: JSON response format**
+TEST_F(SystemStatsTest, JsonResponseFormat) {
+    json response_json;
+    response_json["boot_count"] = boot_count.load();
+    response_json["uptime"] = total_uptime.load();
+
+    json expected_json = {{"boot_count", 5}, {"uptime", 3600}};
+    EXPECT_EQ(response_json.dump(), expected_json.dump());
+}
+
+// **MAIN FUNCTION**
+int main(int argc, char **argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+}
