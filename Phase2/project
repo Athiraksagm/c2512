@@ -1,5 +1,3 @@
-
-//server
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
 #include <boost/beast/websocket.hpp>
@@ -53,23 +51,27 @@ void loadConfig() {
     }
 }
 
-// Send stats to all clients
+// Send stats to a client
+void sendStatsToClient(std::shared_ptr<websocket::stream<ip::tcp::socket>> ws) {
+    json stats;
+    stats["boot_count"] = boot_count.load();
+    stats["uptime"] = getUptime();
+    std::string message = stats.dump();
+
+    boost::system::error_code ec;
+    ws->write(net::buffer(message), ec);
+    if (ec) {
+        std::cerr << "Failed to send stats: " << ec.message() << "\n";
+    }
+}
+
+// Send periodic stats to all clients
 void broadcastStats() {
     while (true) {
-        json stats;
-        stats["boot_count"] = boot_count.load();
-        stats["uptime"] = getUptime();
-        std::string message = stats.dump();
-
         std::lock_guard<std::mutex> lock(clients_mutex);
         for (auto &client : clients) {
-            boost::system::error_code ec;
-            client->write(net::buffer(message), ec);
-            if (ec) {
-                std::cerr << "Failed to send stats: " << ec.message() << "\n";
-            }
+            sendStatsToClient(client);
         }
-
         std::this_thread::sleep_for(std::chrono::seconds(logging_interval));
     }
 }
@@ -85,13 +87,10 @@ void handleClient(ip::tcp::socket socket) {
             clients.insert(ws);
         }
 
-        // Immediately send first stat after client connects
-        json firstStat;
-        firstStat["boot_count"] = boot_count.load();
-        firstStat["uptime"] = getUptime();
-        ws->write(net::buffer(firstStat.dump()));  //First stat sent instantly
+        // Send stats immediately after connection
+        sendStatsToClient(ws);
 
-        std::cout << "[New Client] First stat sent: " << firstStat.dump() << "\n";
+        std::cout << "[New Client] First stat sent.\n";
 
         boost::beast::flat_buffer buffer;
         while (true) {
@@ -99,6 +98,14 @@ void handleClient(ip::tcp::socket socket) {
             ws->read(buffer, ec);
             if (ec == websocket::error::closed) {
                 break;
+            }
+
+            std::string received = boost::beast::buffers_to_string(buffer.data());
+            buffer.consume(buffer.size());  // Clear buffer after reading
+
+            if (received == "REQUEST_STATS") {
+                sendStatsToClient(ws);
+                std::cout << "[Client Request] Stats sent.\n";
             }
         }
 
@@ -133,7 +140,9 @@ int main() {
 
 
 
-//client
+
+
+
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
 #include <boost/beast/websocket.hpp>
@@ -162,7 +171,7 @@ void saveStatsToCSV(int boot_count, long uptime) {
          << uptime << "\n";
 }
 
-// Connect to WebSocket server and receive data
+// Connect to WebSocket server and request stats
 void connectToServer() {
     io_context ioc;
     ip::tcp::resolver resolver(ioc);
@@ -172,7 +181,10 @@ void connectToServer() {
     boost::asio::connect(ws.next_layer(), endpoints);
     ws.handshake("localhost", "/");
 
-    std::cout << "Connected to server, receiving stats...\n";
+    std::cout << "Connected to server. Requesting stats...\n";
+
+    // Send request for immediate stats
+    ws.write(net::buffer("REQUEST_STATS"));
 
     while (true) {
         boost::beast::flat_buffer buffer;
@@ -185,6 +197,8 @@ void connectToServer() {
         }
 
         std::string data = boost::beast::buffers_to_string(buffer.data());
+        buffer.consume(buffer.size());  // Clear buffer after reading
+
         json stats = json::parse(data);
         saveStatsToCSV(stats["boot_count"], stats["uptime"]);
 
