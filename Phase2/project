@@ -1,68 +1,29 @@
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/build$ make
-Consolidate compiler generated dependencies of target server
-[ 16%] Building CXX object CMakeFiles/server.dir/source/server.cpp.o
-[ 33%] Linking CXX executable server
-/usr/bin/ld: CMakeFiles/server.dir/source/server.cpp.o: in function `sendStatsPeriodically()':
-server.cpp:(.text+0x61b): undefined reference to `Poco::Net::WebSocket::sendFrame(void const*, int, int)'
-/usr/bin/ld: server.cpp:(.text+0x777): undefined reference to `Poco::Exception::displayText[abi:cxx11]() const'
-/usr/bin/ld: CMakeFiles/server.dir/source/server.cpp.o: in function `main':
-server.cpp:(.text+0x89f): undefined reference to `Poco::Util::ServerApplication::run(int, char**)'
-/usr/bin/ld: CMakeFiles/server.dir/source/server.cpp.o: in function `Poco::Net::Impl::IPv4SocketAddressImpl::host() const':
-server.cpp:(.text._ZNK4Poco3Net4Impl21IPv4SocketAddressImpl4hostEv[_ZNK4Poco3Net4Impl21IPv4SocketAddressImpl4hostEv]+0x2c): undefined reference to `Poco::Net::IPAddress::IPAddress(void const*, unsigned int)'
-/usr/bin/ld: CMakeFiles/server.dir/source/server.cpp.o: in function `Poco::Net::Impl::IPv6SocketAddressImpl::host() const':
-server.cpp:(.text._ZNK4Poco3Net4Impl21IPv6SocketAddressImpl4hostEv[_ZNK4Poco3Net4Impl21IPv6SocketAddressImpl4hostEv]+0x32): undefined reference to `Poco::Net::IPAddress::IPAddress(void const*, unsigned int, unsigned int)'
-/usr/bin/ld: CMakeFiles/server.dir/source/server.cpp.o: in function `Poco::ReferenceCounter::ReferenceCounter()':
-server.cpp:(.text._ZN4Poco16ReferenceCounterC2Ev[_ZN4Poco16ReferenceCounterC5Ev]+0x1d): undefined reference to `Poco::AtomicCounter::AtomicCounter(int)'
-/usr/bin/ld: CMakeFiles/server.dir/source/server.cpp.o: in function `WebSocketRequestHandler::handleRequest(Poco::Net::HTTPServerRequest&, Poco::Net::HTTPServerResponse&)':
-server.cpp:(.text._ZN23WebSocketRequestHandler13handleRequestERN4Poco3Net17HTTPServerRequestERNS1_18HTTPServerResponseE[_ZN23WebSocketRequestHandler13handleRequestERN4Poco3Net17HTTPServerRequestERNS1_18HTTPServerResponseE]+0x5a): undefined reference to `Poco::Net::WebSocket::WebSocket(Poco::Net::HTTPServerRequest&, Poco::Net::HTTPServerResponse&)'
-/usr/bin/ld: server.cpp:(.text._ZN23WebSocketRequestHandler13handleRequestERN4Poco3Net17HTTPServerRequestERNS1_18HTTPServerResponseE[_ZN23WebSocketRequestHandler13handleRequestERN4Poco3Net17HTTPServerRequestERNS1_18HTTPServerResponseE]+0xe0): undefined reference to `Poco::Net::WebSocket::receiveFrame(void*, int, int&)'
-/usr/bin/ld: server.cpp:(.text._ZN23WebSocketRequestHandler13handleRequestERN4Poco3Net17HTTPServerRequestERNS1_18HTTPServerResponseE[_ZN23WebSocketRequestHandler13handleRequestERN4Poco3Net17HTTPServerRequestERNS1_18HTTPServerResponseE]+0x18d): undefined reference to `Poco::Exception::displayText[abi:cxx11]() const'
-/usr/bin/ld: CMakeFiles/server.dir/source/server.cpp.o: in function `WebSocketRequestHandler::WebSocketRequestHandler()':
-server.cpp:(.text._ZN23WebSocketRequestHandlerC2Ev[_ZN23WebSocketRequestHandlerC5Ev]+0x18): undefined reference to `Poco::Net::HTTPRequestHandler::HTTPRequestHandler()'
-/usr/bin/ld: CMakeFiles/server.dir/source/server.cpp.o: in function `WebSocketRequestHandlerFactory::WebSocketRequestHandlerFactory()':
-server.cpp:(.text._ZN30WebSocketRequestHandlerFactoryC2Ev[_ZN30WebSocketRequestHandlerFactoryC5Ev]+0x18): undefined reference to `Poco::Net::HTTPRequestHandlerFactory::HTTPRequestHandlerFactory()'
-/usr/bin/ld: CMakeFiles/server.dir/source/server.cpp.o: in function `ServerApp::main(std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > const&)':
-server.cpp:(.text._ZN9ServerApp4mainERKSt6vectorINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEESaIS6_EE[_ZN9ServerApp4mainERKSt6vectorINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEESaIS6_EE]+0x171): undefined reference to `Poco::Net::HTTPServerParams::HTTPServerParams()'
-/usr/bin/ld: server.cpp:(.text._ZN9ServerApp4mainERKSt6vectorINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEESaIS6_EE[_ZN9ServerApp4mainERKSt6vectorINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEESaIS6_EE]+0x1a0): undefined reference to `Poco::Net::ServerSocket::ServerSocket(unsigned short, int)'
-/usr/bin/ld: server.cpp:(.text._ZN9ServerApp4mainERKSt6vectorINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEESaIS6_EE[_ZN9ServerApp4mainERKSt6vectorINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEESaIS6_EE]+0x20d): undefined reference to `Poco::Net::HTTPServer::HTTPServer(Poco::SharedPtr<Poco::Net::HTTPRequestHandlerFactory, Poco::ReferenceCounter, Poco::ReleasePolicy<Poco::Net::HTTPRequestHandlerFactory> >, Poco::Net::ServerSocket const&, Poco::AutoPtr<Poco::Net::HTTPServerParams>)'
-/usr/bin/ld: server.cpp:(.text._ZN9ServerApp4mainERKSt6vectorINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEESaIS6_EE[_ZN9ServerApp4mainERKSt6vectorINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEESaIS6_EE]+0x22b): undefined reference to `Poco::Net::ServerSocket::~ServerSocket()'
-/usr/bin/ld: server.cpp:(.text._ZN9ServerApp4mainERKSt6vectorINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEESaIS6_EE[_ZN9ServerApp4mainERKSt6vectorINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEESaIS6_EE]+0x249): undefined reference to `Poco::Net::TCPServer::start()'
-/usr/bin/ld: server.cpp:(.text._ZN9ServerApp4mainERKSt6vectorINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEESaIS6_EE[_ZN9ServerApp4mainERKSt6vectorINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEESaIS6_EE]+0x258): undefined reference to `Poco::Util::ServerApplication::waitForTerminationRequest()'
-/usr/bin/ld: server.cpp:(.text._ZN9ServerApp4mainERKSt6vectorINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEESaIS6_EE[_ZN9ServerApp4mainERKSt6vectorINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEESaIS6_EE]+0x267): undefined reference to `Poco::Net::TCPServer::stop()'
-/usr/bin/ld: server.cpp:(.text._ZN9ServerApp4mainERKSt6vectorINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEESaIS6_EE[_ZN9ServerApp4mainERKSt6vectorINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEESaIS6_EE]+0x27b): undefined reference to `Poco::Net::HTTPServer::~HTTPServer()'
-/usr/bin/ld: server.cpp:(.text._ZN9ServerApp4mainERKSt6vectorINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEESaIS6_EE[_ZN9ServerApp4mainERKSt6vectorINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEESaIS6_EE]+0x309): undefined reference to `Poco::Net::ServerSocket::~ServerSocket()'
-/usr/bin/ld: server.cpp:(.text._ZN9ServerApp4mainERKSt6vectorINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEESaIS6_EE[_ZN9ServerApp4mainERKSt6vectorINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEESaIS6_EE]+0x339): undefined reference to `Poco::Net::HTTPServer::~HTTPServer()'
-/usr/bin/ld: CMakeFiles/server.dir/source/server.cpp.o: in function `ServerApp::ServerApp()':
-server.cpp:(.text._ZN9ServerAppC2Ev[_ZN9ServerAppC5Ev]+0x18): undefined reference to `Poco::Util::ServerApplication::ServerApplication()'
-/usr/bin/ld: CMakeFiles/server.dir/source/server.cpp.o: in function `Poco::ReferenceCounter::~ReferenceCounter()':
-server.cpp:(.text._ZN4Poco16ReferenceCounterD2Ev[_ZN4Poco16ReferenceCounterD5Ev]+0x18): undefined reference to `Poco::AtomicCounter::~AtomicCounter()'
-/usr/bin/ld: CMakeFiles/server.dir/source/server.cpp.o:(.data.rel.ro._ZTV9ServerApp[_ZTV9ServerApp]+0x20): undefined reference to `Poco::Util::Application::name() const'
-/usr/bin/ld: CMakeFiles/server.dir/source/server.cpp.o:(.data.rel.ro._ZTV9ServerApp[_ZTV9ServerApp]+0x28): undefined reference to `Poco::Util::Application::initialize(Poco::Util::Application&)'
-/usr/bin/ld: CMakeFiles/server.dir/source/server.cpp.o:(.data.rel.ro._ZTV9ServerApp[_ZTV9ServerApp]+0x30): undefined reference to `Poco::Util::Application::uninitialize()'
-/usr/bin/ld: CMakeFiles/server.dir/source/server.cpp.o:(.data.rel.ro._ZTV9ServerApp[_ZTV9ServerApp]+0x38): undefined reference to `Poco::Util::Application::reinitialize(Poco::Util::Application&)'
-/usr/bin/ld: CMakeFiles/server.dir/source/server.cpp.o:(.data.rel.ro._ZTV9ServerApp[_ZTV9ServerApp]+0x40): undefined reference to `Poco::Util::ServerApplication::defineOptions(Poco::Util::OptionSet&)'
-/usr/bin/ld: CMakeFiles/server.dir/source/server.cpp.o:(.data.rel.ro._ZTV9ServerApp[_ZTV9ServerApp]+0x48): undefined reference to `Poco::Util::ServerApplication::run()'
-/usr/bin/ld: CMakeFiles/server.dir/source/server.cpp.o:(.data.rel.ro._ZTV9ServerApp[_ZTV9ServerApp]+0x50): undefined reference to `Poco::Util::Application::handleOption(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)'
-/usr/bin/ld: CMakeFiles/server.dir/source/server.cpp.o: in function `ServerApp::~ServerApp()':
-server.cpp:(.text._ZN9ServerAppD2Ev[_ZN9ServerAppD5Ev]+0x26): undefined reference to `Poco::Util::ServerApplication::~ServerApplication()'
-/usr/bin/ld: CMakeFiles/server.dir/source/server.cpp.o: in function `WebSocketRequestHandlerFactory::~WebSocketRequestHandlerFactory()':
-server.cpp:(.text._ZN30WebSocketRequestHandlerFactoryD2Ev[_ZN30WebSocketRequestHandlerFactoryD5Ev]+0x26): undefined reference to `Poco::Net::HTTPRequestHandlerFactory::~HTTPRequestHandlerFactory()'
-/usr/bin/ld: CMakeFiles/server.dir/source/server.cpp.o: in function `WebSocketRequestHandler::~WebSocketRequestHandler()':
-server.cpp:(.text._ZN23WebSocketRequestHandlerD2Ev[_ZN23WebSocketRequestHandlerD5Ev]+0x26): undefined reference to `Poco::Net::HTTPRequestHandler::~HTTPRequestHandler()'
-/usr/bin/ld: CMakeFiles/server.dir/source/server.cpp.o:(.data.rel.ro._ZTVN4Poco3Net4Impl21IPv6SocketAddressImplE[_ZTVN4Poco3Net4Impl21IPv6SocketAddressImplE]+0x50): undefined reference to `Poco::Net::Impl::IPv6SocketAddressImpl::toString[abi:cxx11]() const'
-/usr/bin/ld: CMakeFiles/server.dir/source/server.cpp.o: in function `Poco::Net::Impl::IPv6SocketAddressImpl::~IPv6SocketAddressImpl()':
-server.cpp:(.text._ZN4Poco3Net4Impl21IPv6SocketAddressImplD2Ev[_ZN4Poco3Net4Impl21IPv6SocketAddressImplD5Ev]+0x26): undefined reference to `Poco::Net::Impl::SocketAddressImpl::~SocketAddressImpl()'
-/usr/bin/ld: CMakeFiles/server.dir/source/server.cpp.o:(.data.rel.ro._ZTVN4Poco3Net4Impl21IPv4SocketAddressImplE[_ZTVN4Poco3Net4Impl21IPv4SocketAddressImplE]+0x50): undefined reference to `Poco::Net::Impl::IPv4SocketAddressImpl::toString[abi:cxx11]() const'
-/usr/bin/ld: CMakeFiles/server.dir/source/server.cpp.o: in function `Poco::Net::Impl::IPv4SocketAddressImpl::~IPv4SocketAddressImpl()':
-server.cpp:(.text._ZN4Poco3Net4Impl21IPv4SocketAddressImplD2Ev[_ZN4Poco3Net4Impl21IPv4SocketAddressImplD5Ev]+0x26): undefined reference to `Poco::Net::Impl::SocketAddressImpl::~SocketAddressImpl()'
-/usr/bin/ld: CMakeFiles/server.dir/source/server.cpp.o:(.data.rel.ro._ZTI9ServerApp[_ZTI9ServerApp]+0x10): undefined reference to `typeinfo for Poco::Util::ServerApplication'
-/usr/bin/ld: CMakeFiles/server.dir/source/server.cpp.o:(.data.rel.ro._ZTI30WebSocketRequestHandlerFactory[_ZTI30WebSocketRequestHandlerFactory]+0x10): undefined reference to `typeinfo for Poco::Net::HTTPRequestHandlerFactory'
-/usr/bin/ld: CMakeFiles/server.dir/source/server.cpp.o:(.data.rel.ro._ZTI23WebSocketRequestHandler[_ZTI23WebSocketRequestHandler]+0x10): undefined reference to `typeinfo for Poco::Net::HTTPRequestHandler'
-/usr/bin/ld: CMakeFiles/server.dir/source/server.cpp.o:(.data.rel.ro._ZTIN4Poco3Net4Impl21IPv6SocketAddressImplE[_ZTIN4Poco3Net4Impl21IPv6SocketAddressImplE]+0x10): undefined reference to `typeinfo for Poco::Net::Impl::SocketAddressImpl'
-/usr/bin/ld: CMakeFiles/server.dir/source/server.cpp.o:(.data.rel.ro._ZTIN4Poco3Net4Impl21IPv4SocketAddressImplE[_ZTIN4Poco3Net4Impl21IPv4SocketAddressImplE]+0x10): undefined reference to `typeinfo for Poco::Net::Impl::SocketAddressImpl'
-/usr/bin/ld: CMakeFiles/server.dir/source/server.cpp.o:(.data.rel.local.DW.ref._ZTIN4Poco3Net18WebSocketExceptionE[DW.ref._ZTIN4Poco3Net18WebSocketExceptionE]+0x0): undefined reference to `typeinfo for Poco::Net::WebSocketException'
-/usr/bin/ld: CMakeFiles/server.dir/source/server.cpp.o:(.data.rel.local.DW.ref._ZTIN4Poco9ExceptionE[DW.ref._ZTIN4Poco9ExceptionE]+0x0): undefined reference to `typeinfo for Poco::Exception'
-collect2: error: ld returned 1 exit status
-make[2]: *** [CMakeFiles/server.dir/build.make:97: server] Error 1
-make[1]: *** [CMakeFiles/Makefile2:87: CMakeFiles/server.dir/all] Error 2
-make: *** [Makefile:136: all] Error 2
+cmake_minimum_required(VERSION 3.10)
+project(SystemStatLogging)
+
+set(CMAKE_CXX_STANDARD 14)
+
+# Add paths for the includes and libraries
+include_directories(include)
+link_directories(${CMAKE_SOURCE_DIR}/lib)
+
+# Add GTest
+find_package(GTest REQUIRED)
+include_directories(${GTEST_INCLUDE_DIRS})
+
+# Add the server and client executables
+add_executable(server source/server.cpp)
+add_executable(client source/client.cpp)
+
+# Add the tests
+add_executable(test_system_stats test/test_system_stats.cpp)
+
+# Link GTest with the tests
+target_link_libraries(test_system_stats ${GTEST_LIBRARIES} pthread)
+
+# Link server and client with necessary libraries
+target_link_libraries(server pthread tinyxml2)
+target_link_libraries(client pthread)
+
+# Install CMake files
+install(TARGETS server client DESTINATION bin)
