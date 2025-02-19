@@ -1,34 +1,34 @@
-cmake_minimum_required(VERSION 3.10)
-project(SystemStatLogging)
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/build$ make
+Consolidate compiler generated dependencies of target server
+[ 16%] Building CXX object CMakeFiles/server.dir/source/server.cpp.o
+[ 33%] Linking CXX executable server
+[ 33%] Built target server
+Consolidate compiler generated dependencies of target client
+[ 50%] Building CXX object CMakeFiles/client.dir/source/client.cpp.o
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/source/client.cpp: In function ‘void receiveStats()’:
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/source/client.cpp:64:21: error: ‘Var’ was not declared in this scope; did you mean ‘Poco::Dynamic::Var’?
+   64 |                     Var result = parser.parse(data);
+      |                     ^~~
+      |                     Poco::Dynamic::Var
+In file included from /usr/include/Poco/JSON/Array.h:23,
+                 from /usr/include/Poco/JSON/Object.h:22,
+                 from /usr/include/Poco/JSON/ParserImpl.h:22,
+                 from /usr/include/Poco/JSON/Parser.h:22,
+                 from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/source/client.cpp:5:
+/usr/include/Poco/Dynamic/Var.h:41:22: note: ‘Poco::Dynamic::Var’ declared here
+   41 | class Foundation_API Var
+      |                      ^~~
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/source/client.cpp:65:41: error: ‘result’ was not declared in this scope
+   65 |                     Object::Ptr stats = result.extract<Object::Ptr>();
+      |                                         ^~~~~~
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/source/client.cpp:65:67: error: expected primary-expression before ‘>’ token
+   65 |           Object::Ptr stats = result.extract<Object::Ptr>();
+      |                                                         ^
 
-set(CMAKE_CXX_STANDARD 14)
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/source/client.cpp:65:69: error: expected primary-expression before ‘)’ token
+   65 |           Object::Ptr stats = result.extract<Object::Ptr>();
+      |                                                           ^
 
-# Add paths for the includes and libraries
-include_directories(include)
-link_directories(${CMAKE_SOURCE_DIR}/lib)
-
-# Find Poco libraries (WebSocket, Net, JSON, Util, Foundation)
-find_package(Poco REQUIRED COMPONENTS Foundation Net Util JSON)
-
-# Find GTest
-find_package(GTest REQUIRED)
-include_directories(${GTEST_INCLUDE_DIRS})
-
-# Add the server and client executables
-add_executable(server source/server.cpp)
-add_executable(client source/client.cpp)
-
-# Add the tests
-add_executable(test_system_stats test/test_system_stats.cpp)
-
-# Link GTest with the tests
-target_link_libraries(test_system_stats ${GTEST_LIBRARIES} pthread)
-
-# Link server with Poco WebSockets and other necessary libraries
-target_link_libraries(server pthread tinyxml2 ${Poco_LIBRARIES})
-
-# Link client with necessary libraries
-target_link_libraries(client pthread ${Poco_LIBRARIES})
-
-# Install CMake files
-install(TARGETS server client DESTINATION bin)
+make[2]: *** [CMakeFiles/client.dir/build.make:76: CMakeFiles/client.dir/source/client.cpp.o] Error 1
+make[1]: *** [CMakeFiles/Makefile2:113: CMakeFiles/client.dir/all] Error 2
+make: *** [Makefile:136: all] Error 2
