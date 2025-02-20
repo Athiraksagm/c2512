@@ -10,7 +10,7 @@ using namespace boost::asio;
 using namespace boost::beast;
 using json = nlohmann::json;
 
-// Save stats to CSV
+// Function to save stats to CSV
 void saveStatsToCSV(int boot_count, long uptime) {
     std::ofstream file("../system_stats.csv", std::ios_base::app);
     std::time_t now = std::time(nullptr);
@@ -27,7 +27,7 @@ void saveStatsToCSV(int boot_count, long uptime) {
 }
 
 // Connect to WebSocket server and receive data
-void connectToServer() {
+void connectToServer(bool logToFile) {
     io_context ioc;
     ip::tcp::resolver resolver(ioc);
     auto endpoints = resolver.resolve("localhost", "8080");
@@ -36,7 +36,10 @@ void connectToServer() {
     boost::asio::connect(ws.next_layer(), endpoints);
     ws.handshake("localhost", "/");
 
-    std::cout << "Connected to server, receiving stats...\n";
+    std::cout << "Connected to server, requesting stats...\n";
+
+    // Request stats from the server
+    ws.write(net::buffer("request_stats"));
 
     while (true) {
         boost::beast::flat_buffer buffer;
@@ -50,23 +53,37 @@ void connectToServer() {
 
         std::string data = boost::beast::buffers_to_string(buffer.data());
         json stats = json::parse(data);
-        saveStatsToCSV(stats["boot_count"], stats["uptime"]);
 
         std::cout << "[Received Stats] Boot Count: " << stats["boot_count"]
                   << ", Uptime: " << stats["uptime"] << " seconds\n";
+
+        // Save to CSV if logging is enabled
+        if (logToFile) {
+            saveStatsToCSV(stats["boot_count"], stats["uptime"]);
+        }
     }
 }
 
-int main() {
-    std::ifstream checkFile("../system_stats.csv");
-    if (!checkFile.is_open()) {
-        std::ofstream file("../system_stats.csv");
-        file << "Date (YYYY-MM-DD), Time (HH:MM:SS), Boot Count, Uptime (seconds)\n";
+int main(int argc, char* argv[]) {
+    bool logToFile = false;
+
+    // Check if --log flag is passed
+    if (argc > 1 && std::string(argv[1]) == "--log") {
+        logToFile = true;
+        std::ifstream checkFile("../system_stats.csv");
+        if (!checkFile.is_open()) {
+            std::ofstream file("../system_stats.csv");
+            file << "Date (YYYY-MM-DD), Time (HH:MM:SS), Boot Count, Uptime (seconds)\n";
+        }
     }
 
-    connectToServer();
+    connectToServer(logToFile);
     return 0;
 }
+
+
+
+
 
 
 
@@ -156,17 +173,26 @@ void handleClient(ip::tcp::socket socket) {
             clients.insert(ws);
         }
 
-        // Immediately send first stat after client connects
-        json firstStat;
-        firstStat["boot_count"] = boot_count.load();
-        firstStat["uptime"] = getUptime();
-        ws->write(net::buffer(firstStat.dump()));  //First stat sent instantly
-
-        std::cout << "[New Client] First stat sent: " << firstStat.dump() << "\n";
-
+        // Read client's first message
         boost::beast::flat_buffer buffer;
+        boost::system::error_code ec;
+        ws->read(buffer, ec);
+
+        if (!ec) {
+            std::string request = boost::beast::buffers_to_string(buffer.data());
+
+            // If the client requests stats, send them immediately
+            if (request == "request_stats") {
+                json firstStat;
+                firstStat["boot_count"] = boot_count.load();
+                firstStat["uptime"] = getUptime();
+                ws->write(net::buffer(firstStat.dump()));  
+                std::cout << "[Client Connected] Sent initial stats: " << firstStat.dump() << "\n";
+            }
+        }
+
+        // Wait for disconnection
         while (true) {
-            boost::system::error_code ec;
             ws->read(buffer, ec);
             if (ec == websocket::error::closed) {
                 break;
@@ -200,5 +226,3 @@ int main() {
 
     return 0;
 }
-
-
