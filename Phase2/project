@@ -60,11 +60,15 @@ void broadcastStats() {
         std::string message = stats.dump();
 
         std::lock_guard<std::mutex> lock(clients_mutex);
-        for (auto &client : clients) {
+        auto it = clients.begin();
+        while (it != clients.end()) {
             boost::system::error_code ec;
-            client->write(net::buffer(message), ec);
+            (*it)->write(net::buffer(message), ec);
             if (ec) {
-                std::cerr << "Failed to send stats: " << ec.message() << "\n";
+                std::cerr << "Client disconnected. Failed to send stats: " << ec.message() << "\n";
+                it = clients.erase(it);  // Remove client from list
+            } else {
+                ++it;
             }
         }
 
@@ -155,6 +159,8 @@ int main(int argc, char* argv[]) {
 
 
 
+
+
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
 #include <boost/beast/websocket.hpp>
@@ -167,9 +173,22 @@ using namespace boost::asio;
 using namespace boost::beast;
 using json = nlohmann::json;
 
+// Function to check if CSV file has headers
+bool hasHeaders(const std::string& filename) {
+    std::ifstream file(filename);
+    std::string line;
+    return file.good() && std::getline(file, line) && !line.empty();
+}
+
 // Function to save stats to CSV
 void saveStatsToCSV(int boot_count, long uptime) {
-    std::ofstream file("../system_stats.csv", std::ios_base::app);
+    std::string filename = "../system_stats.csv";
+    std::ofstream file(filename, std::ios_base::app);
+
+    if (!hasHeaders(filename)) {
+        file << "Date, Time, Boot Count, Uptime (seconds)\n";
+    }
+
     std::time_t now = std::time(nullptr);
     std::tm *local_time = std::localtime(&now);
 
