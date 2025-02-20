@@ -2,180 +2,6 @@
 #include <boost/beast.hpp>
 #include <boost/beast/websocket.hpp>
 #include "json.hpp"
-#include "tinyxml2.h"
-#include <iostream>
-#include <unordered_set>
-#include <mutex>
-#include <thread>
-#include <sys/sysinfo.h>
-#include <atomic>
-
-using namespace boost::asio;
-using namespace boost::beast;
-using json = nlohmann::json;
-using namespace tinyxml2;
-
-std::atomic<int> boot_count(0);
-std::unordered_set<std::shared_ptr<websocket::stream<ip::tcp::socket>>> clients;
-std::mutex clients_mutex;
-std::mutex disconnect_mutex;
-std::unordered_set<std::shared_ptr<websocket::stream<ip::tcp::socket>>> disconnected_clients;
-int logging_interval = 10;
-
-// Get boot count using "last reboot"
-int getBootCount() 
-{
-    FILE *pipe = popen("last reboot | wc -l", "r");
-    if (!pipe) return -1;
-    char buffer[128];
-    fgets(buffer, sizeof(buffer), pipe);
-    pclose(pipe);
-    return std::stoi(buffer);
-}
-
-// Get system uptime
-long getUptime() 
-{
-    struct sysinfo info;
-    sysinfo(&info);
-    return info.uptime;
-}
-
-// Load logging interval from config.xml
-void loadConfig() 
-{
-    XMLDocument doc;
-    if (doc.LoadFile("../config.xml") == XML_SUCCESS) 
-    {
-        XMLElement *root = doc.FirstChildElement("config");
-        if (root) 
-        {
-            XMLElement *intervalElement = root->FirstChildElement("logging_interval");
-            if (intervalElement) 
-            {
-                logging_interval = std::stoi(intervalElement->GetText());
-            }
-        }
-    }
-}
-
-// Send stats to all clients
-void broadcastStats() 
-{
-    while (true) {
-        json stats;
-        stats["boot_count"] = boot_count.load();
-        stats["uptime"] = getUptime();
-        std::string message = stats.dump();
-
-        std::vector<std::shared_ptr<websocket::stream<ip::tcp::socket>>> disconnectedClients;
-
-        {
-            std::lock_guard<std::mutex> lock(clients_mutex);
-            for (auto &client : clients) {
-                boost::system::error_code ec;
-                client->write(net::buffer(message), ec);
-                if (ec) {
-                    std::cerr << "Client disconnected: " << ec.message() << "\n";
-                    disconnectedClients.push_back(client);
-                }
-            }
-
-            // Remove disconnected clients from the set
-            for (const auto &client : disconnectedClients) 
-            {
-                clients.erase(client);
-            }
-        }
-
-        std::this_thread::sleep_for(std::chrono::seconds(logging_interval));
-    }
-}
-
-// Handle individual client connection
-void handleClient(ip::tcp::socket socket) 
-{
-    try {
-        auto ws = std::make_shared<websocket::stream<ip::tcp::socket>>(std::move(socket));
-        ws->accept();
-
-        json firstStat;
-        firstStat["boot_count"] = boot_count.load();
-        firstStat["uptime"] = getUptime();
-        ws->write(net::buffer(firstStat.dump()));
-
-        {
-            std::lock_guard<std::mutex> lock(clients_mutex);
-            clients.insert(ws);
-        }
-
-        boost::beast::flat_buffer buffer;
-        while (true) {
-            boost::system::error_code ec;
-            ws->read(buffer, ec);
-            if (ec == websocket::error::closed) 
-            {
-                break;
-            }
-        }
-
-        {
-            std::lock_guard<std::mutex> lock(clients_mutex);
-            clients.erase(ws);
-        }
-
-        // Ensure we print "Client disconnected" only once per client
-        {
-            std::lock_guard<std::mutex> lock(disconnect_mutex);
-            if (disconnected_clients.find(ws) == disconnected_clients.end()) 
-            {
-                std::cerr << "Client disconnected.\n";
-                disconnected_clients.insert(ws);
-            }
-        }
-    } catch (...) {
-        std::cerr << "Client error.\n";
-    }
-}
-
-int main(int argc, char* argv[]) 
-{
-    loadConfig();
-    boot_count.store(getBootCount());
-
-    int port = 9000;  // Default port
-    if (argc > 1) 
-    {
-        port = std::stoi(argv[1]);
-    }
-
-    std::cout << "=============================\n"
-              << " SYSTEM STAT LOGGING SERVER\n"
-              << "=============================\n";
-    std::cout << "Server running at http://localhost:" << port << "...\n";
-
-    io_context ioc;
-    ip::tcp::acceptor acceptor(ioc, ip::tcp::endpoint(ip::tcp::v4(), port));
-
-    std::thread logger(broadcastStats);
-    logger.detach();
-
-    while (true) {
-        ip::tcp::socket socket(ioc);
-        acceptor.accept(socket);
-        std::thread(handleClient, std::move(socket)).detach();
-    }
-
-    return 0;
-}
-
-
-
-
-#include <boost/asio.hpp>
-#include <boost/beast.hpp>
-#include <boost/beast/websocket.hpp>
-#include "json.hpp"
 #include <iostream>
 #include <fstream>
 #include <ctime>
@@ -184,11 +10,11 @@ using namespace boost::asio;
 using namespace boost::beast;
 using json = nlohmann::json;
 
+// Function to save only the initially requested system stats to CSV
 void saveStatsToCSV(int boot_count, long uptime) 
 {
     std::string filename = "../system_stats.csv";
 
-    // Check if file exists and is empty
     std::ifstream fileCheck(filename);
     bool fileExists = fileCheck.good();
     bool isEmpty = fileCheck.peek() == std::ifstream::traits_type::eof();
@@ -227,25 +53,40 @@ void connectToServer(const std::string& host, int port, bool logToFile)
 
     std::cout << "Connected to server on port " << port << "\n";
 
-    while (true) {
-        boost::beast::flat_buffer buffer;
-        boost::system::error_code ec;
-        ws.read(buffer, ec);
+    boost::beast::flat_buffer buffer;
+    boost::system::error_code ec;
+    ws.read(buffer, ec);  // Read only the initial stats
 
+    if (ec) {
+        std::cerr << "Error receiving initial stats: " << ec.message() << "\n";
+        return;
+    }
+
+    std::string data = boost::beast::buffers_to_string(buffer.data());
+    json stats = json::parse(data);
+
+    std::cout << "[Received Stats] Boot Count: " << stats["boot_count"]
+              << ", Uptime: " << stats["uptime"] << " seconds\n";
+
+    if (logToFile) {
+        saveStatsToCSV(stats["boot_count"], stats["uptime"]);
+    }
+
+    // Clear buffer before entering the periodic receive loop
+    buffer.consume(buffer.size());
+
+    while (true) {
+        ws.read(buffer, ec);
         if (ec) {
-            std::cerr << "Error receiving stats: " << ec.message() << "\n";
+            std::cerr << "Error receiving periodic stats: " << ec.message() << "\n";
             break;
         }
+        // Just print the received stats, but do not store in CSV
+        std::string periodicData = boost::beast::buffers_to_string(buffer.data());
+        json periodicStats = json::parse(periodicData);
 
-        std::string data = boost::beast::buffers_to_string(buffer.data());
-        json stats = json::parse(data);
-
-        std::cout << "[Received Stats] Boot Count: " << stats["boot_count"]
-                  << ", Uptime: " << stats["uptime"] << " seconds\n";
-
-        if (logToFile) {
-            saveStatsToCSV(stats["boot_count"], stats["uptime"]);
-        }
+        std::cout << "[Periodic Update] Boot Count: " << periodicStats["boot_count"]
+                  << ", Uptime: " << periodicStats["uptime"] << " seconds\n";
 
         buffer.consume(buffer.size());  // Clear buffer after reading
     }
