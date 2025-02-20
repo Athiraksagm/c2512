@@ -8,18 +8,21 @@
 #include <mutex>
 #include <thread>
 #include <sys/sysinfo.h>
+#include <atomic>
 
 using namespace boost::asio;
 using namespace boost::beast;
 using json = nlohmann::json;
 using namespace tinyxml2;
 
-int boot_count = 0;
-std::unordered_set<std::weak_ptr<websocket::stream<ip::tcp::socket>>, std::owner_less<std::weak_ptr<websocket::stream<ip::tcp::socket>> >> clients;
+std::atomic<int> boot_count(0);
+std::unordered_set<std::shared_ptr<websocket::stream<ip::tcp::socket>>> clients;
 std::mutex clients_mutex;
-int logging_interval = 10; // Default interval
+std::mutex disconnect_mutex;
+std::unordered_set<std::shared_ptr<websocket::stream<ip::tcp::socket>>> disconnected_clients;
+int logging_interval = 10;
 
-// Get boot count
+// Get boot count using "last reboot"
 int getBootCount() 
 {
     FILE *pipe = popen("last reboot | wc -l", "r");
@@ -61,26 +64,27 @@ void broadcastStats()
 {
     while (true) {
         json stats;
-        stats["boot_count"] = boot_count;
+        stats["boot_count"] = boot_count.load();
         stats["uptime"] = getUptime();
         std::string message = stats.dump();
 
-        std::lock_guard<std::mutex> lock(clients_mutex);
-        for (auto it = clients.begin(); it != clients.end(); ) 
+        std::vector<std::shared_ptr<websocket::stream<ip::tcp::socket>>> disconnectedClients;
+
         {
-            if (auto client = it->lock()) 
-            {
+            std::lock_guard<std::mutex> lock(clients_mutex);
+            for (auto &client : clients) {
                 boost::system::error_code ec;
                 client->write(net::buffer(message), ec);
-                if (ec) 
-                {
-                    std::cerr << "Failed to send stats: " << ec.message() << "\n";
+                if (ec) {
+                    std::cerr << "Client disconnected: " << ec.message() << "\n";
+                    disconnectedClients.push_back(client);
                 }
-                ++it;
-            } 
-            else 
+            }
+
+            // Remove disconnected clients from the set
+            for (const auto &client : disconnectedClients) 
             {
-                it = clients.erase(it); // Remove disconnected clients
+                clients.erase(client);
             }
         }
 
@@ -91,56 +95,67 @@ void broadcastStats()
 // Handle individual client connection
 void handleClient(ip::tcp::socket socket) 
 {
-    auto ws = std::make_shared<websocket::stream<ip::tcp::socket>>(std::move(socket));
-    ws->accept();
+    try {
+        auto ws = std::make_shared<websocket::stream<ip::tcp::socket>>(std::move(socket));
+        ws->accept();
 
-    {
-        std::lock_guard<std::mutex> lock(clients_mutex);
-        clients.insert(ws);
-    }
+        json firstStat;
+        firstStat["boot_count"] = boot_count.load();
+        firstStat["uptime"] = getUptime();
+        ws->write(net::buffer(firstStat.dump()));
 
-    // Read client's first message
-    boost::beast::flat_buffer buffer;
-    boost::system::error_code ec;
-    ws->read(buffer, ec);
-
-    if (!ec) {
-        std::string request = boost::beast::buffers_to_string(buffer.data());
-
-        // If the client requests stats, send them immediately
-        if (request == "request_stats") 
         {
-            json firstStat;
-            firstStat["boot_count"] = boot_count;
-            firstStat["uptime"] = getUptime();
-            ws->write(net::buffer(firstStat.dump()));  
-            std::cout << "[Client Connected] Sent initial stats: " << firstStat.dump() << "\n";
+            std::lock_guard<std::mutex> lock(clients_mutex);
+            clients.insert(ws);
         }
-    }
 
-    // Wait for disconnection
-    while (!ec) {
-        ws->read(buffer, ec);
-    }
+        boost::beast::flat_buffer buffer;
+        while (true) {
+            boost::system::error_code ec;
+            ws->read(buffer, ec);
+            if (ec == websocket::error::closed) 
+            {
+                break;
+            }
+        }
 
-    std::lock_guard<std::mutex> lock(clients_mutex);
-    clients.erase(ws);
+        {
+            std::lock_guard<std::mutex> lock(clients_mutex);
+            clients.erase(ws);
+        }
+
+        // Ensure we print "Client disconnected" only once per client
+        {
+            std::lock_guard<std::mutex> lock(disconnect_mutex);
+            if (disconnected_clients.find(ws) == disconnected_clients.end()) 
+            {
+                std::cerr << "Client disconnected.\n";
+                disconnected_clients.insert(ws);
+            }
+        }
+    } catch (...) {
+        std::cerr << "Client error.\n";
+    }
 }
 
-int main() 
+int main(int argc, char* argv[]) 
 {
     loadConfig();
-    boot_count = getBootCount();
-    
+    boot_count.store(getBootCount());
+
+    int port = 9000;  // Default port
+    if (argc > 1) 
+    {
+        port = std::stoi(argv[1]);
+    }
+
     std::cout << "=============================\n"
               << " SYSTEM STAT LOGGING SERVER\n"
               << "=============================\n";
+    std::cout << "Server running at http://localhost:" << port << "...\n";
 
     io_context ioc;
-    ip::tcp::acceptor acceptor(ioc, ip::tcp::endpoint(ip::tcp::v4(), 8080));
-
-    std::cout << "Server running at http://localhost:8080...\n";
-    std::cout << "Waiting for client requests...\n";
+    ip::tcp::acceptor acceptor(ioc, ip::tcp::endpoint(ip::tcp::v4(), port));
 
     std::thread logger(broadcastStats);
     logger.detach();
@@ -151,5 +166,105 @@ int main()
         std::thread(handleClient, std::move(socket)).detach();
     }
 
+    return 0;
+}
+
+
+
+
+#include <boost/asio.hpp>
+#include <boost/beast.hpp>
+#include <boost/beast/websocket.hpp>
+#include "json.hpp"
+#include <iostream>
+#include <fstream>
+#include <ctime>
+
+using namespace boost::asio;
+using namespace boost::beast;
+using json = nlohmann::json;
+
+void saveStatsToCSV(int boot_count, long uptime) 
+{
+    std::string filename = "../system_stats.csv";
+
+    // Check if file exists and is empty
+    std::ifstream fileCheck(filename);
+    bool fileExists = fileCheck.good();
+    bool isEmpty = fileCheck.peek() == std::ifstream::traits_type::eof();
+    fileCheck.close();
+
+    std::ofstream file(filename, std::ios_base::app);
+
+    // Write headers only if the file is empty
+    if (!fileExists || isEmpty) {
+        file << "Date, Time, Boot Count, Uptime (seconds)\n";
+    }
+
+    std::time_t now = std::time(nullptr);
+    std::tm *local_time = std::localtime(&now);
+
+    file << 1900 + local_time->tm_year << "-"  
+         << 1 + local_time->tm_mon << "-"  
+         << local_time->tm_mday << ", "  
+         << local_time->tm_hour << ":"  
+         << local_time->tm_min << ":"  
+         << local_time->tm_sec << ", "  
+         << boot_count << ", "  
+         << uptime << "\n";
+}
+
+// Connect to WebSocket server
+void connectToServer(const std::string& host, int port, bool logToFile) 
+{
+    io_context ioc;
+    ip::tcp::resolver resolver(ioc);
+    auto endpoints = resolver.resolve(host, std::to_string(port));
+
+    websocket::stream<ip::tcp::socket> ws(ioc);
+    boost::asio::connect(ws.next_layer(), endpoints);
+    ws.handshake(host, "/");
+
+    std::cout << "Connected to server on port " << port << "\n";
+
+    while (true) {
+        boost::beast::flat_buffer buffer;
+        boost::system::error_code ec;
+        ws.read(buffer, ec);
+
+        if (ec) {
+            std::cerr << "Error receiving stats: " << ec.message() << "\n";
+            break;
+        }
+
+        std::string data = boost::beast::buffers_to_string(buffer.data());
+        json stats = json::parse(data);
+
+        std::cout << "[Received Stats] Boot Count: " << stats["boot_count"]
+                  << ", Uptime: " << stats["uptime"] << " seconds\n";
+
+        if (logToFile) {
+            saveStatsToCSV(stats["boot_count"], stats["uptime"]);
+        }
+
+        buffer.consume(buffer.size());  // Clear buffer after reading
+    }
+}
+
+int main(int argc, char* argv[]) 
+{
+    bool logToFile = false;
+    std::string host = "localhost";
+    int port = 9000;
+
+    if (argc > 1) {
+        port = std::stoi(argv[1]);
+    }
+
+    if (argc > 2 && std::string(argv[2]) == "--log") {
+        logToFile = true;
+    }
+
+    connectToServer(host, port, logToFile);
     return 0;
 }
