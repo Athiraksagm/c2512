@@ -1,3 +1,6 @@
+#ifndef CLIENT_H
+#define CLIENT_H
+
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
 #include <boost/beast/websocket.hpp>
@@ -6,11 +9,23 @@
 #include <fstream>
 #include <ctime>
 
+void saveStatsToCSV(int boot_count, long uptime);
+void connectToServer(const std::string& host, int port, bool logToFile);
+
+#endif // CLIENT_H
+
+
+
+
+
+
+
+#include "client.h"
+
 using namespace boost::asio;
 using namespace boost::beast;
 using json = nlohmann::json;
 
-// Function to save only the initially requested system stats to CSV
 void saveStatsToCSV(int boot_count, long uptime) 
 {
     std::string filename = "../system_stats.csv";
@@ -22,7 +37,6 @@ void saveStatsToCSV(int boot_count, long uptime)
 
     std::ofstream file(filename, std::ios_base::app);
 
-    // Write headers only if the file is empty
     if (!fileExists || isEmpty) {
         file << "Date, Time, Boot Count, Uptime (seconds)\n";
     }
@@ -40,7 +54,6 @@ void saveStatsToCSV(int boot_count, long uptime)
          << uptime << "\n";
 }
 
-// Connect to WebSocket server
 void connectToServer(const std::string& host, int port, bool logToFile) 
 {
     io_context ioc;
@@ -55,7 +68,7 @@ void connectToServer(const std::string& host, int port, bool logToFile)
 
     boost::beast::flat_buffer buffer;
     boost::system::error_code ec;
-    ws.read(buffer, ec);  // Read only the initial stats
+    ws.read(buffer, ec);
 
     if (ec) {
         std::cerr << "Error receiving initial stats: " << ec.message() << "\n";
@@ -72,7 +85,6 @@ void connectToServer(const std::string& host, int port, bool logToFile)
         saveStatsToCSV(stats["boot_count"], stats["uptime"]);
     }
 
-    // Clear buffer before entering the periodic receive loop
     buffer.consume(buffer.size());
 
     while (true) {
@@ -81,14 +93,14 @@ void connectToServer(const std::string& host, int port, bool logToFile)
             std::cerr << "Error receiving periodic stats: " << ec.message() << "\n";
             break;
         }
-        // Just print the received stats, but do not store in CSV
+
         std::string periodicData = boost::beast::buffers_to_string(buffer.data());
         json periodicStats = json::parse(periodicData);
 
         std::cout << "[Periodic Update] Boot Count: " << periodicStats["boot_count"]
                   << ", Uptime: " << periodicStats["uptime"] << " seconds\n";
 
-        buffer.consume(buffer.size());  // Clear buffer after reading
+        buffer.consume(buffer.size());
     }
 }
 
@@ -114,6 +126,13 @@ int main(int argc, char* argv[])
 
 
 
+
+
+
+
+#ifndef SERVER_H
+#define SERVER_H
+
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
 #include <boost/beast/websocket.hpp>
@@ -125,6 +144,23 @@ int main(int argc, char* argv[])
 #include <thread>
 #include <sys/sysinfo.h>
 #include <atomic>
+
+void loadConfig();
+int getBootCount();
+long getUptime();
+void broadcastStats();
+void handleClient(boost::asio::ip::tcp::socket socket);
+
+#endif // SERVER_H
+
+
+
+
+
+
+
+
+#include "server.h"
 
 using namespace boost::asio;
 using namespace boost::beast;
@@ -138,7 +174,6 @@ std::mutex disconnect_mutex;
 std::unordered_set<std::shared_ptr<websocket::stream<ip::tcp::socket>>> disconnected_clients;
 int logging_interval = 10;
 
-// Get boot count using "last reboot"
 int getBootCount() 
 {
     FILE *pipe = popen("last reboot | wc -l", "r");
@@ -149,7 +184,6 @@ int getBootCount()
     return std::stoi(buffer);
 }
 
-// Get system uptime
 long getUptime() 
 {
     struct sysinfo info;
@@ -157,7 +191,6 @@ long getUptime()
     return info.uptime;
 }
 
-// Load logging interval from config.xml
 void loadConfig() 
 {
     XMLDocument doc;
@@ -175,7 +208,6 @@ void loadConfig()
     }
 }
 
-// Send stats to all clients
 void broadcastStats() 
 {
     while (true) {
@@ -197,7 +229,6 @@ void broadcastStats()
                 }
             }
 
-            // Remove disconnected clients from the set
             for (const auto &client : disconnectedClients) 
             {
                 clients.erase(client);
@@ -208,7 +239,6 @@ void broadcastStats()
     }
 }
 
-// Handle individual client connection
 void handleClient(ip::tcp::socket socket) 
 {
     try {
@@ -239,16 +269,6 @@ void handleClient(ip::tcp::socket socket)
             std::lock_guard<std::mutex> lock(clients_mutex);
             clients.erase(ws);
         }
-
-        // Ensure we print "Client disconnected" only once per client
-        {
-            std::lock_guard<std::mutex> lock(disconnect_mutex);
-            if (disconnected_clients.find(ws) == disconnected_clients.end()) 
-            {
-                std::cerr << "Client disconnected.\n";
-                disconnected_clients.insert(ws);
-            }
-        }
     } catch (...) {
         std::cerr << "Client error.\n";
     }
@@ -259,7 +279,7 @@ int main(int argc, char* argv[])
     loadConfig();
     boot_count.store(getBootCount());
 
-    int port = 9000;  // Default port
+    int port = 9000;  
     if (argc > 1) 
     {
         port = std::stoi(argv[1]);
