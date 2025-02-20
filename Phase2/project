@@ -1,102 +1,18 @@
-#include <gtest/gtest.h>
-#include <gmock/gmock.h>
-#include <boost/asio.hpp>
-#include <boost/beast.hpp>
-#include <boost/beast/websocket.hpp>
-#include "json.hpp"
-#include "tinyxml2.h"
-#include <fstream>
-#include <thread>
-#include <atomic>
-#include "../source/server.cpp"
-
-using namespace tinyxml2;
-using namespace boost::asio;
-using namespace boost::beast;
-using namespace testing;
-
-// Mock class for WebSocket stream
-class MockWebSocket : public websocket::stream<ip::tcp::socket> {
-public:
-    MockWebSocket(io_context& ioc) : websocket::stream<ip::tcp::socket>(ioc) {}
-
-    MOCK_METHOD(void, write, (const boost::asio::const_buffer&), ());
-    MOCK_METHOD(void, accept, (), ());
-    MOCK_METHOD(void, read, (boost::beast::flat_buffer&), ());
-};
-
-// Test `getBootCount()`
-TEST(SystemStatsTest, GetBootCount) {
-    int count = getBootCount();
-    ASSERT_GE(count, 0); // Boot count should be non-negative
-}
-
-// Test `getUptime()`
-TEST(SystemStatsTest, GetUptime) {
-    long uptime = getUptime();
-    ASSERT_GE(uptime, 0); // Uptime should be non-negative
-}
-
-// Test `loadConfig()`
-TEST(SystemStatsTest, LoadConfig) {
-    // Create a sample config.xml
-    std::ofstream file("../config.xml");
-    file << "<config>\n<logging_interval>5</logging_interval>\n</config>";
-    file.close();
-
-    loadConfig();
-    ASSERT_EQ(logging_interval, 5); // Logging interval should be correctly updated
-
-    // Cleanup test config file
-    remove("../config.xml");
-}
-
-// Test `broadcastStats()`
-TEST(SystemStatsTest, BroadcastStats) {
-    io_context ioc;
-    MockWebSocket ws(ioc);
-    std::shared_ptr<MockWebSocket> client = std::make_shared<MockWebSocket>(ioc);
-
-    // Add mock client to the clients set
-    {
-        std::lock_guard<std::mutex> lock(clients_mutex);
-        clients.insert(client);
-    }
-
-    // Expect the `write()` function to be called at least once
-    EXPECT_CALL(*client, write(_)).Times(AtLeast(1));
-
-    // Run the broadcast function in a separate thread (run only once)
-    std::thread broadcaster([] {
-        json stats;
-        stats["boot_count"] = boot_count.load();
-        stats["uptime"] = getUptime();
-        std::string message = stats.dump();
-
-        std::lock_guard<std::mutex> lock(clients_mutex);
-        for (auto &client : clients) {
-            boost::system::error_code ec;
-            client->write(net::buffer(message), ec);
-        }
-    });
-
-    broadcaster.join();
-}
-
-// Test `handleClient()`
-TEST(SystemStatsTest, HandleClient) {
-    io_context ioc;
-    ip::tcp::socket socket(ioc);
-    std::thread clientThread(handleClient, std::move(socket));
-
-    std::this_thread::sleep_for(std::chrono::seconds(1)); // Allow thread to start
-    clientThread.detach();
-
-    // Expect no crash
-    SUCCEED();
-}
-
-int main(int argc, char **argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/build$
+ make
+Consolidate compiler generated dependencies of target server
+[ 33%] Built target server
+Consolidate compiler generated dependencies of target client
+[ 66%] Built target client
+Consolidate compiler generated dependencies of target test_system_stats
+[ 83%] Building CXX object CMakeFiles/test_system_stats.dir/test/test_system_stats.cpp.o
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:99:5: error: redefinition of ‘int main(int, char**)’
+   99 | int main(int argc, char **argv) {
+      |     ^~~~
+In file included from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:11:
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/../source/server.cpp:141:5: note: ‘int main(int, char**)’ previously defined here
+  141 | int main(int argc, char* argv[])
+      |     ^~~~
+make[2]: *** [CMakeFiles/test_system_stats.dir/build.make:76: CMakeFiles/test_system_stats.dir/test/test_system_stats.cpp.o] Error 1
+make[1]: *** [CMakeFiles/Makefile2:139: CMakeFiles/test_system_stats.dir/all] Error 2
+make: *** [Makefile:136: all] Error 2
