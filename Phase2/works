@@ -1,213 +1,129 @@
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/build$
- make
-Consolidate compiler generated dependencies of target server
-[ 33%] Built target server
-Consolidate compiler generated dependencies of target client
-[ 66%] Built target client
-Consolidate compiler generated dependencies of target test_system_stats
-[ 83%] Building CXX object CMakeFiles/test_system_stats.dir/test/test_system_stats.cpp.o
-In file included from /usr/local/include/gtest/gtest.h:387,
-                 from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:151:
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp: In member function ‘virtual void SystemStatsTest_LoadConfig_Test::TestBody()’:
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:183:15: error: ‘logging_interval’ was not declared in this scope; did you mean ‘mockLoggingInterval’?
-  183 |     EXPECT_EQ(logging_interval, 5);
-      |               ^~~~~~~~~~~~~~~~
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp: In member function ‘virtual void SystemStatsTest_LoadConfig_InvalidXML_Test::TestBody()’:
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:193:15: error: ‘logging_interval’ was not declared in this scope; did you mean ‘mockLoggingInterval’?
-  193 |     EXPECT_EQ(logging_interval, 10); // Should fall back to default
-      |               ^~~~~~~~~~~~~~~~
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp: In lambda function:
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:200:9: error: ‘io_context’ was not declared in this scope; did you mean ‘boost::asio::io_context’?
-  200 |         io_context ioc;
-      |         ^~~~~~~~~~
-      |         boost::asio::io_context
-In file included from /usr/include/boost/asio/detail/io_object_impl.hpp:23,
-                 from /usr/include/boost/asio/basic_socket.hpp:22,
-                 from /usr/include/boost/asio/basic_datagram_socket.hpp:20,
-                 from /usr/include/boost/asio.hpp:24,
-                 from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/../include/server.h:4,
-                 from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:152:
-/usr/include/boost/asio/io_context.hpp:212:7: note: ‘boost::asio::io_context’ declared here
-  212 | class io_context
-      |       ^~~~~~~~~~
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:201:9: error: ‘ip’ has not been declared
-  201 |         ip::tcp::acceptor acceptor(ioc, ip::tcp::endpoint(ip::tcp::v4(), port));
-      |         ^~
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:203:9: error: ‘ip’ has not been declared
-  203 |         ip::tcp::socket socket(ioc);
-      |         ^~
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:204:9: error: ‘acceptor’ was not declared in this scope; did you mean ‘accept4’?
-  204 |         acceptor.accept(socket);
-      |         ^~~~~~~~
-      |         accept4
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp: In member function ‘virtual void ServerTest_ClientConnection_Test::TestBody()’:
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:209:5: error: ‘io_context’ was not declared in this scope; did you mean ‘boost::asio::io_context’?
-  209 |     io_context ioc;
-      |     ^~~~~~~~~~
-      |     boost::asio::io_context
-In file included from /usr/include/boost/asio/detail/io_object_impl.hpp:23,
-                 from /usr/include/boost/asio/basic_socket.hpp:22,
-                 from /usr/include/boost/asio/basic_datagram_socket.hpp:20,
-                 from /usr/include/boost/asio.hpp:24,
-                 from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/../include/server.h:4,
-                 from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:152:
-/usr/include/boost/asio/io_context.hpp:212:7: note: ‘boost::asio::io_context’ declared here
-  212 | class io_context
-      |       ^~~~~~~~~~
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:210:5: error: ‘ip’ has not been declared
-  210 |     ip::tcp::resolver resolver(ioc);
-      |     ^~
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:211:22: error: ‘resolver’ was not declared in this scope; did you mean ‘remove’?
-  211 |     auto endpoints = resolver.resolve("localhost", "9001");
-      |                      ^~~~~~~~
-      |                      remove
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:213:5: error: ‘websocket’ has not been declared
-  213 |     websocket::stream<ip::tcp::socket> ws(ioc);
-      |     ^~~~~~~~~
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:213:23: error: ‘ip’ has not been declared
-  213 |     websocket::stream<ip::tcp::socket> ws(ioc);
-      |                       ^~
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:213:43: error: ‘ioc’ was not declared in this scope
-  213 |     websocket::stream<ip::tcp::socket> ws(ioc);
-      |                                           ^~~
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:213:40: error: ‘ws’ was not declared in this scope; did you mean ‘std::ws’?
-  213 |     websocket::stream<ip::tcp::socket> ws(ioc);
-      |                                        ^~
-      |                                        std::ws
-In file included from /usr/include/c++/11/istream:1016,
-                 from /usr/include/c++/11/iostream:40,
-                 from /usr/local/include/gtest/internal/gtest-port.h:281,
-                 from /usr/local/include/gtest/internal/gtest-internal.h:40,
-                 from /usr/local/include/gtest/gtest.h:62,
-                 from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:151:
-/usr/include/c++/11/bits/istream.tcc:1053:5: note: ‘std::ws’ declared here
- 1053 |     ws(basic_istream<_CharT, _Traits>& __in)
-      |     ^~
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:219:14: error: ‘websocket’ has not been declared
-  219 |     ws.close(websocket::close_code::normal);
-      |              ^~~~~~~~~
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp: In lambda function:
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:226:9: error: ‘io_context’ was not declared in this scope; did you mean ‘boost::asio::io_context’?
-  226 |         io_context ioc;
-      |         ^~~~~~~~~~
-      |         boost::asio::io_context
-In file included from /usr/include/boost/asio/detail/io_object_impl.hpp:23,
-                 from /usr/include/boost/asio/basic_socket.hpp:22,
-                 from /usr/include/boost/asio/basic_datagram_socket.hpp:20,
-                 from /usr/include/boost/asio.hpp:24,
-                 from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/../include/server.h:4,
-                 from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:152:
-/usr/include/boost/asio/io_context.hpp:212:7: note: ‘boost::asio::io_context’ declared here
-  212 | class io_context
-      |       ^~~~~~~~~~
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:227:9: error: ‘ip’ has not been declared
-  227 |         ip::tcp::acceptor acceptor(ioc, ip::tcp::endpoint(ip::tcp::v4(), 9002));
-      |         ^~
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:229:9: error: ‘ip’ has not been declared
-  229 |         ip::tcp::socket socket(ioc);
-      |         ^~
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:230:9: error: ‘acceptor’ was not declared in this scope; did you mean ‘accept4’?
-  230 |         acceptor.accept(socket);
-      |         ^~~~~~~~
-      |         accept4
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:232:9: error: ‘websocket’ has not been declared
-  232 |         websocket::stream<ip::tcp::socket> ws(std::move(socket));
-      |         ^~~~~~~~~
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:232:27: error: ‘ip’ has not been declared
-  232 |         websocket::stream<ip::tcp::socket> ws(std::move(socket));
-      |                           ^~
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:232:44: error: ‘ws’ was not declared in this scope; did you mean ‘std::ws’?
-  232 |         websocket::stream<ip::tcp::socket> ws(std::move(socket));
-      |                                            ^~
-      |                                            std::ws
-In file included from /usr/include/c++/11/istream:1016,
-                 from /usr/include/c++/11/iostream:40,
-                 from /usr/local/include/gtest/internal/gtest-port.h:281,
-                 from /usr/local/include/gtest/internal/gtest-internal.h:40,
-                 from /usr/local/include/gtest/gtest.h:62,
-                 from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:151:
-/usr/include/c++/11/bits/istream.tcc:1053:5: note: ‘std::ws’ declared here
- 1053 |     ws(basic_istream<_CharT, _Traits>& __in)
-      |     ^~
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:235:9: error: ‘json’ was not declared in this scope; did you mean ‘nlohmann::json_abi_v3_11_3::json’?
-  235 |         json stats;
-      |         ^~~~
-      |         nlohmann::json_abi_v3_11_3::json
-In file included from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/../include/server.h:7,
-                 from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:152:
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/../include/json.hpp:3544:11: note: ‘nlohmann::json_abi_v3_11_3::json’ declared here
- 3544 |     using json = basic_json<>;
-      |           ^~~~
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:236:9: error: ‘stats’ was not declared in this scope; did you mean ‘statx’?
-  236 |         stats["boot_count"] = getBootCount();
-      |         ^~~~~
-      |         statx
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:239:18: error: ‘net’ has not been declared
-  239 |         ws.write(net::buffer(stats.dump()));
-      |                  ^~~
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp: In member function ‘virtual void ServerTest_WebSocketDataExchange_Test::TestBody()’:
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:247:5: error: ‘io_context’ was not declared in this scope; did you mean ‘boost::asio::io_context’?
-  247 |     io_context ioc;
-      |     ^~~~~~~~~~
-      |     boost::asio::io_context
-In file included from /usr/include/boost/asio/detail/io_object_impl.hpp:23,
-                 from /usr/include/boost/asio/basic_socket.hpp:22,
-                 from /usr/include/boost/asio/basic_datagram_socket.hpp:20,
-                 from /usr/include/boost/asio.hpp:24,
-                 from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/../include/server.h:4,
-                 from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:152:
-/usr/include/boost/asio/io_context.hpp:212:7: note: ‘boost::asio::io_context’ declared here
-  212 | class io_context
-      |       ^~~~~~~~~~
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:248:5: error: ‘ip’ has not been declared
-  248 |     ip::tcp::resolver resolver(ioc);
-      |     ^~
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:249:22: error: ‘resolver’ was not declared in this scope; did you mean ‘remove’?
-  249 |     auto endpoints = resolver.resolve("localhost", "9002");
-      |                      ^~~~~~~~
-      |                      remove
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:251:5: error: ‘websocket’ has not been declared
-  251 |     websocket::stream<ip::tcp::socket> ws(ioc);
-      |     ^~~~~~~~~
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:251:23: error: ‘ip’ has not been declared
-  251 |     websocket::stream<ip::tcp::socket> ws(ioc);
-      |                       ^~
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:251:43: error: ‘ioc’ was not declared in this scope
-  251 |     websocket::stream<ip::tcp::socket> ws(ioc);
-      |                                           ^~~
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:251:40: error: ‘ws’ was not declared in this scope; did you mean ‘std::ws’?
-  251 |     websocket::stream<ip::tcp::socket> ws(ioc);
-      |                                        ^~
-      |                                        std::ws
-In file included from /usr/include/c++/11/istream:1016,
-                 from /usr/include/c++/11/iostream:40,
-                 from /usr/local/include/gtest/internal/gtest-port.h:281,
-                 from /usr/local/include/gtest/internal/gtest-internal.h:40,
-                 from /usr/local/include/gtest/gtest.h:62,
-                 from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:151:
-/usr/include/c++/11/bits/istream.tcc:1053:5: note: ‘std::ws’ declared here
- 1053 |     ws(basic_istream<_CharT, _Traits>& __in)
-      |     ^~
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:262:5: error: ‘json’ was not declared in this scope; did you mean ‘nlohmann::json_abi_v3_11_3::json’?
-  262 |     json receivedJson = json::parse(receivedData);
-      |     ^~~~
-      |     nlohmann::json_abi_v3_11_3::json
-In file included from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/../include/server.h:7,
-                 from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:152:
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/../include/json.hpp:3544:11: note: ‘nlohmann::json_abi_v3_11_3::json’ declared here
- 3544 |     using json = basic_json<>;
-      |           ^~~~
-In file included from /usr/local/include/gtest/gtest.h:387,
-                 from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:151:
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:264:15: error: ‘receivedJson’ was not declared in this scope; did you mean ‘receivedData’?
-  264 |     EXPECT_EQ(receivedJson["boot_count"], 5);
-      |               ^~~~~~~~~~~~
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:265:15: error: ‘receivedJson’ was not declared in this scope; did you mean ‘receivedData’?
-  265 |     EXPECT_EQ(receivedJson["uptime"], 3600);
-      |               ^~~~~~~~~~~~
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:267:14: error: ‘websocket’ has not been declared
-  267 |     ws.close(websocket::close_code::normal);
-      |              ^~~~~~~~~
-make[2]: *** [CMakeFiles/test_system_stats.dir/build.make:76: CMakeFiles/test_system_stats.dir/test/test_system_stats.cpp.o] Error 1
-make[1]: *** [CMakeFiles/Makefile2:139: CMakeFiles/test_system_stats.dir/all] Error 2
-make: *** [Makefile:136: all] Error 2
+#include <gtest/gtest.h>
+#include <fstream>
+#include <thread>
+#include <chrono>
+#include <boost/asio.hpp>
+#include <boost/beast.hpp>
+#include "../include/server.h"
+#include "../include/client.h"
+#include "../include/json.hpp"
+
+using namespace boost::asio;
+using namespace boost::beast;
+using json = nlohmann::json;
+
+// Function prototypes (Assuming these are defined in server.cpp)
+int getBootCount();
+long getSystemUptime();
+
+class SystemStatsTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        // Create a temporary config.xml file for testing
+        std::ofstream configFile("config.xml");
+        configFile << "<config>\n";
+        configFile << "  <logging_interval>5</logging_interval>\n";
+        configFile << "</config>\n";
+        configFile.close();
+    }
+
+    void TearDown() override {
+        std::remove("config.xml");
+    }
+};
+
+TEST_F(SystemStatsTest, LoadConfig) {
+    int logging_interval = 0;
+    loadConfig(logging_interval);
+    EXPECT_EQ(logging_interval, 5);
+}
+
+TEST_F(SystemStatsTest, LoadConfig_InvalidXML) {
+    std::ofstream configFile("config.xml");
+    configFile << "<config>\n"; // Incomplete XML
+    configFile.close();
+
+    int logging_interval = 10; // Default
+    loadConfig(logging_interval);
+    EXPECT_EQ(logging_interval, 10); // Should fall back to default
+}
+
+TEST_F(SystemStatsTest, GetBootCount) {
+    int bootCount = getBootCount();
+    EXPECT_GT(bootCount, 0); // Boot count should always be positive
+}
+
+TEST_F(SystemStatsTest, GetSystemUptime) {
+    long uptime = getSystemUptime();
+    EXPECT_GT(uptime, 0); // System uptime should always be positive
+}
+
+class ServerTest : public ::testing::Test {
+protected:
+    std::thread serverThread;
+
+    void SetUp() override {
+        // Start the server in a separate thread
+        serverThread = std::thread([] {
+            startServer();
+        });
+        std::this_thread::sleep_for(std::chrono::seconds(1)); // Wait for server to start
+    }
+
+    void TearDown() override {
+        if (serverThread.joinable()) {
+            serverThread.detach(); // Stop server
+        }
+    }
+};
+
+TEST_F(ServerTest, ClientConnection) {
+    io_context ioc;
+    ip::tcp::resolver resolver(ioc);
+    auto endpoints = resolver.resolve("localhost", "9001");
+
+    websocket::stream<ip::tcp::socket> ws(ioc);
+    connect(ws.next_layer(), endpoints);
+    ws.handshake("localhost", "/");
+
+    ws.close(websocket::close_code::normal);
+}
+
+TEST_F(ServerTest, WebSocketDataExchange) {
+    std::thread clientThread([] {
+        io_context ioc;
+        ip::tcp::resolver resolver(ioc);
+        auto endpoints = resolver.resolve("localhost", "9002");
+
+        websocket::stream<ip::tcp::socket> ws(ioc);
+        connect(ws.next_layer(), endpoints);
+        ws.handshake("localhost", "/");
+
+        flat_buffer buffer;
+        ws.read(buffer);
+        std::string receivedData = buffers_to_string(buffer.data());
+
+        json receivedJson = json::parse(receivedData);
+        EXPECT_TRUE(receivedJson.contains("boot_count"));
+        EXPECT_TRUE(receivedJson.contains("uptime"));
+
+        ws.close(websocket::close_code::normal);
+    });
+
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+
+    io_context ioc;
+    ip::tcp::acceptor acceptor(ioc, ip::tcp::endpoint(ip::tcp::v4(), 9002));
+    ip::tcp::socket socket(ioc);
+    acceptor.accept(socket);
+
+    websocket::stream<ip::tcp::socket> ws(std::move(socket));
+    ws.accept();
+
+    json stats;
+    stats["boot_count"] = getBootCount();
+    stats["uptime"] = getSystemUptime();
+    ws.write(net::buffer(stats.dump()));
+
+    clientThread.join();
+}
