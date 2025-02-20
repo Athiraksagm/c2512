@@ -1,121 +1,21 @@
-#include "gtest/gtest.h"
-#include "server.h"
-#include "json.hpp"
-#include <fstream>
-#include <iostream>
-#include <atomic>
-#include <sys/sysinfo.h>
-#include <unistd.h>
-#include <sstream>
-#include <array>
-#include <memory>
-#include <thread>
-#include <boost/asio.hpp>
-#include <boost/beast.hpp>
-#include <tinyxml2.h>
-
-using json = nlohmann::json;
-using namespace boost::asio;
-using namespace boost::beast;
-using namespace boost::asio::ip;
-using namespace tinyxml2;
-
-// Global variables from server.cpp
-std::atomic<int> boot_count(0);
-int logging_interval = 10; // Default value
-
-// **Mocked function for getBootCount()**
-int mock_getBootCount(std::string command_output = "5\n") {
-    try {
-        return std::stoi(command_output);
-    } catch (...) {
-        return -1;  // Simulate error case
-    }
-}
-
-// **Mocked function for getUptime()**
-long getMockedUptime() {
-    return 3600;  // Returns a predefined uptime (1 hour)
-}
-
-// **Mock function for loading config**
-void mock_loadConfig(const std::string &filename) {
-    XMLDocument doc;
-    if (doc.LoadFile(filename.c_str()) != XML_SUCCESS) {
-        return;
-    }
-    XMLElement *root = doc.FirstChildElement("config");
-    if (root) {
-        XMLElement *intervalElement = root->FirstChildElement("logging_interval");
-        if (intervalElement) {
-            logging_interval = std::stoi(intervalElement->GetText());
-        }
-    }
-}
-
-// **TEST 1: Boot count retrieval (Normal Case)**
-TEST(SystemStatsTest, BootCountRetrieval) {
-    boot_count.store(mock_getBootCount("5\n"));
-    EXPECT_EQ(boot_count.load(), 5);
-}
-
-// **TEST 2: Boot count retrieval (Error Case)**
-TEST(SystemStatsTest, BootCountRetrievalError) {
-    boot_count.store(mock_getBootCount("invalid_data\n"));
-    EXPECT_EQ(boot_count.load(), -1);
-}
-
-// **TEST 3: Uptime retrieval (Normal Case)**
-TEST(SystemStatsTest, UptimeRetrieval) {
-    EXPECT_EQ(getMockedUptime(), 3600);
-}
-
-// **TEST 4: Config Loading (Logging Interval)**
-TEST(SystemStatsTest, LoadConfig) {
-    std::ofstream configFile("mock_config.xml");
-    configFile << "<config><logging_interval>15</logging_interval></config>";
-    configFile.close();
-
-    logging_interval = 10;  // Reset before test
-    mock_loadConfig("mock_config.xml");
-    EXPECT_EQ(logging_interval, 15);
-}
-
-// **TEST 5: JSON Response Format**
-TEST(SystemStatsTest, JsonResponseFormat) {
-    json response_json;
-    boot_count.store(5);
-    response_json["boot_count"] = boot_count.load();
-    response_json["uptime"] = getMockedUptime();
-
-    EXPECT_EQ(response_json.dump(), R"({"boot_count":5,"uptime":3600})");
-}
-
-// **TEST 6: BroadcastStats Runs Without Crash**
-TEST(SystemStatsTest, BroadcastStatsRuns) {
-    EXPECT_NO_THROW({
-        std::thread broadcastThread([]() {
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
-        });
-        broadcastThread.join();
-    });
-}
-
-// **TEST 7: handleClient() initializes correctly**
-TEST(SystemStatsTest, HandleClientInitializes) {
-    EXPECT_NO_THROW({
-        try {
-            io_context ioc;
-            tcp::socket socket(ioc);
-            tcp::socket moved_socket = std::move(socket);
-        } catch (...) {
-            FAIL() << "Exception thrown during socket initialization";
-        }
-    });
-}
-
-// **MAIN FUNCTION**
-int main(int argc, char **argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/build$
+ make
+Consolidate compiler generated dependencies of target server
+[ 33%] Built target server
+Consolidate compiler generated dependencies of target client
+[ 66%] Built target client
+Consolidate compiler generated dependencies of target test_system_stats
+[ 83%] Building CXX object CMakeFiles/test_system_stats.dir/test/test_system_stats.cpp.o
+[100%] Linking CXX executable test_system_stats
+/usr/bin/ld: CMakeFiles/test_system_stats.dir/test/test_system_stats.cpp.o: in function `mock_loadConfig(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)':
+test_system_stats.cpp:(.text+0xa1): undefined reference to `tinyxml2::XMLDocument::XMLDocument(bool, tinyxml2::Whitespace)'
+/usr/bin/ld: test_system_stats.cpp:(.text+0xc5): undefined reference to `tinyxml2::XMLDocument::LoadFile(char const*)'
+/usr/bin/ld: test_system_stats.cpp:(.text+0x14e): undefined reference to `tinyxml2::XMLElement::GetText() const'
+/usr/bin/ld: test_system_stats.cpp:(.text+0x1bb): undefined reference to `tinyxml2::XMLDocument::~XMLDocument()'
+/usr/bin/ld: test_system_stats.cpp:(.text+0x215): undefined reference to `tinyxml2::XMLDocument::~XMLDocument()'
+/usr/bin/ld: CMakeFiles/test_system_stats.dir/test/test_system_stats.cpp.o: in function `tinyxml2::XMLNode::FirstChildElement(char const*)':
+test_system_stats.cpp:(.text._ZN8tinyxml27XMLNode17FirstChildElementEPKc[_ZN8tinyxml27XMLNode17FirstChildElementEPKc]+0x23): undefined reference to `tinyxml2::XMLNode::FirstChildElement(char const*) const'
+collect2: error: ld returned 1 exit status
+make[2]: *** [CMakeFiles/test_system_stats.dir/build.make:98: test_system_stats] Error 1
+make[1]: *** [CMakeFiles/Makefile2:139: CMakeFiles/test_system_stats.dir/all] Error 2
+make: *** [Makefile:136: all] Error 2
