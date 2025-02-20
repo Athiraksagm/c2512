@@ -1,0 +1,36 @@
+cmake_minimum_required(VERSION 3.10)
+project(SystemStatLogging)
+
+set(CMAKE_CXX_STANDARD 14)
+
+# Find Boost
+find_package(Boost REQUIRED)
+
+# Include Directories
+include_directories(include)
+include_directories(${CMAKE_SOURCE_DIR}/include)
+
+# Add GTest
+find_package(GTest REQUIRED)
+include_directories(${GTEST_INCLUDE_DIRS})
+
+# Add TinyXML2 Manually (Since tinyxml2.h is in `include/`)
+add_library(tinyxml2 STATIC include/tinyxml2.cpp)  # Build TinyXML2 from source
+target_include_directories(tinyxml2 PRIVATE include)
+
+# Add the server and client executables
+add_executable(server source/server.cpp)
+add_executable(client source/client.cpp)
+
+# Add the tests
+add_executable(test_system_stats test/test_system_stats.cpp)
+
+# Link GTest and TinyXML2 with the test
+target_link_libraries(test_system_stats PRIVATE tinyxml2 gtest gtest_main pthread)
+
+# Link server and client with necessary libraries
+target_link_libraries(server Boost::boost pthread tinyxml2)
+target_link_libraries(client Boost::boost pthread)
+
+# Install CMake files
+install(TARGETS server client DESTINATION bin)
