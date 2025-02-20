@@ -1,15 +1,58 @@
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/build$
- make
-Consolidate compiler generated dependencies of target server
-[ 33%] Built target server
-Consolidate compiler generated dependencies of target client
-[ 66%] Built target client
-Consolidate compiler generated dependencies of target test_system_stats
-[ 83%] Building CXX object CMakeFiles/test_system_stats.dir/test/test_system_stats.cpp.o
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp: In lambda function:
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:239:9: error: ‘main’ was not declared in this scope
-  239 |         main(2, argv);
-      |         ^~~~
-make[2]: *** [CMakeFiles/test_system_stats.dir/build.make:76: CMakeFiles/test_system_stats.dir/test/test_system_stats.cpp.o] Error 1
-make[1]: *** [CMakeFiles/Makefile2:139: CMakeFiles/test_system_stats.dir/all] Error 2
-make: *** [Makefile:136: all] Error 2
+#include <gtest/gtest.h>
+#include <gmock/gmock.h>
+#include "../include/server.h"
+#include <fstream>
+#include <sys/sysinfo.h>
+#include <atomic>
+
+using ::testing::_;
+using ::testing::Return;
+using ::testing::Invoke;
+using ::testing::NiceMock;
+
+extern std::atomic<int> boot_count;
+extern int logging_interval;
+
+// ** Test getBootCount() **
+TEST(SystemStatsTest, GetBootCountReturnsValidCount) {
+    int count = getBootCount();
+    ASSERT_GE(count, 0);
+}
+
+// ** Test getUptime() **
+TEST(SystemStatsTest, GetUptimeReturnsValidTime) {
+    long uptime = getUptime();
+    ASSERT_GT(uptime, 0);
+}
+
+// ** Test loadConfig() **
+TEST(SystemStatsTest, LoadConfigUpdatesLoggingInterval) {
+    std::ofstream configFile("../config.xml");
+    configFile << "<config><logging_interval>5</logging_interval></config>";
+    configFile.close();
+
+    loadConfig();
+    ASSERT_EQ(logging_interval, 5);
+}
+
+// ** Test broadcastStats() **
+TEST(SystemStatsTest, BroadcastStatsRunsWithoutCrash) {
+    logging_interval = 1;
+    boot_count.store(5);
+
+    std::thread broadcastThread(broadcastStats);
+    std::this_thread::sleep_for(std::chrono::seconds(2)); 
+    broadcastThread.detach();
+}
+
+// ** Test handleClient() Initialization **
+TEST(SystemStatsTest, HandleClientInitializesWithoutCrash) {
+    boost::asio::io_context ioc;
+    boost::asio::ip::tcp::socket socket(ioc);
+
+    std::thread clientThread([&]() {
+        handleClient(std::move(socket));
+    });
+
+    clientThread.detach();
+}
