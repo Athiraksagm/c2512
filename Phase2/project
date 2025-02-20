@@ -1,137 +1,155 @@
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/build$ make
-Consolidate compiler generated dependencies of target server
-[ 16%] Building CXX object CMakeFiles/server.dir/source/server.cpp.o
-[ 33%] Linking CXX executable server
-[ 33%] Built target server
-Consolidate compiler generated dependencies of target client
-[ 50%] Building CXX object CMakeFiles/client.dir/source/client.cpp.o
-[ 66%] Linking CXX executable client
-[ 66%] Built target client
-Consolidate compiler generated dependencies of target test_system_stats
-[ 83%] Building CXX object CMakeFiles/test_system_stats.dir/test/test_system_stats.cpp.o
-In file included from /usr/include/boost/beast/core/async_base.hpp:26,
-                 from /usr/include/boost/beast/core.hpp:15,
-                 from /usr/include/boost/beast.hpp:15,
-                 from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:156:
-/usr/include/boost/core/empty_value.hpp: In instantiation of ‘boost::empty_::empty_value<T, N, E>::empty_value(boost::empty_init_t, U&&, Args&& ...) [with U = boost::asio::io_context; Args = {}; T = boost::asio::basic_stream_socket<boost::asio::ip::tcp>; unsigned int N = 0; bool E = false]’:
-/usr/include/boost/beast/websocket/impl/stream_impl.hpp:133:74:   required from ‘boost::beast::websocket::stream< <template-parameter-1-1>, <anonymous> >::impl_type::impl_type(Args&& ...) [with Args = {boost::asio::io_context}; NextLayer = boost::asio::basic_stream_socket<boost::asio::ip::tcp>; bool deflateSupported = true]’
-/usr/include/boost/smart_ptr/make_shared_object.hpp:256:5:   required from ‘typename boost::detail::sp_if_not_array<T>::type boost::make_shared(Args&& ...) [with T = boost::beast::websocket::stream<boost::asio::basic_stream_socket<boost::asio::ip::tcp> >::impl_type; Args = {boost::asio::io_context}; typename boost::detail::sp_if_not_array<T>::type = boost::shared_ptr<boost::beast::websocket::stream<boost::asio::basic_stream_socket<boost::asio::ip::tcp> >::impl_type>]’
-/usr/include/boost/beast/websocket/impl/stream.hpp:54:42:   required from ‘boost::beast::websocket::stream< <template-parameter-1-1>, <anonymous> >::stream(Args&& ...) [with Args = {boost::asio::io_context}; NextLayer = boost::asio::basic_stream_socket<boost::asio::ip::tcp>; bool deflateSupported = true]’
-/usr/include/c++/11/ext/new_allocator.h:162:4:   required from void __gnu_cxx::new_allocator<_Tp>::construct(_Up*, _Args&& ...) [with _Up = boost::beast::websocket::stream<boost::asio::basic_stream_socket<boost::asio::ip::tcp> >; _Args = {boost::asio::io_context}; _Tp = boost::beast::websocket::stream<boost::asio::basic_stream_socket<boost::asio::ip::tcp> >]’
-/usr/include/c++/11/bits/alloc_traits.h:516:17:   [ skipping 2 instantiation contexts, use -ftemplate-backtrace-limit=0 to disable ]
-/usr/include/c++/11/bits/shared_ptr_base.h:650:16:   required from ‘std::__shared_count<_Lp>::__shared_count(_Tp*&, std::_Sp_alloc_shared_tag<_Alloc>, _Args&& ...) [with _Tp = boost::beast::websocket::stream<boost::asio::basic_stream_socket<boost::asio::ip::tcp> >; _Alloc = std::allocator<boost::beast::websocket::stream<boost::asio::basic_stream_socket<boost::asio::ip::tcp> > >; _Args = {boost::asio::io_context}; __gnu_cxx::_Lock_policy _Lp = __gnu_cxx::_S_atomic]’
-/usr/include/c++/11/bits/shared_ptr_base.h:1342:14:   required from ‘std::__shared_ptr<_Tp, _Lp>::__shared_ptr(std::_Sp_alloc_shared_tag<_Tp>, _Args&& ...) [with _Alloc = std::allocator<boost::beast::websocket::stream<boost::asio::basic_stream_socket<boost::asio::ip::tcp> > >; _Args = {boost::asio::io_context}; _Tp = boost::beast::websocket::stream<boost::asio::basic_stream_socket<boost::asio::ip::tcp> >; __gnu_cxx::_Lock_policy _Lp = __gnu_cxx::_S_atomic]’
-/usr/include/c++/11/bits/shared_ptr.h:409:59:   required from ‘std::shared_ptr<_Tp>::shared_ptr(std::_Sp_alloc_shared_tag<_Tp>, _Args&& ...) [with _Alloc = std::allocator<boost::beast::websocket::stream<boost::asio::basic_stream_socket<boost::asio::ip::tcp> > >; _Args = {boost::asio::io_context}; _Tp = boost::beast::websocket::stream<boost::asio::basic_stream_socket<boost::asio::ip::tcp> >]’
-/usr/include/c++/11/bits/shared_ptr.h:862:14:   required from ‘std::shared_ptr<_Tp> std::allocate_shared(const _Alloc&, _Args&& ...) [with _Tp = boost::beast::websocket::stream<boost::asio::basic_stream_socket<boost::asio::ip::tcp> >; _Alloc = std::allocator<boost::beast::websocket::stream<boost::asio::basic_stream_socket<boost::asio::ip::tcp> > >; _Args = {boost::asio::io_context}]’
-/usr/include/c++/11/bits/shared_ptr.h:878:39:   required from ‘std::shared_ptr<_Tp> std::make_shared(_Args&& ...) [with _Tp = boost::beast::websocket::stream<boost::asio::basic_stream_socket<boost::asio::ip::tcp> >; _Args = {boost::asio::io_context}]’
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:204:77:   required from here
-/usr/include/boost/core/empty_value.hpp:64:11: error: no matching function for call to ‘boost::asio::basic_stream_socket<boost::asio::ip::tcp>::basic_stream_socket(boost::asio::io_context)’
-   64 |         : value_(std::forward<U>(value), std::forward<Args>(args)...) { }
-      |           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-In file included from /usr/include/boost/asio/basic_socket_streambuf.hpp:25,
-                 from /usr/include/boost/asio/basic_socket_iostream.hpp:24,
-                 from /usr/include/boost/asio.hpp:33,
-                 from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:155:
-/usr/include/boost/asio/basic_stream_socket.hpp:292:3: note: candidate: ‘template<class Protocol1, class Executor1> boost::asio::basic_stream_socket<Protocol, Executor>::basic_stream_socket(boost::asio::basic_stream_socket<Protocol1, Executor1>&&, typename std::enable_if<(std::is_convertible<Protocol1, Protocol>::value && std::is_convertible<_Ep, _Dp>::value)>::type*) [with Protocol1 = Protocol1; Executor1 = Executor1; Protocol = boost::asio::ip::tcp; Executor = boost::asio::execution::any_executor<boost::asio::execution::context_as_t<boost::asio::execution_context&>, boost::asio::execution::detail::blocking::never_t<0>, boost::asio::execution::prefer_only<boost::asio::execution::detail::blocking::possibly_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::outstanding_work::tracked_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::outstanding_work::untracked_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::relationship::fork_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::relationship::continuation_t<0> > >]’
-  292 |   basic_stream_socket(basic_stream_socket<Protocol1, Executor1>&& other,
-      |   ^~~~~~~~~~~~~~~~~~~
-/usr/include/boost/asio/basic_stream_socket.hpp:292:3: note:   template argument deduction/substitution failed:
-In file included from /usr/include/boost/beast/core/async_base.hpp:26,
-                 from /usr/include/boost/beast/core.hpp:15,
-                 from /usr/include/boost/beast.hpp:15,
-                 from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:156:
-/usr/include/boost/core/empty_value.hpp:64:11: note:   ‘boost::asio::io_context’ is not derived from ‘boost::asio::basic_stream_socket<Protocol, Executor>’
-   64 |         : value_(std::forward<U>(value), std::forward<Args>(args)...) { }
-      |           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-In file included from /usr/include/boost/asio/basic_socket_streambuf.hpp:25,
-                 from /usr/include/boost/asio/basic_socket_iostream.hpp:24,
-                 from /usr/include/boost/asio.hpp:33,
-                 from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:155:
-/usr/include/boost/asio/basic_stream_socket.hpp:236:3: note: candidate: ‘template<class ExecutionContext> boost::asio::basic_stream_socket<Protocol, Executor>::basic_stream_socket(ExecutionContext&, const protocol_type&, const native_handle_type&, typename std::enable_if<std::is_convertible<ExecutionContext&, boost::asio::execution_context&>::value>::type*) [with ExecutionContext = ExecutionContext; Protocol = boost::asio::ip::tcp; Executor = boost::asio::execution::any_executor<boost::asio::execution::context_as_t<boost::asio::execution_context&>, boost::asio::execution::detail::blocking::never_t<0>, boost::asio::execution::prefer_only<boost::asio::execution::detail::blocking::possibly_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::outstanding_work::tracked_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::outstanding_work::untracked_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::relationship::fork_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::relationship::continuation_t<0> > >]’
-  236 |   basic_stream_socket(ExecutionContext& context,
-      |   ^~~~~~~~~~~~~~~~~~~
-/usr/include/boost/asio/basic_stream_socket.hpp:236:3: note:   template argument deduction/substitution failed:
-In file included from /usr/include/boost/beast/core/async_base.hpp:26,
-                 from /usr/include/boost/beast/core.hpp:15,
-                 from /usr/include/boost/beast.hpp:15,
-                 from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:156:
-/usr/include/boost/core/empty_value.hpp:64:11: note:   candidate expects 4 arguments, 1 provided
-   64 |         : value_(std::forward<U>(value), std::forward<Args>(args)...) { }
-      |           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-In file included from /usr/include/boost/asio/basic_socket_streambuf.hpp:25,
-                 from /usr/include/boost/asio/basic_socket_iostream.hpp:24,
-                 from /usr/include/boost/asio.hpp:33,
-                 from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:155:
-/usr/include/boost/asio/basic_stream_socket.hpp:192:3: note: candidate: ‘template<class ExecutionContext> boost::asio::basic_stream_socket<Protocol, Executor>::basic_stream_socket(ExecutionContext&, const endpoint_type&, typename std::enable_if<std::is_convertible<ExecutionContext&, boost::asio::execution_context&>::value>::type*) [with ExecutionContext = ExecutionContext; Protocol = boost::asio::ip::tcp; Executor = boost::asio::execution::any_executor<boost::asio::execution::context_as_t<boost::asio::execution_context&>, boost::asio::execution::detail::blocking::never_t<0>, boost::asio::execution::prefer_only<boost::asio::execution::detail::blocking::possibly_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::outstanding_work::tracked_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::outstanding_work::untracked_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::relationship::fork_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::relationship::continuation_t<0> > >]’
-  192 |   basic_stream_socket(ExecutionContext& context, const endpoint_type& endpoint,
-      |   ^~~~~~~~~~~~~~~~~~~
-/usr/include/boost/asio/basic_stream_socket.hpp:192:3: note:   template argument deduction/substitution failed:
-In file included from /usr/include/boost/beast/core/async_base.hpp:26,
-                 from /usr/include/boost/beast/core.hpp:15,
-                 from /usr/include/boost/beast.hpp:15,
-                 from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:156:
-/usr/include/boost/core/empty_value.hpp:64:11: note:   candidate expects 3 arguments, 1 provided
-   64 |         : value_(std::forward<U>(value), std::forward<Args>(args)...) { }
-      |           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-In file included from /usr/include/boost/asio/basic_socket_streambuf.hpp:25,
-                 from /usr/include/boost/asio/basic_socket_iostream.hpp:24,
-                 from /usr/include/boost/asio.hpp:33,
-                 from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:155:
-/usr/include/boost/asio/basic_stream_socket.hpp:147:3: note: candidate: ‘template<class ExecutionContext> boost::asio::basic_stream_socket<Protocol, Executor>::basic_stream_socket(ExecutionContext&, const protocol_type&, typename std::enable_if<std::is_convertible<ExecutionContext&, boost::asio::execution_context&>::value>::type*) [with ExecutionContext = ExecutionContext; Protocol = boost::asio::ip::tcp; Executor = boost::asio::execution::any_executor<boost::asio::execution::context_as_t<boost::asio::execution_context&>, boost::asio::execution::detail::blocking::never_t<0>, boost::asio::execution::prefer_only<boost::asio::execution::detail::blocking::possibly_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::outstanding_work::tracked_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::outstanding_work::untracked_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::relationship::fork_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::relationship::continuation_t<0> > >]’
-  147 |   basic_stream_socket(ExecutionContext& context, const protocol_type& protocol,
-      |   ^~~~~~~~~~~~~~~~~~~
-/usr/include/boost/asio/basic_stream_socket.hpp:147:3: note:   template argument deduction/substitution failed:
-In file included from /usr/include/boost/beast/core/async_base.hpp:26,
-                 from /usr/include/boost/beast/core.hpp:15,
-                 from /usr/include/boost/beast.hpp:15,
-                 from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:156:
-/usr/include/boost/core/empty_value.hpp:64:11: note:   candidate expects 3 arguments, 1 provided
-   64 |         : value_(std::forward<U>(value), std::forward<Args>(args)...) { }
-      |           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-In file included from /usr/include/boost/asio/basic_socket_streambuf.hpp:25,
-                 from /usr/include/boost/asio/basic_socket_iostream.hpp:24,
-                 from /usr/include/boost/asio.hpp:33,
-                 from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:155:
-/usr/include/boost/asio/basic_stream_socket.hpp:108:12: note: candidate: ‘boost::asio::basic_stream_socket<Protocol, Executor>::basic_stream_socket(ExecutionContext&, typename std::enable_if<std::is_convertible<ExecutionContext&, boost::asio::execution_context&>::value>::type*) [with ExecutionContext = boost::asio::io_context; Protocol = boost::asio::ip::tcp; Executor = boost::asio::execution::any_executor<boost::asio::execution::context_as_t<boost::asio::execution_context&>, boost::asio::execution::detail::blocking::never_t<0>, boost::asio::execution::prefer_only<boost::asio::execution::detail::blocking::possibly_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::outstanding_work::tracked_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::outstanding_work::untracked_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::relationship::fork_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::relationship::continuation_t<0> > >; typename std::enable_if<std::is_convertible<ExecutionContext&, boost::asio::execution_context&>::value>::type = void]’ (near match)
-  108 |   explicit basic_stream_socket(ExecutionContext& context,
-      |            ^~~~~~~~~~~~~~~~~~~
-/usr/include/boost/asio/basic_stream_socket.hpp:108:12: note:   conversion of argument 1 would be ill-formed:
-In file included from /usr/include/boost/beast/core/async_base.hpp:26,
-                 from /usr/include/boost/beast/core.hpp:15,
-                 from /usr/include/boost/beast.hpp:15,
-                 from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:156:
-/usr/include/boost/core/empty_value.hpp:64:11: error: cannot bind non-const lvalue reference of type ‘boost::asio::io_context&’ to an rvalue of type ‘boost::asio::io_context’
-   64 |         : value_(std::forward<U>(value), std::forward<Args>(args)...) { }
-      |           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-In file included from /usr/include/boost/asio/basic_socket_streambuf.hpp:25,
-                 from /usr/include/boost/asio/basic_socket_iostream.hpp:24,
-                 from /usr/include/boost/asio.hpp:33,
-                 from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:155:
-/usr/include/boost/asio/basic_stream_socket.hpp:257:3: note: candidate: ‘boost::asio::basic_stream_socket<Protocol, Executor>::basic_stream_socket(boost::asio::basic_stream_socket<Protocol, Executor>&&) [with Protocol = boost::asio::ip::tcp; Executor = boost::asio::execution::any_executor<boost::asio::execution::context_as_t<boost::asio::execution_context&>, boost::asio::execution::detail::blocking::never_t<0>, boost::asio::execution::prefer_only<boost::asio::execution::detail::blocking::possibly_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::outstanding_work::tracked_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::outstanding_work::untracked_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::relationship::fork_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::relationship::continuation_t<0> > >]’
-  257 |   basic_stream_socket(basic_stream_socket&& other) BOOST_ASIO_NOEXCEPT
-      |   ^~~~~~~~~~~~~~~~~~~
-/usr/include/boost/asio/basic_stream_socket.hpp:257:45: note:   no known conversion for argument 1 from ‘boost::asio::io_contex’ to ‘boost::asio::basic_stream_socket<boost::asio::ip::tcp>&&’
-  257 |   basic_stream_socket(basic_stream_socket&& other) BOOST_ASIO_NOEXCEPT
-      |                       ~~~~~~~~~~~~~~~~~~~~~~^~~~~
-/usr/include/boost/asio/basic_stream_socket.hpp:214:3: note: candidate: ‘boost::asio::basic_stream_socket<Protocol, Executor>::basic_stream_socket(const executor_type&, const protocol_type&, const native_handle_type&) [with Protocol = boost::asio::ip::tcp; Executor = boost::asio::execution::any_executor<boost::asio::execution::context_as_t<boost::asio::execution_context&>, boost::asio::execution::detail::blocking::never_t<0>, boost::asio::execution::prefer_only<boost::asio::execution::detail::blocking::possibly_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::outstanding_work::tracked_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::outstanding_work::untracked_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::relationship::fork_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::relationship::continuation_t<0> > >; boost::asio::basic_stream_socket<Protocol, Executor>::executor_type = boost::asio::execution::any_executor<boost::asio::execution::context_as_t<boost::asio::execution_context&>, boost::asio::execution::detail::blocking::never_t<0>, boost::asio::execution::prefer_only<boost::asio::execution::detail::blocking::possibly_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::outstanding_work::tracked_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::outstanding_work::untracked_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::relationship::fork_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::relationship::continuation_t<0> > >; boost::asio::basic_stream_socket<Protocol, Executor>::protocol_type = boost::asio::ip::tcp; boost::asio::basic_stream_socket<Protocol, Executor>::native_handle_type = int]’
-  214 |   basic_stream_socket(const executor_type& ex,
-      |   ^~~~~~~~~~~~~~~~~~~
-/usr/include/boost/asio/basic_stream_socket.hpp:214:3: note:   candidate expects 3 arguments, 1 provided
-/usr/include/boost/asio/basic_stream_socket.hpp:170:3: note: candidate: ‘boost::asio::basic_stream_socket<Protocol, Executor>::basic_stream_socket(const executor_type&, const endpoint_type&) [with Protocol = boost::asio::ip::tcp; Executor = boost::asio::execution::any_executor<boost::asio::execution::context_as_t<boost::asio::execution_context&>, boost::asio::execution::detail::blocking::never_t<0>, boost::asio::execution::prefer_only<boost::asio::execution::detail::blocking::possibly_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::outstanding_work::tracked_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::outstanding_work::untracked_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::relationship::fork_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::relationship::continuation_t<0> > >; boost::asio::basic_stream_socket<Protocol, Executor>::executor_type = boost::asio::execution::any_executor<boost::asio::execution::context_as_t<boost::asio::execution_context&>, boost::asio::execution::detail::blocking::never_t<0>, boost::asio::execution::prefer_only<boost::asio::execution::detail::blocking::possibly_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::outstanding_work::tracked_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::outstanding_work::untracked_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::relationship::fork_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::relationship::continuation_t<0> > >; boost::asio::basic_stream_socket<Protocol, Executor>::endpoint_type = boost::asio::ip::basic_endpoint<boost::asio::ip::tcp>]’
-  170 |   basic_stream_socket(const executor_type& ex, const endpoint_type& endpoint)
-      |   ^~~~~~~~~~~~~~~~~~~
-/usr/include/boost/asio/basic_stream_socket.hpp:170:3: note:   candidate expects 2 arguments, 1 provided
-/usr/include/boost/asio/basic_stream_socket.hpp:128:3: note: candidate: ‘boost::asio::basic_stream_socket<Protocol, Executor>::basic_stream_socket(const executor_type&, const protocol_type&) [with Protocol = boost::asio::ip::tcp; Executor = boost::asio::execution::any_executor<boost::asio::execution::context_as_t<boost::asio::execution_context&>, boost::asio::execution::detail::blocking::never_t<0>, boost::asio::execution::prefer_only<boost::asio::execution::detail::blocking::possibly_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::outstanding_work::tracked_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::outstanding_work::untracked_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::relationship::fork_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::relationship::continuation_t<0> > >; boost::asio::basic_stream_socket<Protocol, Executor>::executor_type = boost::asio::execution::any_executor<boost::asio::execution::context_as_t<boost::asio::execution_context&>, boost::asio::execution::detail::blocking::never_t<0>, boost::asio::execution::prefer_only<boost::asio::execution::detail::blocking::possibly_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::outstanding_work::tracked_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::outstanding_work::untracked_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::relationship::fork_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::relationship::continuation_t<0> > >; boost::asio::basic_stream_socket<Protocol, Executor>::protocol_type = boost::asio::ip::tcp’
-  128 |   basic_stream_socket(const executor_type& ex, const protocol_type& protocol)
-      |   ^~~~~~~~~~~~~~~~~~~
-/usr/include/boost/asio/basic_stream_socket.hpp:128:3: note:   candidate expects 2 arguments, 1 provided
-/usr/include/boost/asio/basic_stream_socket.hpp:92:12: note: candidate: ‘boost::asio::basic_stream_socket<Protocol, Executor>::basic_stream_socket(const executor_type&) [with Protocol = boost::asio::ip::tcp; Executor = boost::asio::execution::any_executor<boost::asio::execution::context_as_t<boost::asio::execution_context&>, boost::asio::execution::detail::blocking::never_t<0>, boost::asio::execution::prefer_only<boost::asio::execution::detail::blocking::possibly_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::outstanding_work::tracked_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::outstanding_work::untracked_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::relationship::fork_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::relationship::continuation_t<0> > >; boost::asio::basic_stream_socket<Protocol, Executor>::executor_type = boost::asio::execution::any_executor<boost::asio::execution::context_as_t<boost::asio::execution_context&>, boost::asio::execution::detail::blocking::never_t<0>, boost::asio::execution::prefer_only<boost::asio::execution::detail::blocking::possibly_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::outstanding_work::tracked_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::outstanding_work::untracked_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::relationship::fork_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::relationship::continuation_t<0> > >]’
-   92 |   explicit basic_stream_socket(const executor_type& ex)
-      |            ^~~~~~~~~~~~~~~~~~~
-/usr/include/boost/asio/basic_stream_socket.hpp:92:53: note:   no known conversion for argument 1 from ‘boost::asio::io_context’ to ‘const executor_type&’ {aka ‘const boost::asio::execution::any_executor<boost::asio::execution::context_as_t<boost::asio::execution_context&>, boost::asio::execution::detail::blocking::never_t<0>, boost::asio::execution::prefer_only<boost::asio::execution::detail::blocking::possibly_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::outstanding_work::tracked_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::outstanding_work::untracked_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::relationship::fork_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::relationship::continuation_t<0> > >&’}
-   92 |   explicit basic_stream_socket(const executor_type& ex)
-      |                                ~~~~~~~~~~~~~~~~~~~~~^~
-make[2]: *** [CMakeFiles/test_system_stats.dir/build.make:76: CMakeFiles/test_system_stats.dir/test/test_system_stats.cpp.o] Error 1
-make[1]: *** [CMakeFiles/Makefile2:139: CMakeFiles/test_system_stats.dir/all] Error 2
-make: *** [Makefile:136: all] Error 2
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/build$
+#include <boost/asio.hpp>
+#include <boost/beast.hpp>
+#include <boost/beast/websocket.hpp>
+#include "json.hpp"
+#include "tinyxml2.h"
+#include <iostream>
+#include <unordered_set>
+#include <mutex>
+#include <thread>
+#include <sys/sysinfo.h>
+
+using namespace boost::asio;
+using namespace boost::beast;
+using json = nlohmann::json;
+using namespace tinyxml2;
+
+int boot_count = 0;
+std::unordered_set<std::weak_ptr<websocket::stream<ip::tcp::socket>>, std::owner_less<std::weak_ptr<websocket::stream<ip::tcp::socket>> >> clients;
+std::mutex clients_mutex;
+int logging_interval = 10; // Default interval
+
+// Get boot count
+int getBootCount() 
+{
+    FILE *pipe = popen("last reboot | wc -l", "r");
+    if (!pipe) return -1;
+    char buffer[128];
+    fgets(buffer, sizeof(buffer), pipe);
+    pclose(pipe);
+    return std::stoi(buffer);
+}
+
+// Get system uptime
+long getUptime() 
+{
+    struct sysinfo info;
+    sysinfo(&info);
+    return info.uptime;
+}
+
+// Load logging interval from config.xml
+void loadConfig() 
+{
+    XMLDocument doc;
+    if (doc.LoadFile("../config.xml") == XML_SUCCESS) 
+    {
+        XMLElement *root = doc.FirstChildElement("config");
+        if (root) 
+        {
+            XMLElement *intervalElement = root->FirstChildElement("logging_interval");
+            if (intervalElement) 
+            {
+                logging_interval = std::stoi(intervalElement->GetText());
+            }
+        }
+    }
+}
+
+// Send stats to all clients
+void broadcastStats() 
+{
+    while (true) {
+        json stats;
+        stats["boot_count"] = boot_count;
+        stats["uptime"] = getUptime();
+        std::string message = stats.dump();
+
+        std::lock_guard<std::mutex> lock(clients_mutex);
+        for (auto it = clients.begin(); it != clients.end(); ) 
+        {
+            if (auto client = it->lock()) 
+            {
+                boost::system::error_code ec;
+                client->write(net::buffer(message), ec);
+                if (ec) 
+                {
+                    std::cerr << "Failed to send stats: " << ec.message() << "\n";
+                }
+                ++it;
+            } 
+            else 
+            {
+                it = clients.erase(it); // Remove disconnected clients
+            }
+        }
+
+        std::this_thread::sleep_for(std::chrono::seconds(logging_interval));
+    }
+}
+
+// Handle individual client connection
+void handleClient(ip::tcp::socket socket) 
+{
+    auto ws = std::make_shared<websocket::stream<ip::tcp::socket>>(std::move(socket));
+    ws->accept();
+
+    {
+        std::lock_guard<std::mutex> lock(clients_mutex);
+        clients.insert(ws);
+    }
+
+    // Read client's first message
+    boost::beast::flat_buffer buffer;
+    boost::system::error_code ec;
+    ws->read(buffer, ec);
+
+    if (!ec) {
+        std::string request = boost::beast::buffers_to_string(buffer.data());
+
+        // If the client requests stats, send them immediately
+        if (request == "request_stats") 
+        {
+            json firstStat;
+            firstStat["boot_count"] = boot_count;
+            firstStat["uptime"] = getUptime();
+            ws->write(net::buffer(firstStat.dump()));  
+            std::cout << "[Client Connected] Sent initial stats: " << firstStat.dump() << "\n";
+        }
+    }
+
+    // Wait for disconnection
+    while (!ec) {
+        ws->read(buffer, ec);
+    }
+
+    std::lock_guard<std::mutex> lock(clients_mutex);
+    clients.erase(ws);
+}
+
+int main() 
+{
+    loadConfig();
+    boot_count = getBootCount();
+    
+    std::cout << "=============================\n"
+              << " SYSTEM STAT LOGGING SERVER\n"
+              << "=============================\n";
+
+    io_context ioc;
+    ip::tcp::acceptor acceptor(ioc, ip::tcp::endpoint(ip::tcp::v4(), 8080));
+
+    std::cout << "Server running at http://localhost:8080...\n";
+    std::cout << "Waiting for client requests...\n";
+
+    std::thread logger(broadcastStats);
+    logger.detach();
+
+    while (true) {
+        ip::tcp::socket socket(ioc);
+        acceptor.accept(socket);
+        std::thread(handleClient, std::move(socket)).detach();
+    }
+
+    return 0;
+}
