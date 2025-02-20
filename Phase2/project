@@ -76,12 +76,11 @@ int main(int argc, char* argv[]) {
             file << "Date (YYYY-MM-DD), Time (HH:MM:SS), Boot Count, Uptime (seconds)\n";
         }
     }
-
+    
+    std::cout << "=============================\n" << " SYSTEM STAT LOGGING CLIENT\n" << "=============================\n";
     connectToServer(logToFile);
     return 0;
 }
-
-
 
 
 
@@ -209,11 +208,15 @@ void handleClient(ip::tcp::socket socket) {
 int main() {
     loadConfig();
     boot_count.store(getBootCount());
+    std::cout << "=============================\n"
+              << " SYSTEM STAT LOGGING SERVER\n"
+              << "=============================\n";
 
     io_context ioc;
     ip::tcp::acceptor acceptor(ioc, ip::tcp::endpoint(ip::tcp::v4(), 8080));
 
-    std::cout << "WebSocket server running on port 8080...\n";
+    std::cout << "Server running at http://localhost:8080...\n";
+    std::cout << "Waiting for client requests...\n";
 
     std::thread logger(broadcastStats);
     logger.detach();
@@ -226,3 +229,4 @@ int main() {
 
     return 0;
 }
+
