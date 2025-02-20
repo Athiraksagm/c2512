@@ -1,31 +1,94 @@
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/build$
- make
-Consolidate compiler generated dependencies of target server
-[ 33%] Built target server
-Consolidate compiler generated dependencies of target client
-[ 66%] Built target client
-Consolidate compiler generated dependencies of target test_system_stats
-[ 83%] Building CXX object CMakeFiles/test_system_stats.dir/test/test_system_stats.cpp.o
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp: In member function ‘virtual void SystemStatsTest_LoadConfig_Test::TestBody()’:
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:187:15: error: too many arguments to function ‘void loadConfig()’
-  187 |     loadConfig(logging_interval);
-      |     ~~~~~~~~~~^~~~~~~~~~~~~~~~~~
-In file included from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:157:
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/include/server.h:16:6: note: declared here
-   16 | void loadConfig();
-      |      ^~~~~~~~~~
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp: In member function ‘virtual void SystemStatsTest_LoadConfig_InvalidXML_Test::TestBody()’:
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:197:15: error: too many arguments to function ‘void loadConfig()’
-  197 |     loadConfig(logging_interval);
-      |     ~~~~~~~~~~^~~~~~~~~~~~~~~~~~
-In file included from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:157:
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/include/server.h:16:6: note: declared here
-   16 | void loadConfig();
-      |      ^~~~~~~~~~
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp: In lambda function:
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:218:13: error: ‘startServer’ was not declared in this scope
-  218 |             startServer();
-      |             ^~~~~~~~~~~
-make[2]: *** [CMakeFiles/test_system_stats.dir/build.make:76: CMakeFiles/test_system_stats.dir/test/test_system_stats.cpp.o] Error 1
-make[1]: *** [CMakeFiles/Makefile2:139: CMakeFiles/test_system_stats.dir/all] Error 2
-make: *** [Makefile:136: all] Error 2
+#include <gtest/gtest.h>
+#include <gmock/gmock.h>
+#include "../include/server.h"
+#include <thread>
+#include <fstream>
+#include <sys/sysinfo.h>
+#include <atomic>
+
+using ::testing::_;
+using ::testing::Return;
+using ::testing::Invoke;
+using ::testing::NiceMock;
+
+extern std::atomic<int> boot_count;
+extern int logging_interval;
+
+// Mock for WebSocket Stream
+class MockWebSocket {
+public:
+    MOCK_METHOD(void, write, (const boost::asio::const_buffer&, boost::system::error_code&), ());
+    MOCK_METHOD(void, read, (boost::beast::flat_buffer&, boost::system::error_code&), ());
+};
+
+// ** Test getBootCount() **
+TEST(SystemStatsTest, GetBootCountReturnsValidCount) {
+    int count = getBootCount();
+    ASSERT_GE(count, 0);  // Boot count should be non-negative
+}
+
+// ** Test getUptime() **
+TEST(SystemStatsTest, GetUptimeReturnsValidTime) {
+    long uptime = getUptime();
+    ASSERT_GT(uptime, 0);  // Uptime should always be greater than zero
+}
+
+// ** Test loadConfig() **
+TEST(SystemStatsTest, LoadConfigUpdatesLoggingInterval) {
+    std::ofstream configFile("../config.xml");
+    configFile << "<config><logging_interval>5</logging_interval></config>";
+    configFile.close();
+
+    loadConfig();
+    ASSERT_EQ(logging_interval, 5);  // Check if interval was updated
+}
+
+// ** Test broadcastStats() Loop **
+TEST(SystemStatsTest, BroadcastStatsSendsCorrectData) {
+    logging_interval = 1;
+    boot_count.store(5);
+
+    std::string expected_message = R"({"boot_count":5,"uptime":)";
+    
+    MockWebSocket mockWs;
+    EXPECT_CALL(mockWs, write(_, _))
+        .WillRepeatedly(Invoke([&](const boost::asio::const_buffer& buffer, boost::system::error_code& ec) {
+            std::string message(static_cast<const char*>(buffer.data()), buffer.size());
+            ASSERT_TRUE(message.find(expected_message) != std::string::npos);
+        }));
+
+    std::thread broadcastThread(broadcastStats);
+    std::this_thread::sleep_for(std::chrono::seconds(2)); // Let it run twice
+    broadcastThread.detach();
+}
+
+// ** Test handleClient() with Mock WebSocket **
+TEST(SystemStatsTest, HandleClientSendsInitialStats) {
+    std::string expected_message = R"({"boot_count":)";
+    
+    MockWebSocket mockWs;
+    EXPECT_CALL(mockWs, write(_, _))
+        .WillOnce(Invoke([&](const boost::asio::const_buffer& buffer, boost::system::error_code& ec) {
+            std::string message(static_cast<const char*>(buffer.data()), buffer.size());
+            ASSERT_TRUE(message.find(expected_message) != std::string::npos);
+        }));
+
+    std::thread clientThread([&]() {
+        boost::asio::io_context ioc;
+        boost::asio::ip::tcp::socket socket(ioc);
+        handleClient(std::move(socket));
+    });
+
+    clientThread.detach();
+}
+
+// ** Test Server Start and Accept Loop **
+TEST(SystemStatsTest, ServerStartsAndAcceptsConnections) {
+    std::thread serverThread([]() {
+        char* argv[] = { (char*)"server", (char*)"9001" };
+        main(2, argv);
+    });
+
+    std::this_thread::sleep_for(std::chrono::seconds(1));  // Allow server to initialize
+    serverThread.detach();
+}
