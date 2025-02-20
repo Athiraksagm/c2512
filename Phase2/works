@@ -1,129 +1,38 @@
-#include "gtest/gtest.h"
-#include "server.h"
-#include "json.hpp"
-#include <fstream>
-#include <iostream>
-#include <atomic>
-#include <sys/sysinfo.h>
-#include <unistd.h>
-#include <sstream>
-#include <array>
-#include <memory>
-#include <boost/asio.hpp>
-#include <boost/beast.hpp>
-#include <tinyxml2.h>
-
-using json = nlohmann::json;
-using namespace tinyxml2;
-using namespace boost::asio;
-using namespace boost::beast;
-using namespace boost::asio::ip;
-
-// Global variables from server.cpp
-extern std::atomic<int> boot_count;
-extern int logging_interval;
-
-// **Mocked function for getBootCount()**
-int mock_getBootCount(std::string command_output = "5\n") {
-    try {
-        return std::stoi(command_output);
-    } catch (...) {
-        return -1;  // Simulate error case
-    }
-}
-
-// **Mocked function for getUptime()**
-long mock_getUptime(long fake_uptime = 3600) {
-    return fake_uptime;  // Returns a predefined uptime
-}
-
-// **Mock sysinfo function**
-struct sysinfo mock_sysinfo;
-int sysinfo(struct sysinfo *info) {
-    if (info) {
-        info->uptime = 3600;  // Mock uptime (1 hour)
-        return 0;  // Mock success
-    }
-    return -1;  // Simulate failure
-}
-
-// **Mock function for loading config**
-void mock_loadConfig(std::string filename = "mock_config.xml") {
-    XMLDocument doc;
-    doc.LoadFile(filename.c_str());
-    XMLElement *root = doc.FirstChildElement("config");
-    if (root) {
-        XMLElement *intervalElement = root->FirstChildElement("logging_interval");
-        if (intervalElement) {
-            logging_interval = std::stoi(intervalElement->GetText());
-        }
-    }
-}
-
-// **TEST 1: Boot count retrieval (Normal Case)**
-TEST(SystemStatsTest, BootCountRetrieval) {
-    boot_count.store(mock_getBootCount("5\n"));
-    EXPECT_EQ(boot_count.load(), 5);
-}
-
-// **TEST 2: Boot count retrieval (Error Case)**
-TEST(SystemStatsTest, BootCountRetrievalError) {
-    boot_count.store(mock_getBootCount("invalid_data\n"));
-    EXPECT_EQ(boot_count.load(), -1);
-}
-
-// **TEST 3: Uptime retrieval (Normal Case)**
-TEST(SystemStatsTest, UptimeRetrieval) {
-    EXPECT_EQ(mock_getUptime(7200), 7200);
-}
-
-// **TEST 4: Uptime retrieval (Error Case)**
-TEST(SystemStatsTest, UptimeRetrievalError) {
-    struct sysinfo info;
-    int result = sysinfo(nullptr);  // Simulate sysinfo failure
-    EXPECT_EQ(result, -1);
-}
-
-// **TEST 5: loadConfig() updates logging interval**
-TEST(SystemStatsTest, LoadConfig) {
-    std::ofstream configFile("mock_config.xml");
-    configFile << "<config><logging_interval>15</logging_interval></config>";
-    configFile.close();
-
-    logging_interval = 10;  // Reset before test
-    mock_loadConfig("mock_config.xml");
-    EXPECT_EQ(logging_interval, 15);
-}
-
-// **TEST 6: broadcastStats() runs without crash**
-TEST(SystemStatsTest, BroadcastStatsRuns) {
-    std::thread broadcastThread([]() {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-    });
-    broadcastThread.join();
-    EXPECT_TRUE(true);  // If no crash, test passes
-}
-
-// **TEST 7: handleClient() initializes correctly**
-TEST(SystemStatsTest, HandleClientInitializes) {
-    io_context ioc;
-    tcp::socket socket(ioc);
-    EXPECT_NO_THROW(handleClient(std::move(socket)));
-}
-
-// **TEST 8: JSON Response Format**
-TEST(SystemStatsTest, JsonResponseFormat) {
-    json response_json;
-    boot_count.store(5);
-    response_json["boot_count"] = boot_count.load();
-    response_json["uptime"] = mock_getUptime();
-
-    std::string expected_json = "{\"boot_count\":5,\"uptime\":3600}";
-    EXPECT_EQ(response_json.dump(), expected_json);
-}
-
-// **MAIN FUNCTION**
-int main(int argc, char **argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/build$
+ make
+Consolidate compiler generated dependencies of target server
+[ 33%] Built target server
+Consolidate compiler generated dependencies of target client
+[ 66%] Built target client
+Consolidate compiler generated dependencies of target test_system_stats
+[ 83%] Building CXX object CMakeFiles/test_system_stats.dir/test/test_system_stats.cpp.o
+[100%] Linking CXX executable test_system_stats
+/usr/bin/ld: CMakeFiles/test_system_stats.dir/test/test_system_stats.cpp.o: warning: relocation against `logging_interval' in read-only section `.text'
+/usr/bin/ld: CMakeFiles/test_system_stats.dir/test/test_system_stats.cpp.o: in function `mock_loadConfig(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >)':
+test_system_stats.cpp:(.text+0xd0): undefined reference to `tinyxml2::XMLDocument::XMLDocument(bool, tinyxml2::Whitespace)'
+/usr/bin/ld: test_system_stats.cpp:(.text+0xf4): undefined reference to `tinyxml2::XMLDocument::LoadFile(char const*)'
+/usr/bin/ld: test_system_stats.cpp:(.text+0x16a): undefined reference to `tinyxml2::XMLElement::GetText() const'
+/usr/bin/ld: test_system_stats.cpp:(.text+0x1a5): undefined reference to `logging_interval'
+/usr/bin/ld: test_system_stats.cpp:(.text+0x1d2): undefined reference to `tinyxml2::XMLDocument::~XMLDocument()'
+/usr/bin/ld: test_system_stats.cpp:(.text+0x229): undefined reference to `tinyxml2::XMLDocument::~XMLDocument()'
+/usr/bin/ld: CMakeFiles/test_system_stats.dir/test/test_system_stats.cpp.o: in function `SystemStatsTest_BootCountRetrieval_Test::TestBody()':
+test_system_stats.cpp:(.text+0x2be): undefined reference to `boot_count'
+/usr/bin/ld: test_system_stats.cpp:(.text+0x300): undefined reference to `boot_count'
+/usr/bin/ld: CMakeFiles/test_system_stats.dir/test/test_system_stats.cpp.o: in function `SystemStatsTest_BootCountRetrievalError_Test::TestBody()':
+test_system_stats.cpp:(.text+0x4ca): undefined reference to `boot_count'
+/usr/bin/ld: test_system_stats.cpp:(.text+0x50c): undefined reference to `boot_count'
+/usr/bin/ld: CMakeFiles/test_system_stats.dir/test/test_system_stats.cpp.o: in function `SystemStatsTest_LoadConfig_Test::TestBody()':
+test_system_stats.cpp:(.text+0x98a): undefined reference to `logging_interval'
+/usr/bin/ld: test_system_stats.cpp:(.text+0xa0c): undefined reference to `logging_interval'
+/usr/bin/ld: CMakeFiles/test_system_stats.dir/test/test_system_stats.cpp.o: in function `SystemStatsTest_HandleClientInitializes_Test::TestBody()':
+test_system_stats.cpp:(.text+0xe73): undefined reference to `handleClient(boost::asio::basic_stream_socket<boost::asio::ip::tcp, boost::asio::execution::any_executor<boost::asio::execution::context_as_t<boost::asio::execution_context&>, boost::asio::execution::detail::blocking::never_t<0>, boost::asio::execution::prefer_only<boost::asio::execution::detail::blocking::possibly_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::outstanding_work::tracked_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::outstanding_work::untracked_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::relationship::fork_t<0> >, boost::asio::execution::prefer_only<boost::asio::execution::detail::relationship::continuation_t<0> > > >)'
+/usr/bin/ld: CMakeFiles/test_system_stats.dir/test/test_system_stats.cpp.o: in function `SystemStatsTest_JsonResponseFormat_Test::TestBody()':
+test_system_stats.cpp:(.text+0x11d8): undefined reference to `boot_count'
+/usr/bin/ld: test_system_stats.cpp:(.text+0x1204): undefined reference to `boot_count'
+/usr/bin/ld: CMakeFiles/test_system_stats.dir/test/test_system_stats.cpp.o: in function `tinyxml2::XMLNode::FirstChildElement(char const*)':
+test_system_stats.cpp:(.text._ZN8tinyxml27XMLNode17FirstChildElementEPKc[_ZN8tinyxml27XMLNode17FirstChildElementEPKc]+0x23): undefined reference to `tinyxml2::XMLNode::FirstChildElement(char const*) const'
+/usr/bin/ld: warning: creating DT_TEXTREL in a PIE
+collect2: error: ld returned 1 exit status
+make[2]: *** [CMakeFiles/test_system_stats.dir/build.make:98: test_system_stats] Error 1
+make[1]: *** [CMakeFiles/Makefile2:139: CMakeFiles/test_system_stats.dir/all] Error 2
+make: *** [Makefile:136: all] Error 2
