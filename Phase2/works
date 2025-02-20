@@ -1,129 +1,31 @@
-#include <gtest/gtest.h>
-#include <fstream>
-#include <thread>
-#include <chrono>
-#include <boost/asio.hpp>
-#include <boost/beast.hpp>
-#include "../include/server.h"
-#include "../include/client.h"
-#include "../include/json.hpp"
-
-using namespace boost::asio;
-using namespace boost::beast;
-using json = nlohmann::json;
-
-// Function prototypes (Assuming these are defined in server.cpp)
-int getBootCount();
-long getSystemUptime();
-
-class SystemStatsTest : public ::testing::Test {
-protected:
-    void SetUp() override {
-        // Create a temporary config.xml file for testing
-        std::ofstream configFile("config.xml");
-        configFile << "<config>\n";
-        configFile << "  <logging_interval>5</logging_interval>\n";
-        configFile << "</config>\n";
-        configFile.close();
-    }
-
-    void TearDown() override {
-        std::remove("config.xml");
-    }
-};
-
-TEST_F(SystemStatsTest, LoadConfig) {
-    int logging_interval = 0;
-    loadConfig(logging_interval);
-    EXPECT_EQ(logging_interval, 5);
-}
-
-TEST_F(SystemStatsTest, LoadConfig_InvalidXML) {
-    std::ofstream configFile("config.xml");
-    configFile << "<config>\n"; // Incomplete XML
-    configFile.close();
-
-    int logging_interval = 10; // Default
-    loadConfig(logging_interval);
-    EXPECT_EQ(logging_interval, 10); // Should fall back to default
-}
-
-TEST_F(SystemStatsTest, GetBootCount) {
-    int bootCount = getBootCount();
-    EXPECT_GT(bootCount, 0); // Boot count should always be positive
-}
-
-TEST_F(SystemStatsTest, GetSystemUptime) {
-    long uptime = getSystemUptime();
-    EXPECT_GT(uptime, 0); // System uptime should always be positive
-}
-
-class ServerTest : public ::testing::Test {
-protected:
-    std::thread serverThread;
-
-    void SetUp() override {
-        // Start the server in a separate thread
-        serverThread = std::thread([] {
-            startServer();
-        });
-        std::this_thread::sleep_for(std::chrono::seconds(1)); // Wait for server to start
-    }
-
-    void TearDown() override {
-        if (serverThread.joinable()) {
-            serverThread.detach(); // Stop server
-        }
-    }
-};
-
-TEST_F(ServerTest, ClientConnection) {
-    io_context ioc;
-    ip::tcp::resolver resolver(ioc);
-    auto endpoints = resolver.resolve("localhost", "9001");
-
-    websocket::stream<ip::tcp::socket> ws(ioc);
-    connect(ws.next_layer(), endpoints);
-    ws.handshake("localhost", "/");
-
-    ws.close(websocket::close_code::normal);
-}
-
-TEST_F(ServerTest, WebSocketDataExchange) {
-    std::thread clientThread([] {
-        io_context ioc;
-        ip::tcp::resolver resolver(ioc);
-        auto endpoints = resolver.resolve("localhost", "9002");
-
-        websocket::stream<ip::tcp::socket> ws(ioc);
-        connect(ws.next_layer(), endpoints);
-        ws.handshake("localhost", "/");
-
-        flat_buffer buffer;
-        ws.read(buffer);
-        std::string receivedData = buffers_to_string(buffer.data());
-
-        json receivedJson = json::parse(receivedData);
-        EXPECT_TRUE(receivedJson.contains("boot_count"));
-        EXPECT_TRUE(receivedJson.contains("uptime"));
-
-        ws.close(websocket::close_code::normal);
-    });
-
-    std::this_thread::sleep_for(std::chrono::seconds(2));
-
-    io_context ioc;
-    ip::tcp::acceptor acceptor(ioc, ip::tcp::endpoint(ip::tcp::v4(), 9002));
-    ip::tcp::socket socket(ioc);
-    acceptor.accept(socket);
-
-    websocket::stream<ip::tcp::socket> ws(std::move(socket));
-    ws.accept();
-
-    json stats;
-    stats["boot_count"] = getBootCount();
-    stats["uptime"] = getSystemUptime();
-    ws.write(net::buffer(stats.dump()));
-
-    clientThread.join();
-}
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/build$
+ make
+Consolidate compiler generated dependencies of target server
+[ 33%] Built target server
+Consolidate compiler generated dependencies of target client
+[ 66%] Built target client
+Consolidate compiler generated dependencies of target test_system_stats
+[ 83%] Building CXX object CMakeFiles/test_system_stats.dir/test/test_system_stats.cpp.o
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp: In member function ‘virtual void SystemStatsTest_LoadConfig_Test::TestBody()’:
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:187:15: error: too many arguments to function ‘void loadConfig()’
+  187 |     loadConfig(logging_interval);
+      |     ~~~~~~~~~~^~~~~~~~~~~~~~~~~~
+In file included from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:157:
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/include/server.h:16:6: note: declared here
+   16 | void loadConfig();
+      |      ^~~~~~~~~~
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp: In member function ‘virtual void SystemStatsTest_LoadConfig_InvalidXML_Test::TestBody()’:
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:197:15: error: too many arguments to function ‘void loadConfig()’
+  197 |     loadConfig(logging_interval);
+      |     ~~~~~~~~~~^~~~~~~~~~~~~~~~~~
+In file included from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:157:
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/include/server.h:16:6: note: declared here
+   16 | void loadConfig();
+      |      ^~~~~~~~~~
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp: In lambda function:
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/test/test_system_stats.cpp:218:13: error: ‘startServer’ was not declared in this scope
+  218 |             startServer();
+      |             ^~~~~~~~~~~
+make[2]: *** [CMakeFiles/test_system_stats.dir/build.make:76: CMakeFiles/test_system_stats.dir/test/test_system_stats.cpp.o] Error 1
+make[1]: *** [CMakeFiles/Makefile2:139: CMakeFiles/test_system_stats.dir/all] Error 2
+make: *** [Makefile:136: all] Error 2
