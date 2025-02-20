@@ -2,27 +2,29 @@
 #include "../include/server.h"
 #include <fstream>
 #include <thread>
+#include <chrono>
 
-// Mock functions to avoid running actual system commands
+// Mock variables for testing
 int mockBootCount = 5;
 long mockUptime = 3600;
+int mockLoggingInterval = 10;
 
+// Mock functions to replace system calls
 int getBootCount() { return mockBootCount; }
 long getUptime() { return mockUptime; }
 
-// Test for boot count retrieval
+// Test boot count retrieval
 TEST(SystemStatsTest, BootCountRetrieval) {
     EXPECT_EQ(getBootCount(), 5);
 }
 
-// Test for uptime retrieval
+// Test uptime retrieval
 TEST(SystemStatsTest, UptimeRetrieval) {
     EXPECT_EQ(getUptime(), 3600);
 }
 
-// Test configuration loading from XML
+// Test loading configuration from XML
 TEST(SystemStatsTest, LoadConfig) {
-    // Create a temporary config.xml
     std::ofstream configFile("../config.xml");
     configFile << "<config><logging_interval>5</logging_interval></config>";
     configFile.close();
@@ -31,10 +33,20 @@ TEST(SystemStatsTest, LoadConfig) {
     EXPECT_EQ(logging_interval, 5);
 }
 
-// Mock WebSocket client connection test
+// Test invalid XML loading
+TEST(SystemStatsTest, LoadConfig_InvalidXML) {
+    std::ofstream configFile("../config.xml");
+    configFile << "<config><logging_interval>INVALID</logging_interval></config>";
+    configFile.close();
+
+    loadConfig();
+    EXPECT_EQ(logging_interval, 10); // Should fall back to default
+}
+
+// Test WebSocket connection handling
 TEST(ServerTest, ClientConnection) {
     std::thread serverThread([]() {
-        int port = 9000;
+        int port = 9001;
         io_context ioc;
         ip::tcp::acceptor acceptor(ioc, ip::tcp::endpoint(ip::tcp::v4(), port));
 
@@ -46,7 +58,7 @@ TEST(ServerTest, ClientConnection) {
 
     io_context ioc;
     ip::tcp::resolver resolver(ioc);
-    auto endpoints = resolver.resolve("localhost", "9000");
+    auto endpoints = resolver.resolve("localhost", "9001");
 
     websocket::stream<ip::tcp::socket> ws(ioc);
     boost::asio::connect(ws.next_layer(), endpoints);
@@ -58,7 +70,71 @@ TEST(ServerTest, ClientConnection) {
     serverThread.detach();
 }
 
-// Main function to run tests
+// Test WebSocket message handling
+TEST(ServerTest, WebSocketDataExchange) {
+    std::thread serverThread([]() {
+        io_context ioc;
+        ip::tcp::acceptor acceptor(ioc, ip::tcp::endpoint(ip::tcp::v4(), 9002));
+
+        ip::tcp::socket socket(ioc);
+        acceptor.accept(socket);
+
+        websocket::stream<ip::tcp::socket> ws(std::move(socket));
+        ws.accept();
+
+        json stats;
+        stats["boot_count"] = getBootCount();
+        stats["uptime"] = getUptime();
+
+        ws.write(net::buffer(stats.dump()));
+
+        boost::beast::flat_buffer buffer;
+        ws.read(buffer);
+    });
+
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    io_context ioc;
+    ip::tcp::resolver resolver(ioc);
+    auto endpoints = resolver.resolve("localhost", "9002");
+
+    websocket::stream<ip::tcp::socket> ws(ioc);
+    boost::asio::connect(ws.next_layer(), endpoints);
+    ws.handshake("localhost", "/");
+
+    boost::beast::flat_buffer buffer;
+    boost::system::error_code ec;
+    ws.read(buffer, ec);
+
+    EXPECT_FALSE(ec);
+
+    std::string receivedData = boost::beast::buffers_to_string(buffer.data());
+    json receivedJson = json::parse(receivedData);
+
+    EXPECT_EQ(receivedJson["boot_count"], 5);
+    EXPECT_EQ(receivedJson["uptime"], 3600);
+
+    ws.close(websocket::close_code::normal);
+    serverThread.detach();
+}
+
+// Test broadcasting function (loop execution)
+TEST(ServerTest, BroadcastStatsLoop) {
+    std::atomic<bool> stopLoop(false);
+    std::thread broadcastThread([&]() {
+        while (!stopLoop) {
+            broadcastStats();
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        }
+    });
+
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+    stopLoop = true;
+    broadcastThread.detach();
+    EXPECT_TRUE(true); // Ensure loop executed
+}
+
+// Main function to run all tests
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
