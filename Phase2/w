@@ -1,13 +1,35 @@
-TEST(SystemStatsTest, HandleClientInitializes) {
-    EXPECT_NO_THROW({
-        try {
-            io_context ioc;
-            tcp::socket socket(ioc);
-            tcp::socket moved_socket = std::move(socket);
-        } catch (...) {
-            FAIL() << "Exception thrown during socket initialization";
-        }
+TEST(SystemStatsTest, HandleClientProcessesRequest) {
+    io_context ioc;
+    tcp::acceptor acceptor(ioc, tcp::endpoint(tcp::v4(), 0));  // Bind to an available port
+    tcp::socket server_socket(ioc);
+    tcp::socket client_socket(ioc);
+
+    // Connect the client and server sockets
+    std::thread server_thread([&]() {
+        acceptor.accept(server_socket);
+        handleClient(std::move(server_socket));
     });
+
+    client_socket.connect(acceptor.local_endpoint());
+    websocket::stream<tcp::socket> ws_client(std::move(client_socket));
+    ws_client.handshake("localhost", "/");
+
+    // Send REQUEST_STATS
+    ws_client.write(net::buffer(std::string("REQUEST_STATS")));
+
+    // Read response
+    boost::beast::flat_buffer buffer;
+    ws_client.read(buffer);
+
+    // Convert buffer to string and parse JSON
+    std::string response = boost::beast::buffers_to_string(buffer.data());
+    json stats = json::parse(response);
+
+    EXPECT_TRUE(stats.contains("boot_count"));
+    EXPECT_TRUE(stats.contains("uptime"));
+
+    ws_client.close(websocket::close_code::normal);
+    server_thread.join();
 }
 
 
