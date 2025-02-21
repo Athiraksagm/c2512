@@ -1,69 +1,24 @@
-#include "gtest/gtest.h"
-#include "../include/server.h"
-#include <boost/beast/websocket.hpp>
-#include <boost/asio.hpp>
-#include <thread>
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/build$ make
+Consolidate compiler generated dependencies of target server
+[ 60%] Built target server
+Consolidate compiler generated dependencies of target test_server
+[ 80%] Building CXX object CMakeFiles/test_server.dir/test/test_server.cpp.o
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/test/test_server.cpp: In function ‘void mockWebSocketClient(boost::asio::ip::tcp::endpoint)’:
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/test/test_server.cpp:55:9: error: ‘received_message’ was not declared in this scope
+   55 |         received_message = buffers_to_string(buffer.data());
+      |         ^~~~~~~~~~~~~~~~
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/test/test_server.cpp: In member function ‘virtual void SystemStatsTest_BroadcastStatsSendsData_Test::TestBody()’:
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/test/test_server.cpp:111:5: error: ‘received_message’ was not declared in this scope
+  111 |     received_message.clear();  // Reset global variable
+      |     ^~~~~~~~~~~~~~~~
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/test/test_server.cpp: In lambda function:
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/test/test_server.cpp:125:46: error: ‘clients_mutex’ was not declared in this scope
+  125 |            std::lock_guard<std::mutex> lock(clients_mutex);
+      |                                             ^~~~~~~~~~~~~
 
-using namespace boost::asio;
-using namespace boost::beast::websocket;
-using namespace boost::beast;
-
-// Global variable to store received message
-std::string received_message;
-
-// Mock WebSocket Client to Receive Data
-void mockWebSocketClient(ip::tcp::endpoint server_endpoint) {
-    try {
-        io_context ioc;
-        ip::tcp::socket socket(ioc);
-        socket.connect(server_endpoint);
-
-        websocket::stream<ip::tcp::socket> ws(std::move(socket));
-        ws.handshake("localhost", "/");
-
-        flat_buffer buffer;
-        ws.read(buffer);
-        received_message = buffers_to_string(buffer.data());
-    } 
-    catch (const std::exception &e) {
-        std::cerr << "WebSocket Client Error: " << e.what() << std::endl;
-    }
-}
-
-// **Test Case: Ensure BroadcastStats Sends Data**
-TEST(SystemStatsTest, BroadcastStatsSendsData) {
-    received_message.clear();  // Reset global variable
-
-    // Start server WebSocket in a separate thread
-    std::thread serverThread([]() {
-        io_context ioc;
-        ip::tcp::acceptor acceptor(ioc, ip::tcp::endpoint(ip::tcp::v4(), 8080));
-        ip::tcp::socket socket(ioc);
-        acceptor.accept(socket);
-
-        auto ws = std::make_shared<websocket::stream<ip::tcp::socket>>(std::move(socket));
-        ws->accept();
-
-        // Add client to the list (simulate real scenario)
-        {
-            std::lock_guard<std::mutex> lock(clients_mutex);
-            clients.insert(ws);
-        }
-
-        // Call broadcast function (should send data)
-        broadcastStats();
-    });
-
-    // Start mock WebSocket client
-    std::thread clientThread(mockWebSocketClient, ip::tcp::endpoint(ip::tcp::v4(), 8080));
-
-    serverThread.join();
-    clientThread.join();
-
-    EXPECT_FALSE(received_message.empty());  // Ensure data is actually sent
-
-    // Validate JSON format
-    json expected_json = json::parse(received_message);
-    EXPECT_TRUE(expected_json.contains("boot_count"));
-    EXPECT_TRUE(expected_json.contains("uptime"));
-}
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/test/test_server.cpp:126:13: error: ‘clients’ was not declared in this scope
+  126 |             clients.insert(ws);
+      |             ^~~~~~~
+make[2]: *** [CMakeFiles/test_server.dir/build.make:76: CMakeFiles/test_server.dir/test/test_server.cpp.o] Error 1
+make[1]: *** [CMakeFiles/Makefile2:111: CMakeFiles/test_server.dir/all] Error 2
+make: *** [Makefile:101: all] Error 2
