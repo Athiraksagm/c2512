@@ -1,3 +1,22 @@
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/build$ ./server 6000
+=============================
+ SYSTEM STAT LOGGING SERVER
+=============================
+
+Server running at http://localhost:6000...
+
+Error: Invalid logging interval in config.xml. Using default 10s.
+terminate called after throwing an instance of 'std::invalid_argument'
+  what():  stoi
+Aborted (core dumped)
+
+
+
+
+
+
+
+
 Sl No	File Name	Line Number	Comments
  	server.cpp	16	If the function fails, the boot count would be -1. Is this OK ?
  	 	33	If the  server binary is placed some other VM, then the config.xml file has to be copied to one folder back. Consider placing config.xml and binary are in same folder
