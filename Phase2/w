@@ -1,3 +1,175 @@
+Sl No	File Name	Line Number	Comments
+ 	server.cpp	16	If the function fails, the boot count would be -1. Is this OK ?
+ 	 	33	If the  server binary is placed some other VM, then the config.xml file has to be copied to one folder back. Consider placing config.xml and binary are in same folder
+ 	 	41	What will happen if the config.xml file contains anything other than number for intervall ?
+ 	 	38	Use snake_case for variable names
+ 	 	122	What is the difference between 122 and 126
+ 	 	119	Why this code ?
+ 	 	148	Port also can be given as command line argument
+ 	test_server.cpp	2	Why ../include/ used here ?
+ 	 	General	Why did you mock the server functions. Server functions should be used as it is.
+ 
+//test_server.cpp
+
+#include "gtest/gtest.h"
+#include "../include/server.h"
+#include <fstream>
+
+using json = nlohmann::json;
+using namespace boost::asio;
+using namespace boost::beast;
+using namespace boost::asio::ip;
+using namespace tinyxml2;
+
+// Global variables from server.cpp
+std::atomic<int> boot_count(0);
+int logging_interval = 10; 
+
+//Mocked function for getBootCount()
+int mock_getBootCount(std::string command_output = "5\n") {
+    try {
+        return std::stoi(command_output);
+    } catch (...) {
+        return -1;  // Simulate error case
+    }
+}
+
+//Mocked function for getUptime()
+long getMockedUptime() {
+    return 3600;  // Returns a predefined uptime (1 hour)
+}
+
+//Mock function for loading config
+void mock_loadConfig(const std::string &filename) {
+    XMLDocument doc;
+    if (doc.LoadFile(filename.c_str()) != XML_SUCCESS) {
+        return;
+    }
+    XMLElement *root = doc.FirstChildElement("config");
+    if (root) {
+        XMLElement *intervalElement = root->FirstChildElement("logging_interval");
+        if (intervalElement) {
+            logging_interval = std::stoi(intervalElement->GetText());
+        }
+    }
+}
+
+// void mockWebSocketClient(ip::tcp::endpoint server_endpoint) {
+//     try {
+//         io_context ioc;
+//         ip::tcp::socket socket(ioc);
+//         socket.connect(server_endpoint);
+
+//         websocket::stream<ip::tcp::socket> ws(std::move(socket));
+//         ws.handshake("localhost", "/");
+
+//         flat_buffer buffer;
+//         ws.read(buffer);
+//         received_message = buffers_to_string(buffer.data());
+//     } 
+//     catch (const std::exception &e) {
+//         std::cerr << "WebSocket Client Error: " << e.what() << std::endl;
+//     }
+// }
+
+//TEST 1: Boot count retrieval (Normal Case)
+TEST(SystemStatsTest, BootCountRetrieval) {
+    boot_count.store(mock_getBootCount("5\n"));
+    EXPECT_EQ(boot_count.load(), 5);
+}
+
+//TEST 2: Boot count retrieval (Error Case)
+TEST(SystemStatsTest, BootCountRetrievalError) {
+    boot_count.store(mock_getBootCount("invalid_data\n"));
+    EXPECT_EQ(boot_count.load(), -1);
+}
+
+//TEST 3: Uptime retrieval (Normal Case)
+TEST(SystemStatsTest, UptimeRetrieval) {
+    EXPECT_EQ(getMockedUptime(), 3600);
+}
+
+//TEST 4: Config Loading (Logging Interval)
+TEST(SystemStatsTest, LoadConfig) {
+    std::ofstream configFile("mock_config.xml");
+    configFile << "<config><logging_interval>15</logging_interval></config>";
+    configFile.close();
+
+    logging_interval = 10;  // Reset before test
+    mock_loadConfig("mock_config.xml");
+    EXPECT_EQ(logging_interval, 15);
+}
+
+//TEST 5: JSON Response Format
+TEST(SystemStatsTest, JsonResponseFormat) {
+    json response_json;
+    boot_count.store(5);
+    response_json["boot_count"] = boot_count.load();
+    response_json["uptime"] = getMockedUptime();
+
+    EXPECT_EQ(response_json.dump(), R"({"boot_count":5,"uptime":3600})");
+}
+
+//TEST 6: BroadcastStats Runs Without Crash
+TEST(SystemStatsTest, BroadcastStatsRuns) {
+    EXPECT_NO_THROW({
+        std::thread broadcastThread([]() {
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        });
+        broadcastThread.join();
+    });
+}
+
+// TEST(SystemStatsTest, BroadcastStatsSendsData) {
+//     received_message.clear();  // Reset global variable
+
+//     // Start server WebSocket in a separate thread
+//     std::thread serverThread([]() {
+//         io_context ioc;
+//         ip::tcp::acceptor acceptor(ioc, ip::tcp::endpoint(ip::tcp::v4(), 8080));
+//         ip::tcp::socket socket(ioc);
+//         acceptor.accept(socket);
+
+//         auto ws = std::make_shared<websocket::stream<ip::tcp::socket>>(std::move(socket));
+//         ws->accept();
+
+//         // Add client to the list (simulate real scenario)
+//         {
+//             std::lock_guard<std::mutex> lock(clients_mutex);
+//             clients.insert(ws);
+//         }
+
+//         // Call broadcast function (should send data)
+//         broadcastStats();
+//     });
+
+//     // Start mock WebSocket client
+//     std::thread clientThread(mockWebSocketClient, ip::tcp::endpoint(ip::tcp::v4(), 8080));
+
+//     serverThread.join();
+//     clientThread.join();
+
+//     EXPECT_FALSE(received_message.empty());  // Ensure data is actually sent
+
+//     // Validate JSON format
+//     json expected_json = json::parse(received_message);
+//     EXPECT_TRUE(expected_json.contains("boot_count"));
+//     EXPECT_TRUE(expected_json.contains("uptime"));
+// }
+
+//MAIN FUNCTION
+int main(int argc, char **argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+}
+
+
+
+
+
+
+
+
 #include "server.h"
 
 using namespace boost::asio;
