@@ -1,33 +1,22 @@
-cmake_minimum_required(VERSION 3.10)
-project(Server)
-
-set(CMAKE_CXX_STANDARD 14)
-
-# Find Boost (only system, no asio component needed)
-find_package(Boost REQUIRED COMPONENTS system)
-include_directories(${Boost_INCLUDE_DIRS})
-
-# Include directories
-include_directories(include)
-
-# Server executable
-add_executable(server source/server.cpp source/tinyxml2.cpp)
-target_link_libraries(server PRIVATE Boost::system tinyxml2)
-
-# Google Test
-enable_testing()
-find_package(GTest REQUIRED)
-include_directories(${GTEST_INCLUDE_DIRS})
-
-# Create a library from server.cpp for testing
-add_library(server_library source/server.cpp)
-target_link_libraries(server_library PRIVATE Boost::system)
-
-# Test executable
-add_executable(test_server test/test_server.cpp)
-target_link_libraries(test_server PRIVATE server_library tinyxml2 gtest gtest_main pthread)
-
-add_test(NAME ServerTest COMMAND test_server)
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicro/server/build$ make
+Consolidate compiler generated dependencies of target server
+[ 14%] Building CXX object CMakeFiles/server.dir/source/server.cpp.o
+[ 28%] Building CXX object CMakeFiles/server.dir/source/tinyxml2.cpp.o
+[ 42%] Linking CXX executable server
+[ 42%] Built target server
+[ 57%] Building CXX object CMakeFiles/server_library.dir/source/server.cpp.o
+[ 71%] Linking CXX static library libserver_library.a
+[ 71%] Built target server_library
+Consolidate compiler generated dependencies of target test_server
+[ 85%] Linking CXX executable test_server
+/usr/bin/ld: libserver_library.a(server.cpp.o):(.bss+0x0): multiple definition of `boot_count'; CMakeFiles/test_server.dir/test/test_server.cpp.o:(.bss+0x0): first defined here
+/usr/bin/ld: libserver_library.a(server.cpp.o):(.data+0x0): multiple definition of `logging_interval'; CMakeFiles/test_server.dir/test/test_server.cpp.o:(.data+0x0): first defined here
+/usr/bin/ld: libserver_library.a(server.cpp.o): in function `main':
+server.cpp:(.text+0xe59): multiple definition of `main'; CMakeFiles/test_server.dir/test/test_server.cpp.o:test_server.cpp:(.text+0x18af): first defined here
+collect2: error: ld returned 1 exit status
+make[2]: *** [CMakeFiles/test_server.dir/build.make:99: test_server] Error 1
+make[1]: *** [CMakeFiles/Makefile2:139: CMakeFiles/test_server.dir/all] Error 2
+make: *** [Makefile:101: all] Error 2
 
 
 
