@@ -3,28 +3,43 @@ void loadConfig()
     XMLDocument doc;
     if (doc.LoadFile("../source/config.xml") != XML_SUCCESS) 
     {
-        std::cerr << "Error: Could not load config.xml.Using default logging interval.\n";
+        std::cerr << "Error: Could not load config.xml. Using default logging interval.\n";
+        logging_interval = 10;
         return;
     }
-        XMLElement *root = doc.FirstChildElement("config");
-        if (root) 
+
+    XMLElement *root = doc.FirstChildElement("config");
+    if (root) 
+    {
+        XMLElement *intervalElement = root->FirstChildElement("logging_interval");
+        if (intervalElement) 
         {
-            XMLElement *intervalElement = root->FirstChildElement("logging_interval");
-            if (intervalElement) 
+            const char* intervalText = intervalElement->GetText();
+            if (intervalText && std::all_of(intervalText, intervalText + strlen(intervalText), ::isdigit))
             {
-                const char* intervalText = intervalElement->GetText();
-                if(intervalText && std::all_of(intervalText, intervalText + strlen(intervalText), ::isdigit))
+                try 
                 {
                     logging_interval = std::stoi(intervalText);
-                } else {
-                        std::cerr << "Error: Invalid logging interval in config.xml. Using default 10s.\n";
-                        logging_interval = 10;
-                    }
+                } 
+                catch (...) 
+                {
+                    std::cerr << "Error: Invalid logging interval in config.xml. Using default 10s.\n";
+                    logging_interval = 10;
+                }
+            } 
+            else 
+            {
+                std::cerr << "Error: Invalid logging interval in config.xml. Using default 10s.\n";
+                logging_interval = 10;
             }
-            logging_interval = std::stoi(intervalElement->GetText());
+        } 
+        else 
+        {
+            std::cerr << "Error: <logging_interval> element missing in config.xml. Using default 10s.\n";
+            logging_interval = 10;
         }
+    }
 }
-
 
 
 
