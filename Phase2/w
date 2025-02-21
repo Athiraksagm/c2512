@@ -10,11 +10,12 @@ void handleClient(ip::tcp::socket socket)
         // Wait for a "REQUEST_STATS" message from the client
         ws->read(buffer, ec);
         if (ec) {
-            std::cerr << "Error reading client request: " << ec.message() << "\n";
+            std::cerr << "[Server] Error reading client request: " << ec.message() << "\n";
             return;
         }
 
         std::string clientMessage = boost::beast::buffers_to_string(buffer.data());
+        std::cout << "[Server] Received message: " << clientMessage << "\n";  // Debug print
         buffer.consume(buffer.size());  // Clear buffer
 
         if (clientMessage == "REQUEST_STATS") {
@@ -34,8 +35,18 @@ void handleClient(ip::tcp::socket socket)
         while (true) {
             ws->read(buffer, ec);
             if (ec == websocket::error::closed) {
+                std::cout << "[Server] Client disconnected.\n";
                 break;
             }
+
+            if (ec) {
+                std::cerr << "[Server] Error reading from client: " << ec.message() << "\n";
+                break;
+            }
+
+            std::string receivedMsg = boost::beast::buffers_to_string(buffer.data());
+            std::cout << "[Server] Received another message: " << receivedMsg << "\n";
+            buffer.consume(buffer.size());
         }
 
         {
@@ -43,7 +54,7 @@ void handleClient(ip::tcp::socket socket)
             clients.erase(ws);
         }
     } catch (...) {
-        std::cerr << "Client error.\n";
+        std::cerr << "[Server] Client error.\n";
     }
 }
 
