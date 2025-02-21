@@ -7,48 +7,54 @@ void handleClient(ip::tcp::socket socket)
         boost::beast::flat_buffer buffer;
         boost::system::error_code ec;
 
-        // Wait for a "REQUEST_STATS" message from the client
+        // Read initial client request
         ws->read(buffer, ec);
         if (ec) {
-            std::cerr << "[Server] Error reading client request: " << ec.message() << "\n";
+            if (ec == boost::beast::websocket::error::closed) {
+                std::cout << "[Server] Client disconnected: WebSocket closed\n";
+            } else if (ec == boost::asio::error::eof) {
+                std::cout << "[Server] Client disconnected: End of file (EOF)\n";
+            } else {
+                std::cerr << "[Server] Error reading from client: " << ec.message() << "\n";
+            }
             return;
         }
 
         std::string clientMessage = boost::beast::buffers_to_string(buffer.data());
-        std::cout << "[Server] Received message: " << clientMessage << "\n";  // Debug print
-        buffer.consume(buffer.size());  // Clear buffer
+        buffer.consume(buffer.size());
 
         if (clientMessage == "REQUEST_STATS") {
-            std::cout << "[Server] Request received from client. Sending current stats...\n";  // Debug print
-
+            std::cout << "[Server] Request received from client. Sending current stats...\n";
             json firstStat;
             firstStat["boot_count"] = boot_count.load();
             firstStat["uptime"] = getUptime();
             ws->write(net::buffer(firstStat.dump()), ec);
         }
 
+        // Add client to active list
         {
             std::lock_guard<std::mutex> lock(clients_mutex);
             clients.insert(ws);
         }
 
+        // Continuous reading (for periodic updates)
         while (true) {
             ws->read(buffer, ec);
             if (ec == websocket::error::closed) {
-                std::cout << "[Server] Client disconnected.\n";
+                std::cout << "[Server] Client disconnected: WebSocket closed\n";
                 break;
             }
-
+            if (ec == boost::asio::error::eof) {
+                std::cout << "[Server] Client disconnected: End of file (EOF)\n";
+                break;
+            }
             if (ec) {
-                std::cerr << "[Server] Error reading from client: " << ec.message() << "\n";
+                std::cerr << "[Server] Client disconnected: " << ec.message() << "\n";
                 break;
             }
-
-            std::string receivedMsg = boost::beast::buffers_to_string(buffer.data());
-            std::cout << "[Server] Received another message: " << receivedMsg << "\n";
-            buffer.consume(buffer.size());
         }
 
+        // Remove client from active list
         {
             std::lock_guard<std::mutex> lock(clients_mutex);
             clients.erase(ws);
@@ -57,7 +63,6 @@ void handleClient(ip::tcp::socket socket)
         std::cerr << "[Server] Client error.\n";
     }
 }
-
 
 
 
