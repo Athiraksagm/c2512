@@ -1,3 +1,74 @@
+void connectToServer(const std::string& host, int port, bool logToFile) 
+{
+    io_context ioc;
+    ip::tcp::resolver resolver(ioc);
+    auto endpoints = resolver.resolve(host, std::to_string(port));
+
+    websocket::stream<ip::tcp::socket> ws(ioc);
+    boost::asio::connect(ws.next_layer(), endpoints);
+    ws.handshake(host, "/");
+
+    std::cout << "Connected to server on port " << port << "\n";
+
+    boost::beast::flat_buffer buffer;
+    boost::system::error_code ec;
+    ws.read(buffer, ec);
+
+    if (ec) {
+        std::cerr << "Error receiving initial stats: " << ec.message() << "\n";
+        return;
+    }
+
+    std::string data = boost::beast::buffers_to_string(buffer.data());
+    json stats = json::parse(data);
+
+    std::cout << "[Received Stats] Boot Count: " << stats["boot_count"]
+              << ", Uptime: " << stats["uptime"] << " seconds\n";
+
+    if (logToFile) {
+        saveStatsToCSV(stats["boot_count"], stats["uptime"]);
+    }
+
+    buffer.consume(buffer.size());
+
+    while (true) {
+        ws.read(buffer, ec);
+        if (ec) {
+            std::cerr << "Error receiving periodic stats: " << ec.message() << "\n";
+            break;
+        }
+
+        std::string periodicData = boost::beast::buffers_to_string(buffer.data());
+        json periodicStats = json::parse(periodicData);
+
+        std::cout << "[Periodic Update] Boot Count: " << periodicStats["boot_count"]
+                  << ", Uptime: " << periodicStats["uptime"] << " seconds\n";
+
+        buffer.consume(buffer.size());
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 cmake_minimum_required(VERSION 3.10)
 project(Server)
 
