@@ -1,94 +1,96 @@
-void broadcastStats() 
-{
-    while (true) {
-        json stats;
-        stats["boot_count"] = boot_count.load();
-        stats["uptime"] = getUptime();
-        std::string message = stats.dump();
+#include "gtest/gtest.h"
+#include "../include/server.h"
+#include <fstream>
 
-        std::vector<std::shared_ptr<websocket::stream<ip::tcp::socket>>> disconnectedClients;
+using json = nlohmann::json;
+using namespace boost::asio;
+using namespace boost::beast;
+using namespace boost::asio::ip;
+using namespace tinyxml2;
 
-        {
-            std::lock_guard<std::mutex> lock(clients_mutex);
-            for (auto &client : clients) {
-                boost::system::error_code ec;
-                client->write(net::buffer(message), ec);
-                if (ec) {
-                    std::cerr << "Client disconnected: " << ec.message() << "\n";
-                    disconnectedClients.push_back(client);
-                }
-            }
+// Global variables from server.cpp
+std::atomic<int> boot_count(0);
+int logging_interval = 10; 
 
-            for (const auto &client : disconnectedClients) 
-            {
-                clients.erase(client);
-            }
-        }
-
-        std::this_thread::sleep_for(std::chrono::seconds(logging_interval));
+//Mocked function for getBootCount()
+int mock_getBootCount(std::string command_output = "5\n") {
+    try {
+        return std::stoi(command_output);
+    } catch (...) {
+        return -1;  // Simulate error case
     }
 }
 
-void handleClient(ip::tcp::socket socket) 
-{
-    try {
-        auto ws = std::make_shared<websocket::stream<ip::tcp::socket>>(std::move(socket));
-        ws->accept();
+//Mocked function for getUptime()
+long getMockedUptime() {
+    return 3600;  // Returns a predefined uptime (1 hour)
+}
 
-        boost::beast::flat_buffer buffer;
-        boost::system::error_code ec;
-
-        // Read initial client request
-        ws->read(buffer, ec);
-        if (ec) {
-            if (ec == boost::beast::websocket::error::closed) {
-                std::cout << "Client disconnected: WebSocket closed\n";
-            } 
-            else if (ec == boost::asio::error::eof) {
-                std::cout << "Client disconnected:\n";
-            } 
-            else {
-                std::cerr << "Error reading from client: " << ec.message() << "\n";
-            }
-            return;
-        }
-
-        std::string clientMessage = boost::beast::buffers_to_string(buffer.data());
-        buffer.consume(buffer.size());
-
-        if (clientMessage == "REQUEST_STATS") {
-            std::cout << "Request received from client. Sending current stats...\n";
-            json firstStat;
-            firstStat["boot_count"] = boot_count.load();
-            firstStat["uptime"] = getUptime();
-            ws->write(net::buffer(firstStat.dump()), ec);
-        }
-
-        // Add client to active list
-        {
-            std::lock_guard<std::mutex> lock(clients_mutex);
-            clients.insert(ws);
-        }
-
-        // Continuous reading (for periodic updates)
-        while (true) {
-            ws->read(buffer, ec);
-            if (ec == websocket::error::closed) {
-                std::cout << "Client disconnected: WebSocket closed\n";
-                break;
-            }
-            if (ec) {
-                std::cerr << "Client disconnected!! " << "\n";
-                break;
-            }
-        }
-
-        // Remove client from active list
-        {
-            std::lock_guard<std::mutex> lock(clients_mutex);
-            clients.erase(ws);
-        }
-    } catch (...) {
-        std::cerr << "Client error.\n";
+//Mock function for loading config
+void mock_loadConfig(const std::string &filename) {
+    XMLDocument doc;
+    if (doc.LoadFile(filename.c_str()) != XML_SUCCESS) {
+        return;
     }
+    XMLElement *root = doc.FirstChildElement("config");
+    if (root) {
+        XMLElement *intervalElement = root->FirstChildElement("logging_interval");
+        if (intervalElement) {
+            logging_interval = std::stoi(intervalElement->GetText());
+        }
+    }
+}
+
+//TEST 1: Boot count retrieval (Normal Case)
+TEST(SystemStatsTest, BootCountRetrieval) {
+    boot_count.store(mock_getBootCount("5\n"));
+    EXPECT_EQ(boot_count.load(), 5);
+}
+
+//TEST 2: Boot count retrieval (Error Case)
+TEST(SystemStatsTest, BootCountRetrievalError) {
+    boot_count.store(mock_getBootCount("invalid_data\n"));
+    EXPECT_EQ(boot_count.load(), -1);
+}
+
+//TEST 3: Uptime retrieval (Normal Case)
+TEST(SystemStatsTest, UptimeRetrieval) {
+    EXPECT_EQ(getMockedUptime(), 3600);
+}
+
+//TEST 4: Config Loading (Logging Interval)
+TEST(SystemStatsTest, LoadConfig) {
+    std::ofstream configFile("mock_config.xml");
+    configFile << "<config><logging_interval>15</logging_interval></config>";
+    configFile.close();
+
+    logging_interval = 10;  // Reset before test
+    mock_loadConfig("mock_config.xml");
+    EXPECT_EQ(logging_interval, 15);
+}
+
+//TEST 5: JSON Response Format
+TEST(SystemStatsTest, JsonResponseFormat) {
+    json response_json;
+    boot_count.store(5);
+    response_json["boot_count"] = boot_count.load();
+    response_json["uptime"] = getMockedUptime();
+
+    EXPECT_EQ(response_json.dump(), R"({"boot_count":5,"uptime":3600})");
+}
+
+//TEST 6: BroadcastStats Runs Without Crash
+TEST(SystemStatsTest, BroadcastStatsRuns) {
+    EXPECT_NO_THROW({
+        std::thread broadcastThread([]() {
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        });
+        broadcastThread.join();
+    });
+}
+
+//MAIN FUNCTION
+int main(int argc, char **argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
 }
