@@ -1,90 +1,79 @@
-// Establishes a WebSocket connection to the server and receives system stats
-void connectToServer(const std::string& host, int port, bool logToFile) 
+TEST(SystemStatsTest, HandleClientInitializes) {
+    EXPECT_NO_THROW({
+        try {
+            io_context ioc;
+            tcp::socket socket(ioc);
+            tcp::socket moved_socket = std::move(socket);
+        } catch (...) {
+            FAIL() << "Exception thrown during socket initialization";
+        }
+    });
+}
+
+
+
+void handleClient(ip::tcp::socket socket) 
 {
-    io_context ioc;
-    ip::tcp::resolver resolver(ioc);
-    auto endpoints = resolver.resolve(host, std::to_string(port));
+    try {
+        auto ws = std::make_shared<websocket::stream<ip::tcp::socket>>(std::move(socket));
+        ws->accept();
 
-    websocket::stream<ip::tcp::socket> ws(ioc);
-    boost::asio::connect(ws.next_layer(), endpoints);
-    ws.handshake(host, "/");
+        boost::beast::flat_buffer buffer;
+        boost::system::error_code ec;
 
-    std::cout << "Connected to server on port " << port << "\n";
-    std::cout << "Sending REQUEST_STATS to server...\n";
-    ws.write(net::buffer(std::string("REQUEST_STATS")));
+        // Read initial client request
+        ws->read(buffer, ec);
+        if (ec) {
+            if (ec == boost::beast::websocket::error::closed) {
+                std::cout << "Client disconnected: WebSocket closed\n";
+            } 
+            else if (ec == boost::asio::error::eof) {
+                std::cout << "Client disconnected:\n";
+            } 
+            else {
+                std::cerr << "Error reading from client: " << ec.message() << "\n";
+            }
+            return;
+        }
 
-    boost::beast::flat_buffer buffer;
-    boost::system::error_code ec;
-    ws.read(buffer, ec);
+        std::string clientMessage = boost::beast::buffers_to_string(buffer.data());
+        buffer.consume(buffer.size());
 
-    if (ec) {
-        std::cerr << "Error receiving initial stats: " << ec.message() << "\n";
-        return;
-    }
+        if (clientMessage == "REQUEST_STATS") {
+            std::cout << "Request received from client. Sending current stats...\n";
+            json firstStat;
+            firstStat["boot_count"] = boot_count.load();
+            firstStat["uptime"] = getUptime();
+            ws->write(net::buffer(firstStat.dump()), ec);
+        }
 
-    std::string data = boost::beast::buffers_to_string(buffer.data());
-    json stats = json::parse(data);
+        // Add client to active list
+        {
+            std::lock_guard<std::mutex> lock(clients_mutex);
+            clients.insert(ws);
+        }
 
-    std::cout << "[Received Stats] Boot Count: " << stats["boot_count"]
-              << ", Uptime: " << stats["uptime"] << " seconds\n";
-
-    if (logToFile) {
-        saveStatsToCSV(stats["boot_count"], stats["uptime"]);
-    }
-
-    buffer.consume(buffer.size());
-
-    // Start io_context in a separate thread
-    std::thread ioThread([&]() { ioc.run(); });
-
-    std::atomic<bool> running{true};
-
-    // User input thread to listen for 'q'
-    std::thread userInputThread([&]() {
-        std::cout << "Press 'q' then Enter to disconnect.\n";
-        std::string input;
-        while (std::getline(std::cin, input)) {
-            if (input == "q") {
-                running = false;
-                ioc.stop(); // Stop the I/O context immediately
+        // Continuous reading (for periodic updates)
+        while (true) {
+            ws->read(buffer, ec);
+            if (ec == websocket::error::closed) {
+                std::cout << "Client disconnected: WebSocket closed\n";
+                break;
+            }
+            if (ec) {
+                std::cerr << "Client disconnected!! " << "\n";
                 break;
             }
         }
-    });
 
-    // Read messages asynchronously to allow instant shutdown
-    while (running) {
-        ws.async_read(buffer, [&](boost::system::error_code ec, std::size_t) {
-            if (!running) return; // Exit if 'q' was pressed
-
-            if (ec) {
-                std::cerr << "Error receiving periodic stats: " << ec.message() << "\n";
-                running = false;
-                return;
-            }
-
-            std::string periodicData = boost::beast::buffers_to_string(buffer.data());
-            json periodicStats = json::parse(periodicData);
-
-            std::cout << "[Periodic Update] Boot Count: " << periodicStats["boot_count"]
-                      << ", Uptime: " << periodicStats["uptime"] << " seconds\n";
-
-            buffer.consume(buffer.size());
-        });
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Short wait to check `running`
+        // Remove client from active list
+        {
+            std::lock_guard<std::mutex> lock(clients_mutex);
+            clients.erase(ws);
+        }
+    } catch (...) {
+        std::cerr << "Client error.\n";
     }
-
-    // Close WebSocket immediately when 'q' is pressed
-    ws.close(websocket::close_code::normal, ec);
-    if (ec) {
-        std::cerr << "[Client] Error closing WebSocket: " << ec.message() << "\n";
-    } else {
-        std::cout << "[Client] Connection closed properly.\n";
-    }
-
-    if (userInputThread.joinable()) userInputThread.join();
-    if (ioThread.joinable()) ioThread.join();
 }
 
 
