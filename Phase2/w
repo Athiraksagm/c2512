@@ -1,69 +1,56 @@
-void handleClient(ip::tcp::socket socket) 
+//Establishes a Websocket connection to the server and receives system stats
+void connectToServer(const std::string& host, int port, bool logToFile) 
 {
-    try {
-        auto ws = std::make_shared<websocket::stream<ip::tcp::socket>>(std::move(socket));
-        ws->accept();
+    io_context ioc;
+    ip::tcp::resolver resolver(ioc);
+    auto endpoints = resolver.resolve(host, std::to_string(port));
 
-        boost::beast::flat_buffer buffer;
-        boost::system::error_code ec;
+    websocket::stream<ip::tcp::socket> ws(ioc);
+    boost::asio::connect(ws.next_layer(), endpoints);
+    ws.handshake(host, "/");
 
-        // Read initial client request
-        ws->read(buffer, ec);
+    std::cout << "Connected to server on port " << port << "\n";
+    std::cout << "Sending REQUEST_STATS to server...\n";
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    ws.write(net::buffer(std::string("REQUEST_STATS")));
+
+    boost::beast::flat_buffer buffer;
+    boost::system::error_code ec;
+    ws.read(buffer, ec);
+
+    if (ec) {
+        std::cerr << "Error receiving initial stats: " << ec.message() << "\n";
+        return;
+    }
+
+    std::string data = boost::beast::buffers_to_string(buffer.data());
+    json stats = json::parse(data);
+
+    std::cout << "[Received Stats] Boot Count: " << stats["boot_count"]
+              << ", Uptime: " << stats["uptime"] << " seconds\n";
+
+    if (logToFile) {
+        saveStatsToCSV(stats["boot_count"], stats["uptime"]);
+    }
+
+    buffer.consume(buffer.size());
+
+    while (true) {
+        ws.read(buffer, ec);
         if (ec) {
-            if (ec == boost::beast::websocket::error::closed) {
-                std::cout << "[Server] Client disconnected: WebSocket closed\n";
-            } else if (ec == boost::asio::error::eof) {
-                std::cout << "[Server] Client disconnected: End of file (EOF)\n";
-            } else {
-                std::cerr << "[Server] Error reading from client: " << ec.message() << "\n";
-            }
-            return;
+            std::cerr << "Error receiving periodic stats: " << ec.message() << "\n";
+            break;
         }
 
-        std::string clientMessage = boost::beast::buffers_to_string(buffer.data());
+        std::string periodicData = boost::beast::buffers_to_string(buffer.data());
+        json periodicStats = json::parse(periodicData);
+
+        std::cout << "[Periodic Update] Boot Count: " << periodicStats["boot_count"]
+                  << ", Uptime: " << periodicStats["uptime"] << " seconds\n";
+
         buffer.consume(buffer.size());
-
-        if (clientMessage == "REQUEST_STATS") {
-            std::cout << "[Server] Request received from client. Sending current stats...\n";
-            json firstStat;
-            firstStat["boot_count"] = boot_count.load();
-            firstStat["uptime"] = getUptime();
-            ws->write(net::buffer(firstStat.dump()), ec);
-        }
-
-        // Add client to active list
-        {
-            std::lock_guard<std::mutex> lock(clients_mutex);
-            clients.insert(ws);
-        }
-
-        // Continuous reading (for periodic updates)
-        while (true) {
-            ws->read(buffer, ec);
-            if (ec == websocket::error::closed) {
-                std::cout << "[Server] Client disconnected: WebSocket closed\n";
-                break;
-            }
-            if (ec == boost::asio::error::eof) {
-                std::cout << "[Server] Client disconnected: End of file (EOF)\n";
-                break;
-            }
-            if (ec) {
-                std::cerr << "[Server] Client disconnected: " << ec.message() << "\n";
-                break;
-            }
-        }
-
-        // Remove client from active list
-        {
-            std::lock_guard<std::mutex> lock(clients_mutex);
-            clients.erase(ws);
-        }
-    } catch (...) {
-        std::cerr << "[Server] Client error.\n";
     }
 }
-
 
 
 
