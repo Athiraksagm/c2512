@@ -34,36 +34,48 @@ void connectToServer(const std::string& host, int port, bool logToFile)
 
     buffer.consume(buffer.size());
 
-    // Start a separate thread to listen for user input to close the client
+    // Start io_context in a separate thread
+    std::thread ioThread([&]() { ioc.run(); });
+
     std::atomic<bool> running{true};
+
+    // User input thread to listen for 'q'
     std::thread userInputThread([&]() {
         std::cout << "Press 'q' then Enter to disconnect.\n";
         std::string input;
         while (std::getline(std::cin, input)) {
             if (input == "q") {
                 running = false;
+                ioc.stop(); // Stop the I/O context immediately
                 break;
             }
         }
     });
 
+    // Read messages asynchronously to allow instant shutdown
     while (running) {
-        ws.read(buffer, ec);
-        if (ec) {
-            std::cerr << "Error receiving periodic stats: " << ec.message() << "\n";
-            break;
-        }
+        ws.async_read(buffer, [&](boost::system::error_code ec, std::size_t) {
+            if (!running) return; // Exit if 'q' was pressed
 
-        std::string periodicData = boost::beast::buffers_to_string(buffer.data());
-        json periodicStats = json::parse(periodicData);
+            if (ec) {
+                std::cerr << "Error receiving periodic stats: " << ec.message() << "\n";
+                running = false;
+                return;
+            }
 
-        std::cout << "[Periodic Update] Boot Count: " << periodicStats["boot_count"]
-                  << ", Uptime: " << periodicStats["uptime"] << " seconds\n";
+            std::string periodicData = boost::beast::buffers_to_string(buffer.data());
+            json periodicStats = json::parse(periodicData);
 
-        buffer.consume(buffer.size());
+            std::cout << "[Periodic Update] Boot Count: " << periodicStats["boot_count"]
+                      << ", Uptime: " << periodicStats["uptime"] << " seconds\n";
+
+            buffer.consume(buffer.size());
+        });
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Short wait to check `running`
     }
 
-    // Send a proper WebSocket close frame before exiting
+    // Close WebSocket immediately when 'q' is pressed
     ws.close(websocket::close_code::normal, ec);
     if (ec) {
         std::cerr << "[Client] Error closing WebSocket: " << ec.message() << "\n";
@@ -71,11 +83,9 @@ void connectToServer(const std::string& host, int port, bool logToFile)
         std::cout << "[Client] Connection closed properly.\n";
     }
 
-    if (userInputThread.joinable()) {
-        userInputThread.join();
-    }
+    if (userInputThread.joinable()) userInputThread.join();
+    if (ioThread.joinable()) ioThread.join();
 }
-
 
 
 
