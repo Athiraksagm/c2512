@@ -1,3 +1,38 @@
+cmake_minimum_required(VERSION 3.10)
+project(Server)
+
+set(CMAKE_CXX_STANDARD 14)
+
+include_directories(include include)
+
+# Server executable
+add_executable(server source/server.cpp source/tinyxml2.cpp)
+target_link_libraries(server PRIVATE Boost::boost Boost::asio)
+
+# Google Test
+enable_testing()
+find_package(GTest REQUIRED)
+include_directories(${GTEST_INCLUDE_DIRS})
+
+# Create a library from server.cpp to use in tests
+add_library(server_library source/server.cpp)
+target_link_libraries(server_library PRIVATE Boost::boost Boost::asio)
+
+# Test executable
+add_executable(test_server test/test_server.cpp)
+target_link_libraries(test_server PRIVATE server_library tinyxml2 gtest gtest_main pthread)
+
+add_test(NAME ServerTest COMMAND test_server)
+
+
+
+
+
+
+
+
+
+
 athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicro/server/build$ make
 Consolidate compiler generated dependencies of target server
 [ 60%] Built target server
