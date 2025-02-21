@@ -1,14 +1,29 @@
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/build$ ./server 6000
-=============================
- SYSTEM STAT LOGGING SERVER
-=============================
-
-Server running at http://localhost:6000...
-
-Error: Invalid logging interval in config.xml. Using default 10s.
-terminate called after throwing an instance of 'std::invalid_argument'
-  what():  stoi
-Aborted (core dumped)
+void loadConfig() 
+{
+    XMLDocument doc;
+    if (doc.LoadFile("../source/config.xml") != XML_SUCCESS) 
+    {
+        std::cerr << "Error: Could not load config.xml.Using default logging interval.\n";
+        return;
+    }
+        XMLElement *root = doc.FirstChildElement("config");
+        if (root) 
+        {
+            XMLElement *intervalElement = root->FirstChildElement("logging_interval");
+            if (intervalElement) 
+            {
+                const char* intervalText = intervalElement->GetText();
+                if(intervalText && std::all_of(intervalText, intervalText + strlen(intervalText), ::isdigit))
+                {
+                    logging_interval = std::stoi(intervalText);
+                } else {
+                        std::cerr << "Error: Invalid logging interval in config.xml. Using default 10s.\n";
+                        logging_interval = 10;
+                    }
+            }
+            logging_interval = std::stoi(intervalElement->GetText());
+        }
+}
 
 
 
