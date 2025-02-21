@@ -1,3 +1,4 @@
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicro/server/build$ make
 Consolidate compiler generated dependencies of target server
 [ 60%] Built target server
 Consolidate compiler generated dependencies of target test_server
@@ -9,6 +10,28 @@ collect2: error: ld returned 1 exit status
 make[2]: *** [CMakeFiles/test_server.dir/build.make:97: test_server] Error 1
 make[1]: *** [CMakeFiles/Makefile2:111: CMakeFiles/test_server.dir/all] Error 2
 make: *** [Makefile:101: all] Error 2
+
+
+
+
+cmake_minimum_required(VERSION 3.10)
+project(Server)
+
+set(CMAKE_CXX_STANDARD 14)
+
+include_directories(include include)
+add_executable(server source/server.cpp source/tinyxml2.cpp)
+
+# Google Test
+enable_testing()
+find_package(GTest REQUIRED)
+include_directories(${GTEST_INCLUDE_DIRS})
+add_executable(test_server test/test_server.cpp)
+target_link_libraries(test_server PRIVATE tinyxml2 gtest gtest_main pthread)
+#add_library(server_library source/server.cpp)
+#target_link_libraries(server_library PRIVATE Boost::boost Boost::asio)
+add_test(NAME ServerTest COMMAND test_server)
+
 
 
 
