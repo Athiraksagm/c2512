@@ -1,56 +1,37 @@
-void broadcastStats() 
-{
-    while (true) {
-        json stats;
-        stats["boot_count"] = boot_count.load();
-        stats["uptime"] = getUptime();
-        std::string message = stats.dump();
-
-        std::vector<std::shared_ptr<websocket::stream<ip::tcp::socket>>> disconnectedClients;
-
-        {
-            std::lock_guard<std::mutex> lock(clients_mutex);
-            for (auto &client : clients) {
-                boost::system::error_code ec;
-                client->write(net::buffer(message), ec);
-                if (ec) {
-                    std::cerr << "Client disconnected: " << ec.message() << "\n";
-                    disconnectedClients.push_back(client);
-                }
-            }
-
-            for (const auto &client : disconnectedClients) 
-            {
-                clients.erase(client);
-            }
-        }
-
-        std::this_thread::sleep_for(std::chrono::seconds(logging_interval));
-    }
-}
-
 void handleClient(ip::tcp::socket socket) 
 {
     try {
         auto ws = std::make_shared<websocket::stream<ip::tcp::socket>>(std::move(socket));
         ws->accept();
 
-        json firstStat;
-        firstStat["boot_count"] = boot_count.load();
-        firstStat["uptime"] = getUptime();
-        ws->write(net::buffer(firstStat.dump()));
+        boost::beast::flat_buffer buffer;
+        boost::system::error_code ec;
+
+        // Wait for a "REQUEST_STATS" message from the client
+        ws->read(buffer, ec);
+        if (ec) {
+            std::cerr << "Error reading client request: " << ec.message() << "\n";
+            return;
+        }
+
+        std::string clientMessage = boost::beast::buffers_to_string(buffer.data());
+        buffer.consume(buffer.size());  // Clear buffer
+
+        if (clientMessage == "REQUEST_STATS") {
+            json firstStat;
+            firstStat["boot_count"] = boot_count.load();
+            firstStat["uptime"] = getUptime();
+            ws->write(net::buffer(firstStat.dump()), ec);
+        }
 
         {
             std::lock_guard<std::mutex> lock(clients_mutex);
             clients.insert(ws);
         }
 
-        boost::beast::flat_buffer buffer;
         while (true) {
-            boost::system::error_code ec;
             ws->read(buffer, ec);
-            if (ec == websocket::error::closed) 
-            {
+            if (ec == websocket::error::closed) {
                 break;
             }
         }
