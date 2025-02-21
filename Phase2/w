@@ -1,4 +1,4 @@
-//Establishes a Websocket connection to the server and receives system stats
+// Establishes a WebSocket connection to the server and receives system stats
 void connectToServer(const std::string& host, int port, bool logToFile) 
 {
     io_context ioc;
@@ -11,7 +11,6 @@ void connectToServer(const std::string& host, int port, bool logToFile)
 
     std::cout << "Connected to server on port " << port << "\n";
     std::cout << "Sending REQUEST_STATS to server...\n";
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
     ws.write(net::buffer(std::string("REQUEST_STATS")));
 
     boost::beast::flat_buffer buffer;
@@ -35,7 +34,20 @@ void connectToServer(const std::string& host, int port, bool logToFile)
 
     buffer.consume(buffer.size());
 
-    while (true) {
+    // Start a separate thread to listen for user input to close the client
+    std::atomic<bool> running{true};
+    std::thread userInputThread([&]() {
+        std::cout << "Press 'q' then Enter to disconnect.\n";
+        std::string input;
+        while (std::getline(std::cin, input)) {
+            if (input == "q") {
+                running = false;
+                break;
+            }
+        }
+    });
+
+    while (running) {
         ws.read(buffer, ec);
         if (ec) {
             std::cerr << "Error receiving periodic stats: " << ec.message() << "\n";
@@ -49,6 +61,18 @@ void connectToServer(const std::string& host, int port, bool logToFile)
                   << ", Uptime: " << periodicStats["uptime"] << " seconds\n";
 
         buffer.consume(buffer.size());
+    }
+
+    // Send a proper WebSocket close frame before exiting
+    ws.close(websocket::close_code::normal, ec);
+    if (ec) {
+        std::cerr << "[Client] Error closing WebSocket: " << ec.message() << "\n";
+    } else {
+        std::cout << "[Client] Connection closed properly.\n";
+    }
+
+    if (userInputThread.joinable()) {
+        userInputThread.join();
     }
 }
 
