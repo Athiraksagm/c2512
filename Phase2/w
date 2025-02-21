@@ -1,79 +1,33 @@
-#include "server.h"
-#include <gtest/gtest.h>
-#include <boost/asio.hpp>
-#include <boost/beast.hpp>
+void broadcastStats() 
+{
+    while (true) {
+        json stats;
+        stats["boot_count"] = boot_count.load();
+        stats["uptime"] = getUptime();
+        std::string message = stats.dump();
 
-using namespace boost::asio;
-using namespace boost::beast;
+        std::vector<std::shared_ptr<websocket::stream<ip::tcp::socket>>> disconnectedClients;
 
-TEST(SystemStatsTest, HandleClientProcessesRequest) {
-    // Simulate a TCP socket connection using Boost Asio
-    io_context ioc;
-    ip::tcp::socket socket(ioc);
+        {
+            std::lock_guard<std::mutex> lock(clients_mutex);
+            for (auto &client : clients) {
+                boost::system::error_code ec;
+                client->write(net::buffer(message), ec);
+                if (ec) {
+                    std::cerr << "Client disconnected: " << ec.message() << "\n";
+                    disconnectedClients.push_back(client);
+                }
+            }
 
-    // Call handleClient() directly to verify it does not crash
-    EXPECT_NO_THROW(handleClient(std::move(socket)));
+            for (const auto &client : disconnectedClients) 
+            {
+                clients.erase(client);
+            }
+        }
 
-    // Check that boot_count is initialized correctly
-    EXPECT_GE(boot_count.load(), 0);
-
-    // Check logging interval default value
-    EXPECT_GT(logging_interval, 0);
+        std::this_thread::sleep_for(std::chrono::seconds(logging_interval));
+    }
 }
-
-
-
-
-
-
-
-
-
-
-
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicro/server/build$ cmake ..
--- Configuring done
-CMake Error at CMakeLists.txt:29 (add_executable):
-  Target "server" links to target "Boost::boost" but the target was not
-  found.  Perhaps a find_package() call is missing for an IMPORTED target, or
-  an ALIAS target is missing?
-
-
-CMake Error at CMakeLists.txt:29 (add_executable):
-  Target "server" links to target "Boost::asio" but the target was not found.
-  Perhaps a find_package() call is missing for an IMPORTED target, or an
-  ALIAS target is missing?
-
-
-CMake Error at CMakeLists.txt:38 (add_library):
-  Target "server_library" links to target "Boost::boost" but the target was
-  not found.  Perhaps a find_package() call is missing for an IMPORTED
-  target, or an ALIAS target is missing?
-
-
-CMake Error at CMakeLists.txt:38 (add_library):
-  Target "server_library" links to target "Boost::asio" but the target was
-  not found.  Perhaps a find_package() call is missing for an IMPORTED
-  target, or an ALIAS target is missing?
-
-
-CMake Error at CMakeLists.txt:42 (add_executable):
-  Target "test_server" links to target "Boost::boost" but the target was not
-  found.  Perhaps a find_package() call is missing for an IMPORTED target, or
-  an ALIAS target is missing?
-
-
-CMake Error at CMakeLists.txt:42 (add_executable):
-  Target "test_server" links to target "Boost::asio" but the target was not
-  found.  Perhaps a find_package() call is missing for an IMPORTED target, or
-  an ALIAS target is missing?
-
-
--- Generating done
-CMake Generate step failed.  Build files cannot be regenerated correctly.
-
-
-
 
 void handleClient(ip::tcp::socket socket) 
 {
@@ -138,51 +92,3 @@ void handleClient(ip::tcp::socket socket)
         std::cerr << "Client error.\n";
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-cmake_minimum_required(VERSION 3.10)
-project(Server)
-
-set(CMAKE_CXX_STANDARD 14)
-
-include_directories(include ../common/include)
-add_executable(server source/server.cpp ../common/source/tinyxml2.cpp)
-
-
-
-
-
-
-cmake_minimum_required(VERSION 3.10)
-project(Client)
-
-set(CMAKE_CXX_STANDARD 14)
-
-include_directories(include ../common/include)
-add_executable(client source/client.cpp ../common/source/tinyxml2.cpp)
-
-
-
-
-cmake_minimum_required(VERSION 3.10)
-project(SystemStatLoggingMicroservice)
-
-add_subdirectory(server)
-add_subdirectory(client)
