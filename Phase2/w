@@ -18,6 +18,8 @@ void handleClient(ip::tcp::socket socket)
         buffer.consume(buffer.size());  // Clear buffer
 
         if (clientMessage == "REQUEST_STATS") {
+            std::cout << "[Server] Request received from client. Sending current stats...\n";  // Debug print
+
             json firstStat;
             firstStat["boot_count"] = boot_count.load();
             firstStat["uptime"] = getUptime();
