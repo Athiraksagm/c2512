@@ -1,23 +1,33 @@
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicro/server/build$ cmake ..
-CMake Error at /usr/lib/x86_64-linux-gnu/cmake/Boost-1.74.0/BoostConfig.cmake:141 (find_package):
-  Could not find a package configuration file provided by "boost_asio"
-  (requested version 1.74.0) with any of the following names:
+cmake_minimum_required(VERSION 3.10)
+project(Server)
 
-    boost_asioConfig.cmake
-    boost_asio-config.cmake
+set(CMAKE_CXX_STANDARD 14)
 
-  Add the installation prefix of "boost_asio" to CMAKE_PREFIX_PATH or set
-  "boost_asio_DIR" to a directory containing one of the above files.  If
-  "boost_asio" provides a separate development package or SDK, be sure it has
-  been installed.
-Call Stack (most recent call first):
-  /usr/lib/x86_64-linux-gnu/cmake/Boost-1.74.0/BoostConfig.cmake:258 (boost_find_component)
-  /usr/share/cmake-3.22/Modules/FindBoost.cmake:594 (find_package)
-  CMakeLists.txt:27 (find_package)
+# Find Boost (only system, no asio component needed)
+find_package(Boost REQUIRED COMPONENTS system)
+include_directories(${Boost_INCLUDE_DIRS})
 
+# Include directories
+include_directories(include)
 
--- Configuring incomplete, errors occurred!
-See also "/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicro/server/build/CMakeFiles/CMakeOutput.log".
+# Server executable
+add_executable(server source/server.cpp source/tinyxml2.cpp)
+target_link_libraries(server PRIVATE Boost::system tinyxml2)
+
+# Google Test
+enable_testing()
+find_package(GTest REQUIRED)
+include_directories(${GTEST_INCLUDE_DIRS})
+
+# Create a library from server.cpp for testing
+add_library(server_library source/server.cpp)
+target_link_libraries(server_library PRIVATE Boost::system)
+
+# Test executable
+add_executable(test_server test/test_server.cpp)
+target_link_libraries(test_server PRIVATE server_library tinyxml2 gtest gtest_main pthread)
+
+add_test(NAME ServerTest COMMAND test_server)
 
 
 
