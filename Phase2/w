@@ -1,50 +1,66 @@
-void connectToServer(const std::string& host, int port, bool logToFile) 
+void broadcastStats() 
 {
-    io_context ioc;
-    ip::tcp::resolver resolver(ioc);
-    auto endpoints = resolver.resolve(host, std::to_string(port));
-
-    websocket::stream<ip::tcp::socket> ws(ioc);
-    boost::asio::connect(ws.next_layer(), endpoints);
-    ws.handshake(host, "/");
-
-    std::cout << "Connected to server on port " << port << "\n";
-
-    boost::beast::flat_buffer buffer;
-    boost::system::error_code ec;
-    ws.read(buffer, ec);
-
-    if (ec) {
-        std::cerr << "Error receiving initial stats: " << ec.message() << "\n";
-        return;
-    }
-
-    std::string data = boost::beast::buffers_to_string(buffer.data());
-    json stats = json::parse(data);
-
-    std::cout << "[Received Stats] Boot Count: " << stats["boot_count"]
-              << ", Uptime: " << stats["uptime"] << " seconds\n";
-
-    if (logToFile) {
-        saveStatsToCSV(stats["boot_count"], stats["uptime"]);
-    }
-
-    buffer.consume(buffer.size());
-
     while (true) {
-        ws.read(buffer, ec);
-        if (ec) {
-            std::cerr << "Error receiving periodic stats: " << ec.message() << "\n";
-            break;
+        json stats;
+        stats["boot_count"] = boot_count.load();
+        stats["uptime"] = getUptime();
+        std::string message = stats.dump();
+
+        std::vector<std::shared_ptr<websocket::stream<ip::tcp::socket>>> disconnectedClients;
+
+        {
+            std::lock_guard<std::mutex> lock(clients_mutex);
+            for (auto &client : clients) {
+                boost::system::error_code ec;
+                client->write(net::buffer(message), ec);
+                if (ec) {
+                    std::cerr << "Client disconnected: " << ec.message() << "\n";
+                    disconnectedClients.push_back(client);
+                }
+            }
+
+            for (const auto &client : disconnectedClients) 
+            {
+                clients.erase(client);
+            }
         }
 
-        std::string periodicData = boost::beast::buffers_to_string(buffer.data());
-        json periodicStats = json::parse(periodicData);
+        std::this_thread::sleep_for(std::chrono::seconds(logging_interval));
+    }
+}
 
-        std::cout << "[Periodic Update] Boot Count: " << periodicStats["boot_count"]
-                  << ", Uptime: " << periodicStats["uptime"] << " seconds\n";
+void handleClient(ip::tcp::socket socket) 
+{
+    try {
+        auto ws = std::make_shared<websocket::stream<ip::tcp::socket>>(std::move(socket));
+        ws->accept();
 
-        buffer.consume(buffer.size());
+        json firstStat;
+        firstStat["boot_count"] = boot_count.load();
+        firstStat["uptime"] = getUptime();
+        ws->write(net::buffer(firstStat.dump()));
+
+        {
+            std::lock_guard<std::mutex> lock(clients_mutex);
+            clients.insert(ws);
+        }
+
+        boost::beast::flat_buffer buffer;
+        while (true) {
+            boost::system::error_code ec;
+            ws->read(buffer, ec);
+            if (ec == websocket::error::closed) 
+            {
+                break;
+            }
+        }
+
+        {
+            std::lock_guard<std::mutex> lock(clients_mutex);
+            clients.erase(ws);
+        }
+    } catch (...) {
+        std::cerr << "Client error.\n";
     }
 }
 
