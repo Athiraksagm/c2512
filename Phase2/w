@@ -1,478 +1,127 @@
 #include <gtest/gtest.h>
 #include "../include/server.h"
-
-const std::string config_filepath = "config.xml";
-std::vector<std::shared_ptr<websocket::stream<tcp::socket>>> clients;
-std::mutex clients_mutex;
-std::atomic<bool> running{true};
-
-DiskStatus FetchDiskStatus(){
-    DiskStatus disk_status;
-    struct statvfs stat;
-    statvfs("./", &stat);
-    disk_status.disk_space = ((stat.f_blocks * stat.f_bsize) / (1024 * 1024 * 1024)); 
-    disk_status.free_space = ((stat.f_bfree * stat.f_bsize) / (1024 * 1024 * 1024)); 
-    disk_status.utilized_capacity = (((disk_status.disk_space - disk_status.free_space) / disk_status.disk_space) * 100); 
-    return disk_status;
-}
-
-// TEST FetchDiskStatus()
-TEST(ServerTests, FetchDiskStatus) {
-    DiskStatus disk_status = FetchDiskStatus();
-    
-    // Check that the values are reasonable
-    EXPECT_GT(disk_status.disk_space, 0);          // Total disk space must be positive
-    EXPECT_GE(disk_status.free_space, 0);          // Free space should not be negative
-    EXPECT_GE(disk_status.utilized_capacity, 0);   // Utilization should be >= 0%
-    EXPECT_LE(disk_status.utilized_capacity, 100); // Utilization should be <= 100%
-}
-
-float FetchThreshold(std::string filepath){
-    tinyxml2::XMLDocument doc;
-    if(doc.LoadFile(filepath.c_str()) != tinyxml2::XML_SUCCESS){
-        std::cerr << "Error loading threshold from XML\n";
-        return 80.0; // Default value if file read fails
-    }
-
-    const char* threshold = doc.FirstChildElement("config") ->FirstChildElement("threshold")->GetText();
-    return threshold ? std::stof(threshold) : 80.0;
-}
-
-// TEST FetchThreshold()
-TEST(ServerTests, FetchThreshold_Valid) {
-    float threshold = FetchThreshold("../test_config.xml");
-    EXPECT_FLOAT_EQ(threshold, 75.5);
-}
-TEST(ServerTests, FetchThreshold_MissingFile) {
-    float threshold = FetchThreshold("no_file.xml");
-    EXPECT_FLOAT_EQ(threshold, 80.0); // Default value
-}
-TEST(ServerTests, FetchThreshold_MalformedXML) {
-    float threshold = FetchThreshold("test_malformed_config.xml");
-    EXPECT_FLOAT_EQ(threshold, 80.0); // Default value
-}
-
-
-int FetchAlertInterval(std::string filepath){
-    tinyxml2::XMLDocument doc;
-    if(doc.LoadFile(filepath.c_str()) != tinyxml2::XML_SUCCESS){
-        std::cerr << "Error loading alert interval from XML\n";
-        return 30; // Default value if file read fails
-    }
-
-    const char* threshold = doc.FirstChildElement("config") ->FirstChildElement("alert_interval")->GetText();
-    return threshold ? std::stof(threshold) : 30;
-}
-
-// TEST FetchAlertInterval()
-TEST(ServerTests, FetchAlertInterval_Valid) {
-    int alert_interval = FetchAlertInterval("../test_config.xml");
-    EXPECT_EQ(alert_interval, 20);
-}
-TEST(ServerTests, FetchAlertInterval_MissingFile) {
-    int alert_interval = FetchAlertInterval("no_file.xml");
-    EXPECT_EQ(alert_interval, 30); // Default value
-}
-TEST(ServerTests, FetchAlertInterval_MalformedXML) {
-    int alert_interval = FetchAlertInterval("test_malformed_config.xml");
-    EXPECT_EQ(alert_interval, 30); // Default value
-}
-
-void DiskStatusRequestHandler(){
-    std::thread([](){
-        httplib::Server server;
-        server.Get("/fetchDiskStatus", [](const httplib::Request &req, httplib::Response &res){
-            nlohmann::json json_response;
-            DiskStatus disk_status = FetchDiskStatus();
-            json_response["disk_space"] = disk_status.disk_space;
-            json_response["free_space"] = disk_status.free_space;
-            json_response["utilized_capacity"] = disk_status.utilized_capacity;
-            
-            res.set_content(json_response.dump(), "application/json");
-            
-        });
-
-        std::cout << "Server is running on http://localhost:8080\n";
-        server.listen("localhost", 8080);
-    }).detach();
-}
-
-
-// TEST DiskStatusRequestHandler()
-TEST(ServerTests, DiskStatusRequestHandler) {
-    std::thread server_thread([]() {
-        EXPECT_NO_THROW(DiskStatusRequestHandler());
-    });
-
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-
-    // Send a GET request to the server
-    httplib::Client cli("http://localhost:8080");
-    auto res = cli.Get("/fetchDiskStatus");
-
-    EXPECT_NE(res, nullptr);
-    EXPECT_EQ(res->status, 200);
-
-    running = false; // Stop the server
-    server_thread.join();
-}
-
-// void WebSocketSession(tcp::socket socket){
-//     try{
-//         auto ws = std::make_shared<websocket::stream<tcp::socket>>(std::move(socket));
-//         ws->accept();
-
-//         {
-//             std::lock_guard<std::mutex> lock(clients_mutex);
-//             clients.push_back(ws);
-//         }
-
-//         std::cout << "Client connected!" << std::endl;
-
-//         while(running){
-//             beast::flat_buffer buffer;
-//             try{
-//                 ws -> read(buffer);
-//                 std::string received_msg = beast::buffers_to_string(buffer.data());
-//                 std::cout << "Received: " << received_msg << std::endl;
-
-//                 // Stop condition for testing
-//                 if (received_msg == "STOP_TEST") {
-//                     break;
-//                 }
-
-//             } catch(const boost::system::system_error &e) {
-//                 std::cerr << "Client disconnected: " << e.what() << std::endl;
-//                 break;
-//             }
-//         }
-
-//         std::lock_guard<std::mutex> lock(clients_mutex);
-//         clients.erase(std::remove(clients.begin(), clients.end(), ws), clients.end());
-
-//     } catch (const std::exception &e){
-//         std::cerr << "WebSocket Error" << e.what() << std::endl;
-//     }
-// }
-
-// struct MockWebSocket : public websocket::stream<tcp::socket> {
-//     MockWebSocket(net::io_context &ioc) : websocket::stream<tcp::socket>(ioc), message_received(false) {}
-
-//     std::string last_message;
-//     bool message_received;
-
-//     void write(const net::const_buffer &buffer) {
-//         last_message = boost::asio::buffer_cast<const char *>(buffer);
-//         message_received = true;
-//     }
-// };
-
-// ----------------------------- TEST WebSocketSession() -----------------------------
-// TEST(ServerTests, WebSocketSession) {
-//     net::io_context ioc;
-//     tcp::acceptor acceptor(ioc, {tcp::v4(), 9002});
-//     tcp::socket server_socket(ioc);
-//     tcp::socket client_socket(ioc);
-
-//     // Accept a new socket connection for testing
-//     std::thread accept_thread([&] {
-//         acceptor.accept(server_socket);
-//     });
-
-//     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-//     client_socket.connect(tcp::endpoint(net::ip::address_v4::loopback(), 9002));
-//     accept_thread.join();
-
-//     // Start WebSocket session in a separate thread
-//     std::thread session_thread([&] {
-//         WebSocketSession(std::move(server_socket));
-//     });
-
-//     std::this_thread::sleep_for(std::chrono::milliseconds(2000)); // Allow time for connection
-
-//     // Ensure WebSocket connection is added to clients list
-//     {
-//         std::lock_guard<std::mutex> lock(clients_mutex);
-//         EXPECT_FALSE(clients.empty()) << "WebSocket session was not added to the clients list.";
-//     }
-
-//     // Create WebSocket client and send a message
-//     websocket::stream<tcp::socket> ws_client(std::move(client_socket));
-//     ws_client.handshake("localhost", "/");
-//     ws_client.write(net::buffer("Hello Server"));
-
-//     std::this_thread::sleep_for(std::chrono::milliseconds(500)); // Allow message to be processed
-
-//     // Send STOP_TEST message to gracefully exit WebSocketSession()
-//     ws_client.write(net::buffer("STOP_TEST"));
-//     std::this_thread::sleep_for(std::chrono::milliseconds(200));
-
-//     // Close WebSocket connection
-//     ws_client.close(websocket::close_code::normal);
-
-//     // Ensure client is removed after disconnecting
-//     std::this_thread::sleep_for(std::chrono::milliseconds(500)); // Allow time for cleanup
-//     {
-//         std::lock_guard<std::mutex> lock(clients_mutex);
-//         EXPECT_TRUE(clients.empty()) << "WebSocket session was not removed from the clients list.";
-//     }
-
-//     // Clean up
-//     running = false;
-//     session_thread.join();
-// }
-
-
-
-
-// Mock WebSocket client for BroadcastAlert test
-// struct MockWebSocket : public websocket::stream<tcp::socket> {
-//     MockWebSocket(net::io_context &ioc) : websocket::stream<tcp::socket>(ioc) {}
-
-//     std::string last_message;
-//     void write(const net::const_buffer &buffer) {
-//         last_message = boost::asio::buffer_cast<const char *>(buffer);
-//     }
-// };
-
-// // Test WebSocket BroadcastAlert function
-// TEST(ServerTests, BroadcastAlert) {
-//     net::io_context ioc;
-//     auto ws = std::make_shared<MockWebSocket>(ioc);
-
-//     {
-//         std::lock_guard<std::mutex> lock(clients_mutex);
-//         clients.push_back(ws);
-//     }
-
-//     BroadcastAlert("Test Alert");
-
-//     // Check if the last message sent is correct
-//     EXPECT_EQ(ws->last_message, "Test Alert");
-
-//     clients.clear(); // Cleanup
-// }
-
-// // Test if server starts properly
-// TEST(ServerTests, StartServer) {
-//     std::thread server_thread([]() {
-//         EXPECT_NO_THROW(alert_handler());
-//     });
-
-//     // Allow some time for the server to initialize
-//     std::this_thread::sleep_for(std::chrono::seconds(2));
-
-//     running = false; // Stop the server
-//     server_thread.join();
-// }
-
-
-
-
-
-
-
-#include "server.h"
+#include <fstream>
+#include <thread>
+#include <boost/asio.hpp>
+#include <boost/beast.hpp>
 
 using namespace boost::asio;
 using namespace boost::beast;
-using json = nlohmann::json;
-using namespace tinyxml2;
 
-std::atomic<int> boot_count(0);
-std::unordered_set<std::shared_ptr<websocket::stream<ip::tcp::socket>>> clients;
-std::mutex clients_mutex;
-int logging_interval = 5;
-io_context ioc;
+const std::string TEST_CONFIG_FILE = "../source/test_config.xml";  // Temp test config file
 
-int getBootCount() {
-    FILE *pipe = popen("last reboot | wc -l", "r");
-    if (!pipe) {
-        std::cerr << "Error: Failed to execute system command for boot count..\n";
-        return -1;
-    }
-    char buffer[128];
-    if (!fgets(buffer, sizeof(buffer), pipe)) {
-        std::cerr << "Error: Failed to read boot count from command output.\n";
-        pclose(pipe);
-        return -1;
-    }
-    pclose(pipe);
-    try {
-        return std::stoi(buffer);
-    } catch (...) {
-        std::cerr << "Error: Invalid boot count format.\n";
-        return -1;
-    }
+// Create a temporary test config file
+void CreateTestConfig(const std::string& filename, const std::string& content) {
+    std::ofstream file(filename);
+    file << content;
+    file.close();
 }
 
-long getUptime() {
-    struct sysinfo info;
-    sysinfo(&info);
-    return info.uptime;
+// Test boot count retrieval
+TEST(ServerTests, GetBootCount) {
+    int boot_count = getBootCount();
+    EXPECT_GT(boot_count, 0) << "Boot count should be greater than zero.";
 }
 
-void loadConfig()
-{
-    XMLDocument doc;
-    if (doc.LoadFile("../source/config.xml") != XML_SUCCESS) {
-        std::cerr << "Error: Could not load config.xml. Using default logging interval.\n";
-        return;
-    }
-    XMLElement *root = doc.FirstChildElement("config");
-    if (!root) {
-        std::cerr << "Error: <config> element missing in config.xml. Using default 10s.\n";
-        return;
-    }
-    XMLElement *interval_element = root->FirstChildElement("logging_interval");
-    if (!interval_element) {
-        std::cerr << "Error: <logging_interval> element missing in config.xml. Using default 10s.\n";
-        return;
-    }
-    const char* interval_text = interval_element->GetText();
-    if (interval_text && std::all_of(interval_text, interval_text + strlen(interval_text), ::isdigit))
-    {
-        try {
-            logging_interval = std::stoi(interval_text);
-            std::cerr << "Logging interval set to: " << logging_interval << "s\n" << std::flush;
-        } catch (...) {
-            std::cerr << "Error: Invalid logging interval in config.xml. Using default 10s.\n";
-            logging_interval = 10;
-        }
-    } else {
-        std::cerr << "Error: Invalid logging interval in config.xml (non-numeric value). Using default 10s.\n" << std::flush;
-        logging_interval = 10;
-    }
+// Test system uptime retrieval
+TEST(ServerTests, GetUptime) {
+    long uptime = getUptime();
+    EXPECT_GT(uptime, 0) << "Uptime should be greater than zero.";
 }
 
-void broadcastStats()
-{
-    while (true)
-    {
-        json stats;
-        stats["boot_count"] = boot_count.load();
-        stats["uptime"] = getUptime();
-        std::string message = stats.dump();
+// Test loading valid config file
+TEST(ServerTests, LoadConfig_ValidFile) {
+    std::string config_content =
+        "<config>\n"
+        "    <logging_interval>15</logging_interval>\n"
+        "</config>";
 
-        std::vector<std::shared_ptr<websocket::stream<ip::tcp::socket>>> disconnected_clients;
-
-        {
-            std::lock_guard<std::mutex> lock(clients_mutex);
-            for (auto &client : clients) {
-                boost::system::error_code ec;
-                client->write(net::buffer(message), ec);
-                if (ec) {
-                    std::cerr << "Client disconnected: " << ec.message() << "\n";
-                    disconnected_clients.push_back(client);
-                }
-            }
-
-            for (const auto &client : disconnected_clients) {
-                clients.erase(client);
-            }
-        }
-
-        std::this_thread::sleep_for(std::chrono::seconds(logging_interval));
-    }
-}
-
-void handleClient(ip::tcp::socket socket)
-{
-    try {
-        auto ws = std::make_shared<websocket::stream<ip::tcp::socket>>(std::move(socket));
-        ws->accept();
-
-        boost::beast::flat_buffer buffer;
-        boost::system::error_code ec;
-
-        // Read initial client request
-        ws->read(buffer, ec);
-        if (ec) {
-            if (ec == boost::beast::websocket::error::closed) {
-                std::cout << "Client disconnected: WebSocket closed\n";
-            } else if (ec == boost::asio::error::eof) {
-                std::cout << "Client disconnected.\n";
-            } else {
-                std::cerr << "Error reading from client: " << ec.message() << "\n";
-            }
-            return;
-        }
-
-        std::string client_message = boost::beast::buffers_to_string(buffer.data());
-        buffer.consume(buffer.size());
-
-        if (client_message == "REQUEST_STATS") {
-            std::cout << "Request received from client. Sending current stats...\n";
-            json first_stat;
-            first_stat["boot_count"] = boot_count.load();
-            first_stat["uptime"] = getUptime();
-            ws->write(net::buffer(first_stat.dump()), ec);
-        }
-
-        // Add client to active list
-        {
-            std::lock_guard<std::mutex> lock(clients_mutex);
-            clients.insert(ws);
-        }
-
-        // Continuous reading (for periodic updates)
-        while (true) {
-            buffer.consume(buffer.size());
-            ws->read(buffer, ec);
-
-            if (ec == websocket::error::closed) {
-                std::cout << "Client disconnected: WebSocket closed\n";
-                break;
-            }
-
-            if (ec) {
-                std::cerr << "Error reading from WebSocket: " << ec.message() << "\n";
-                break;
-            }
-        }
-
-        // Remove client from active list safely
-        {
-            std::lock_guard<std::mutex> lock(clients_mutex);
-            clients.erase(ws);
-        }
-    } catch (...) {
-        std::cerr << "Client error.\n";
-    }
-}
-
-int main(int argc, char* argv[])
-{
-    std::cout << "=============================\n"
-              << " SYSTEM STAT LOGGING SERVER\n"
-              << "=============================\n\n";
-
-    int port = 9000;
-    if (argc > 1) {
-        port = std::stoi(argv[1]);
-    }
-
-    std::cout << "Server running at http://localhost:" << port << "...\n\n";
+    CreateTestConfig(TEST_CONFIG_FILE, config_content);
+    configFile = TEST_CONFIG_FILE;  // Point to test config
 
     loadConfig();
-    boot_count.store(getBootCount());
+    EXPECT_EQ(logging_interval, 15) << "Logging interval should be set to 15.";
+}
 
-    ip::tcp::acceptor acceptor(ioc, ip::tcp::endpoint(ip::tcp::v4(), port));
+// Test loading config when file is missing
+TEST(ServerTests, LoadConfig_MissingFile) {
+    remove(TEST_CONFIG_FILE.c_str());  // Delete test config if exists
 
-    std::thread logger(broadcastStats);
-    logger.detach();
+    configFile = TEST_CONFIG_FILE;
+    loadConfig();
+    EXPECT_EQ(logging_interval, 10) << "Logging interval should default to 10 when file is missing.";
+}
 
-    while (true)
+// Test WebSocket client connection handling
+TEST(ServerTests, HandleClient_Connection) {
+    net::io_context ioc;
+    ip::tcp::acceptor acceptor(ioc, {ip::tcp::v4(), 9001});
+    ip::tcp::socket server_socket(ioc);
+    ip::tcp::socket client_socket(ioc);
+
+    // Accept connection in a separate thread
+    std::thread accept_thread([&] {
+        acceptor.accept(server_socket);
+    });
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    client_socket.connect(ip::tcp::endpoint(ip::address_v4::loopback(), 9001));
+    accept_thread.join();
+
+    // Start WebSocket session
+    std::thread session_thread([&] {
+        handleClient(std::move(server_socket));
+    });
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+    // Verify client added to active list
     {
-        ip::tcp::socket socket(ioc);
-        boost::system::error_code ec;
-        acceptor.accept(socket, ec);
-        if (!ec) {
-            std::thread(handleClient, std::move(socket)).detach();
-        } else {
-            std::cerr << "Error accepting connection: " << ec.message() << "\n";
-        }
+        std::lock_guard<std::mutex> lock(clients_mutex);
+        EXPECT_FALSE(clients.empty()) << "Client should be added to active list.";
     }
 
-    return 0;
+    client_socket.close();
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+    // Verify client removed after disconnection
+    {
+        std::lock_guard<std::mutex> lock(clients_mutex);
+        EXPECT_TRUE(clients.empty()) << "Client should be removed after disconnect.";
+    }
+
+    session_thread.join();
+}
+
+// Test WebSocket broadcasting system stats
+TEST(ServerTests, BroadcastStats) {
+    net::io_context ioc;
+    auto ws = std::make_shared<websocket::stream<ip::tcp::socket>>(ioc);
+
+    {
+        std::lock_guard<std::mutex> lock(clients_mutex);
+        clients.insert(ws);
+    }
+
+    boot_count.store(5);
+
+    // Simulate broadcast
+    std::thread broadcast_thread([] {
+        broadcastStats();
+    });
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+    {
+        std::lock_guard<std::mutex> lock(clients_mutex);
+        EXPECT_FALSE(clients.empty()) << "Broadcast should not remove clients.";
+    }
+
+    clients.clear();
+    broadcast_thread.detach();
+}
+
+int main(int argc, char **argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
 }
