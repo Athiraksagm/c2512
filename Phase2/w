@@ -6,11 +6,11 @@ using json = nlohmann::json;
 
 namespace websocket = boost::beast::websocket;
 boost::asio::io_context ioc;
-std::shared_ptr<websocket::stream<boost::asio::ip::tcp::socket>> ws_client;
+std::shared_ptr<websocket::stream<ip::tcp::socket>> ws_client;
+std::atomic<bool> stopClient(false); // Flag to stop the client gracefully
 
 // Save system stats to CSV
-void saveStatsToCSV(int boot_count, long uptime) 
-{
+void saveStatsToCSV(int boot_count, long uptime) {
     std::string filename = "../system_stats.csv";
 
     std::ifstream fileCheck(filename);
@@ -37,27 +37,42 @@ void saveStatsToCSV(int boot_count, long uptime)
          << uptime << "\n";
 }
 
-//Establishes a Websocket connection to the server and receives system stats
-void connectToServer(const std::string& host, int port, bool logToFile) 
-{
-    io_context ioc;
+// Signal handler to handle Ctrl + C and close WebSocket properly
+void signalHandler(int signum) {
+    std::cout << "\nClient received SIGINT (Ctrl + C), closing WebSocket...\n";
+    stopClient = true; // Set flag to stop client loop
+
+    if (ws_client) {
+        boost::system::error_code ec;
+        ws_client->close(websocket::close_code::normal, ec);
+        if (ec) {
+            std::cerr << "Error closing WebSocket: " << ec.message() << "\n";
+        } else {
+            std::cout << "WebSocket closed successfully.\n";
+        }
+    }
+
+    exit(signum);
+}
+
+// Establish WebSocket connection and receive system stats
+void connectToServer(const std::string& host, int port, bool logToFile) {
     ip::tcp::resolver resolver(ioc);
     auto endpoints = resolver.resolve(host, std::to_string(port));
 
-    websocket::stream<ip::tcp::socket> ws(ioc);
-    boost::asio::connect(ws.next_layer(), endpoints);
-    ws.handshake(host, "/");
+    // Assign global WebSocket pointer
+    ws_client = std::make_shared<websocket::stream<ip::tcp::socket>>(ioc);
+    boost::asio::connect(ws_client->next_layer(), endpoints);
+    ws_client->handshake(host, "/");
 
     std::cout << "Connected to server on port " << port << "\n";
-    std::cout << "\n";
-    std::cout << "Sending REQUEST_STATS to server...\n";
-    std::cout << "\n";
+    std::cout << "\nSending REQUEST_STATS to server...\n\n";
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
-    ws.write(net::buffer(std::string("REQUEST_STATS")));
+    ws_client->write(net::buffer(std::string("REQUEST_STATS")));
 
     boost::beast::flat_buffer buffer;
     boost::system::error_code ec;
-    ws.read(buffer, ec);
+    ws_client->read(buffer, ec);
 
     if (ec) {
         std::cerr << "Error receiving initial stats: " << ec.message() << "\n";
@@ -76,8 +91,13 @@ void connectToServer(const std::string& host, int port, bool logToFile)
 
     buffer.consume(buffer.size());
 
-    while (true) {
-        ws.read(buffer, ec);
+    // Periodic reading loop
+    while (!stopClient) {
+        ws_client->read(buffer, ec);
+        if (ec == websocket::error::closed) {
+            std::cout << "Server closed WebSocket, exiting...\n";
+            break;
+        }
         if (ec) {
             std::cerr << "Error receiving periodic stats: " << ec.message() << "\n";
             break;
@@ -89,28 +109,23 @@ void connectToServer(const std::string& host, int port, bool logToFile)
         std::cout << "[Periodic Update] Boot Count: " << periodicStats["boot_count"]
                   << ", Uptime: " << periodicStats["uptime"] << " seconds\n";
 
+        if (logToFile) {
+            saveStatsToCSV(periodicStats["boot_count"], periodicStats["uptime"]);
+        }
+
         buffer.consume(buffer.size());
     }
-}
 
-void signalHandler(int signum) {
-    std::cout << "\nClient received SIGINT (Ctrl + C), closing WebSocket...\n";
-
-    if (ws_client) {
-        boost::system::error_code ec;
-        ws_client->close(websocket::close_code::normal, ec);
-        if (ec) {
-            std::cerr << "Error closing WebSocket: " << ec.message() << "\n";
-        } else {
-            std::cout << "WebSocket closed successfully.\n";
-        }
+    // Close WebSocket properly when exiting
+    ws_client->close(websocket::close_code::normal, ec);
+    if (ec) {
+        std::cerr << "Error closing WebSocket: " << ec.message() << "\n";
+    } else {
+        std::cout << "WebSocket closed successfully.\n";
     }
-
-    exit(signum);
 }
 
-int main(int argc, char* argv[]) 
-{
+int main(int argc, char* argv[]) {
     signal(SIGINT, signalHandler);
     bool logToFile = false;
     std::string host = "localhost";
@@ -123,8 +138,11 @@ int main(int argc, char* argv[])
     if (argc > 2 && std::string(argv[2]) == "--log") {
         logToFile = true;
     }
-    std::cout << "=============================\n" << " SYSTEM STAT LOGGING CLIENT\n" << "=============================\n";
-    std::cout << "\n";
+
+    std::cout << "=============================\n"
+              << " SYSTEM STAT LOGGING CLIENT\n"
+              << "=============================\n\n";
+
     connectToServer(host, port, logToFile);
     return 0;
 }
