@@ -1,36 +1,136 @@
-#include <gtest/gtest.h>
-#include <iostream>
-#include <cstdio>
-#include <cstdlib>
-#include <sys/sysinfo.h>
-#include <boost/asio.hpp>
-#include <boost/beast.hpp>
-#include <thread>
-#include <mutex>
-#include <unordered_set>
-#include <memory>
-#include <nlohmann/json.hpp>
-#include <atomic>
-#include <tinyxml2.h>
+DiskStatus FetchDiskStatus(){
+    DiskStatus disk_status;
+    struct statvfs stat;
+    statvfs("./", &stat);
+    disk_status.disk_space = ((stat.f_blocks * stat.f_bsize) / (1024 * 1024 * 1024)); 
+    disk_status.free_space = ((stat.f_bfree * stat.f_bsize) / (1024 * 1024 * 1024)); 
+    disk_status.utilized_capacity = (((disk_status.disk_space - disk_status.free_space) / disk_status.disk_space) * 100); 
+    return disk_status;
+}
+
+// TEST FetchDiskStatus()
+TEST(ServerTests, FetchDiskStatus) {
+    DiskStatus disk_status = FetchDiskStatus();
+    
+    // Check that the values are reasonable
+    EXPECT_GT(disk_status.disk_space, 0);          // Total disk space must be positive
+    EXPECT_GE(disk_status.free_space, 0);          // Free space should not be negative
+    EXPECT_GE(disk_status.utilized_capacity, 0);   // Utilization should be >= 0%
+    EXPECT_LE(disk_status.utilized_capacity, 100); // Utilization should be <= 100%
+}
+
+float FetchThreshold(std::string filepath){
+    tinyxml2::XMLDocument doc;
+    if(doc.LoadFile(filepath.c_str()) != tinyxml2::XML_SUCCESS){
+        std::cerr << "Error loading threshold from XML\n";
+        return 80.0; // Default value if file read fails
+    }
+
+    const char* threshold = doc.FirstChildElement("config") ->FirstChildElement("threshold")->GetText();
+    return threshold ? std::stof(threshold) : 80.0;
+}
+
+// TEST FetchThreshold()
+TEST(ServerTests, FetchThreshold_Valid) {
+    float threshold = FetchThreshold("../test_config.xml");
+    EXPECT_FLOAT_EQ(threshold, 75.5);
+}
+TEST(ServerTests, FetchThreshold_MissingFile) {
+    float threshold = FetchThreshold("no_file.xml");
+    EXPECT_FLOAT_EQ(threshold, 80.0); // Default value
+}
+TEST(ServerTests, FetchThreshold_MalformedXML) {
+    float threshold = FetchThreshold("test_malformed_config.xml");
+    EXPECT_FLOAT_EQ(threshold, 80.0); // Default value
+}
+
+
+int FetchAlertInterval(std::string filepath){
+    tinyxml2::XMLDocument doc;
+    if(doc.LoadFile(filepath.c_str()) != tinyxml2::XML_SUCCESS){
+        std::cerr << "Error loading alert interval from XML\n";
+        return 30; // Default value if file read fails
+    }
+
+    const char* threshold = doc.FirstChildElement("config") ->FirstChildElement("alert_interval")->GetText();
+    return threshold ? std::stof(threshold) : 30;
+}
+
+// TEST FetchAlertInterval()
+TEST(ServerTests, FetchAlertInterval_Valid) {
+    int alert_interval = FetchAlertInterval("../test_config.xml");
+    EXPECT_EQ(alert_interval, 20);
+}
+TEST(ServerTests, FetchAlertInterval_MissingFile) {
+    int alert_interval = FetchAlertInterval("no_file.xml");
+    EXPECT_EQ(alert_interval, 30); // Default value
+}
+TEST(ServerTests, FetchAlertInterval_MalformedXML) {
+    int alert_interval = FetchAlertInterval("test_malformed_config.xml");
+    EXPECT_EQ(alert_interval, 30); // Default value
+}
+
+void DiskStatusRequestHandler(){
+    std::thread([](){
+        httplib::Server server;
+        server.Get("/fetchDiskStatus", [](const httplib::Request &req, httplib::Response &res){
+            nlohmann::json json_response;
+            DiskStatus disk_status = FetchDiskStatus();
+            json_response["disk_space"] = disk_status.disk_space;
+            json_response["free_space"] = disk_status.free_space;
+            json_response["utilized_capacity"] = disk_status.utilized_capacity;
+            
+            res.set_content(json_response.dump(), "application/json");
+            
+        });
+
+        std::cout << "Server is running on http://localhost:8080\n";
+        server.listen("localhost", 8080);
+    }).detach();
+}
+
+
+// TEST DiskStatusRequestHandler()
+TEST(ServerTests, DiskStatusRequestHandler) {
+    std::thread server_thread([]() {
+        EXPECT_NO_THROW(DiskStatusRequestHandler());
+    });
+
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    // Send a GET request to the server
+    httplib::Client cli("http://localhost:8080");
+    auto res = cli.Get("/fetchDiskStatus");
+
+    EXPECT_NE(res, nullptr);
+    EXPECT_EQ(res->status, 200);
+
+    running = false; // Stop the server
+    server_thread.join();
+}
+
+
+
+
+
+
+
+#include "gtest/gtest.h"
+#include "../include/server.h"
+#include <fstream>
 
 using json = nlohmann::json;
-namespace net = boost::asio;
-namespace websocket = boost::beast::websocket;
-using ip = boost::asio::ip;
+using namespace boost::asio;
+using namespace boost::beast;
+using namespace boost::asio::ip;
 using namespace tinyxml2;
 
 // Global variables from server.cpp
 std::atomic<int> boot_count(0);
 std::unordered_set<std::shared_ptr<websocket::stream<ip::tcp::socket>>> clients;
 std::mutex clients_mutex;
-int logging_interval = 5;
-io_context ioc;
+int logging_interval = 10; 
 
-// Function prototypes
-int getBootCount();
-long getUptime();
-void loadConfig();
-void broadcastStats();
 
 // Function to get boot count (same as server.cpp)
 int getBootCount() {
@@ -122,17 +222,26 @@ void broadcastStats() {
     }
 }
 
-// **TEST CASES**
+//Test for getBootCount()
 TEST(SystemStatsTest, BootCount) {
     int bootCount = getBootCount();
+    
+    // Boot count should be a non-negative integer
     EXPECT_GE(bootCount, 0);
+
+    // Verify that a valid integer is returned
+    if (bootCount > 0) {
+        EXPECT_GT(bootCount, 0);
+    }
 }
 
+// Test for getUptime()
 TEST(SystemStatsTest, Uptime) {
     long uptime = getUptime();
+    
+    // Uptime should be a positive value
     EXPECT_GT(uptime, 0);
 }
-
 TEST(SystemStatsTest, LoadConfig) {
     // Ensure logging_interval is correctly set
     loadConfig();
