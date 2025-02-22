@@ -1,122 +1,25 @@
-#include "gtest/gtest.h"
-#include "../include/server.h"
-#include <fstream>
-
-using json = nlohmann::json;
-using namespace boost::asio;
-using namespace boost::beast;
-using namespace boost::asio::ip;
-using namespace tinyxml2;
-
-// Global variables from server.cpp
-extern std::atomic<int> boot_count;
-extern int logging_interval;
-extern std::unordered_set<std::shared_ptr<websocket::stream<ip::tcp::socket>>> clients;
-extern std::mutex clients_mutex;
-
-//TEST 1: Boot count retrieval (Normal Case)
-TEST(SystemStatsTest, BootCountRetrieval) {
-    int result = getBootCount();
-    EXPECT_GE(result, 0);  // Boot count should be non-negative
-}
-
-//TEST 2: Boot count retrieval (Edge Case)
-TEST(SystemStatsTest, BootCountRetrievalEdgeCase) {
-    system("echo 0 > test_boot_count.txt");
-    int result = getBootCount();
-    EXPECT_EQ(result, 0); // Simulate first system boot
-}
-
-//TEST 3: Uptime retrieval
-TEST(SystemStatsTest, UptimeRetrieval) {
-    long uptime = getUptime();
-    EXPECT_GT(uptime, 0); // Uptime should be greater than zero
-}
-
-//TEST 4: Config Loading (Valid Interval)
-TEST(SystemStatsTest, LoadConfigValid) {
-    std::ofstream configFile("mock_config.xml");
-    configFile << "<config><logging_interval>15</logging_interval></config>";
-    configFile.close();
-
-    logging_interval = 10;  // Reset before test
-    loadConfig("mock_config.xml");  // Call actual function
-    EXPECT_EQ(logging_interval, 15);
-}
-
-//TEST 5: Config Loading (Invalid Interval)
-TEST(SystemStatsTest, LoadConfigInvalid) {
-    std::ofstream configFile("mock_config.xml");
-    configFile << "<config><logging_interval>invalid</logging_interval></config>";
-    configFile.close();
-
-    logging_interval = 10;  
-    loadConfig("mock_config.xml");  
-    EXPECT_EQ(logging_interval, 10);  // Should retain default due to invalid value
-}
-
-//TEST 6: JSON Response Format
-TEST(SystemStatsTest, JsonResponseFormat) {
-    json response_json;
-    boot_count.store(getBootCount());
-    response_json["boot_count"] = boot_count.load();
-    response_json["uptime"] = getUptime();
-
-    std::string json_output = response_json.dump();
-    EXPECT_TRUE(json_output.find("\"boot_count\"") != std::string::npos);
-    EXPECT_TRUE(json_output.find("\"uptime\"") != std::string::npos);
-}
-
-//TEST 7: WebSocket Client Addition
-TEST(SystemStatsTest, WebSocketClientAddition) {
-    std::shared_ptr<websocket::stream<ip::tcp::socket>> ws;
-    
-    {
-        std::lock_guard<std::mutex> lock(clients_mutex);
-        size_t prev_size = clients.size();
-        clients.insert(ws);
-        EXPECT_EQ(clients.size(), prev_size + 1);
-    }
-}
-
-//TEST 8: WebSocket Client Removal
-TEST(SystemStatsTest, WebSocketClientRemoval) {
-    std::shared_ptr<websocket::stream<ip::tcp::socket>> ws;
-
-    {
-        std::lock_guard<std::mutex> lock(clients_mutex);
-        clients.insert(ws);
-        size_t prev_size = clients.size();
-        clients.erase(ws);
-        EXPECT_EQ(clients.size(), prev_size - 1);
-    }
-}
-
-//TEST 9: BroadcastStats Runs Without Crash
-TEST(SystemStatsTest, BroadcastStatsRuns) {
-    EXPECT_NO_THROW({
-        std::thread broadcastThread([]() {
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
-        });
-        broadcastThread.join();
-    });
-}
-
-//TEST 10: BroadcastStats Sends Data
-TEST(SystemStatsTest, BroadcastStatsSendsData) {
-    json stats;
-    stats["boot_count"] = boot_count.load();
-    stats["uptime"] = getUptime();
-
-    std::string message = stats.dump();
-    EXPECT_FALSE(message.empty());
-
-    EXPECT_TRUE(message.find("\"boot_count\"") != std::string::npos);
-    EXPECT_TRUE(message.find("\"uptime\"") != std::string::npos);
-}
-
-//MAIN FUNCTION
-int main(int argc, char **argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/build$ make
+[ 20%] Building CXX object CMakeFiles/server.dir/source/server.cpp.o
+[ 40%] Building CXX object CMakeFiles/server.dir/source/tinyxml2.cpp.o
+[ 60%] Linking CXX executable server
+[ 60%] Built target server
+[ 80%] Building CXX object CMakeFiles/test_server.dir/test/test_server.cpp.o
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/test/test_server.cpp: In member function ‘virtual void SystemStatsTest_LoadConfigValid_Test::TestBody()’:
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/test/test_server.cpp:201:15: error: too many arguments to function ‘void loadConfig()’
+  201 |     loadConfig("config.xml");  // Call actual function
+      |     ~~~~~~~~~~^~~~~~~~~~~~~~
+In file included from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/test/test_server.cpp:160:
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/test/../include/server.h:19:6: note: declared here
+   19 | void loadConfig();
+      |      ^~~~~~~~~~
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/test/test_server.cpp: In member function ‘virtual void SystemStatsTest_LoadConfigInvalid_Test::TestBody()’:
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/test/test_server.cpp:212:15: error: too many arguments to function ‘void loadConfig()’
+  212 |     loadConfig("config.xml");
+      |     ~~~~~~~~~~^~~~~~~~~~~~~~
+In file included from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/test/test_server.cpp:160:
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/test/../include/server.h:19:6: note: declared here
+   19 | void loadConfig();
+      |      ^~~~~~~~~~
+make[2]: *** [CMakeFiles/test_server.dir/build.make:76: CMakeFiles/test_server.dir/test/test_server.cpp.o] Error 1
+make[1]: *** [CMakeFiles/Makefile2:111: CMakeFiles/test_server.dir/all] Error 2
+make: *** [Makefile:101: all] Error 2
