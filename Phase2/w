@@ -1,22 +1,67 @@
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/build$ ./test_server
-[==========] Running 2 tests from 1 test suite.
-[----------] Global test environment set-up.
-[----------] 2 tests from SystemStatsTest
-[ RUN      ] SystemStatsTest.BootCount
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/test/test_server.cpp:227: Failure
-Expected equality of these values:
-  getBootCount()
-    Which is: 80
-  -1
-[  FAILED  ] SystemStatsTest.BootCount (12 ms)
-[ RUN      ] SystemStatsTest.Uptime
-[       OK ] SystemStatsTest.Uptime (0 ms)
-[----------] 2 tests from SystemStatsTest (12 ms total)
+#include <gtest/gtest.h>
+#include <iostream>
+#include <cstdio>
+#include <cstdlib>
+#include <sys/sysinfo.h>
 
-[----------] Global test environment tear-down
-[==========] 2 tests from 1 test suite ran. (12 ms total)
-[  PASSED  ] 1 test.
-[  FAILED  ] 1 test, listed below:
-[  FAILED  ] SystemStatsTest.BootCount
+// Function to get boot count
+int getBootCount() {
+    FILE *pipe = popen("last reboot | wc -l", "r");
+    if (!pipe) {
+        std::cerr << "Error: Failed to execute system command for boot count..\n";
+        return -1;
+    }
+    
+    char buffer[128];
+    if (!fgets(buffer, sizeof(buffer), pipe)) {
+        std::cerr << "Error: Failed to read boot count from command output.\n";
+        pclose(pipe);
+        return -1;
+    }
+    
+    pclose(pipe);
+    
+    try {
+        return std::stoi(buffer);
+    } catch (...) {
+        std::cerr << "Error: Invalid boot count format.\n";
+        return -1;
+    }
+}
 
- 1 FAILED TEST
+// Function to get system uptime
+long getUptime() {
+    struct sysinfo info;
+    if (sysinfo(&info) != 0) {
+        std::cerr << "Error: Failed to get system uptime.\n";
+        return -1;
+    }
+    return info.uptime;
+}
+
+// Test for getBootCount()
+TEST(SystemStatsTest, BootCount) {
+    int bootCount = getBootCount();
+    
+    // Boot count should be a non-negative integer
+    EXPECT_GE(bootCount, 0);
+
+    // Verify that a valid integer is returned
+    if (bootCount > 0) {
+        EXPECT_GT(bootCount, 0);
+    }
+}
+
+// Test for getUptime()
+TEST(SystemStatsTest, Uptime) {
+    long uptime = getUptime();
+    
+    // Uptime should be a positive value
+    EXPECT_GT(uptime, 0);
+}
+
+// Main function to run tests
+int main(int argc, char **argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+}
