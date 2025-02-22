@@ -1,60 +1,84 @@
-#include "gtest/gtest.h"
-#include "../include/server.h"
-#include <boost/asio.hpp>
-#include <boost/beast/websocket.hpp>
-#include <thread>
-#include <chrono>
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/build$ make
+Consolidate compiler generated dependencies of target server
+[ 60%] Built target server
+Consolidate compiler generated dependencies of target test_server
+[ 80%] Building CXX object CMakeFiles/test_server.dir/test/test_server.cpp.o
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/test/test_server.cpp: In member function ‘virtual void ServerTests_HandleClient_Test::TestBody()’:
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/test/test_server.cpp:588:18: error: could not convert ‘received_message’ from ‘std::string’ {aka ‘std::__cxx11::basic_string<char>’} to ‘boost::asio::ip::tcp::socket’ {aka ‘boost::asio::basic_stream_socket<boost::asio::ip::tcp>’}
+  588 |     handleClient(received_message, connection_status);
+      |                  ^~~~~~~~~~~~~~~~
+      |                  |
+      |                  std::string {aka std::__cxx11::basic_string<char>}
+make[2]: *** [CMakeFiles/test_server.dir/build.make:76: CMakeFiles/test_server.dir/test/test_server.cpp.o] Error 1
+make[1]: *** [CMakeFiles/Makefile2:111: CMakeFiles/test_server.dir/all] Error 2
+make: *** [Makefile:101: all] Error 2
 
-using namespace boost::asio;
-using namespace boost::beast;
-using namespace boost::asio::ip;
 
-// Function to simulate a WebSocket client connecting to the server
-void simulateClient(std::string &received_message, bool &connection_status) {
+
+
+
+
+void handleClient(ip::tcp::socket socket)
+{
     try {
-        io_context ioc;
-        tcp::resolver resolver(ioc);
-        websocket::stream<tcp::socket> ws(ioc);
+        auto ws = std::make_shared<websocket::stream<ip::tcp::socket>>(std::move(socket));
+        ws->accept();
 
-        auto const results = resolver.resolve("127.0.0.1", "8080");
-        connect(ws.next_layer(), results.begin(), results.end());
-        ws.handshake("127.0.0.1", "/");
+        boost::beast::flat_buffer buffer;
+        boost::system::error_code ec;
 
-        // Send initial request
-        ws.write(net::buffer(std::string("REQUEST_STATS")));
+        // Read initial client request
+        ws->read(buffer, ec);
+        if (ec) {
+            if (ec == boost::beast::websocket::error::closed) {
+                std::cout << "Client disconnected: WebSocket closed\n";
+            } else if (ec == boost::asio::error::eof) {
+                std::cout << "Client disconnected.\n";
+            } else {
+                std::cerr << "Error reading from client: " << ec.message() << "\n";
+            }
+            return;
+        }
 
-        // Read server response
-        flat_buffer buffer;
-        ws.read(buffer);
-        received_message = buffers_to_string(buffer.data());
-        connection_status = true;
+        std::string client_message = boost::beast::buffers_to_string(buffer.data());
+        buffer.consume(buffer.size());
 
-        ws.close(websocket::close_code::normal);
+        if (client_message == "REQUEST_STATS") {
+            std::cout << "Request received from client. Sending current stats...\n";
+            json first_stat;
+            first_stat["boot_count"] = boot_count.load();
+            first_stat["uptime"] = getUptime();
+            ws->write(net::buffer(first_stat.dump()), ec);
+        }
+
+        // Add client to active list
+        {
+            std::lock_guard<std::mutex> lock(clients_mutex);
+            clients.insert(ws);
+        }
+
+        // Continuous reading (for periodic updates)
+        while (true) {
+            buffer.consume(buffer.size());
+            ws->read(buffer, ec);
+
+            if (ec == websocket::error::closed) {
+                std::cout << "Client disconnected: WebSocket closed\n";
+                break;
+            }
+
+            if (ec) {
+                std::cerr << "Error reading from WebSocket: " << ec.message() << "\n";
+                break;
+            }
+        }
+
+        // Remove client from active list safely
+        {
+            std::lock_guard<std::mutex> lock(clients_mutex);
+            clients.erase(ws);
+        }
     } catch (...) {
-        connection_status = false;
+        std::cerr << "Client error.\n";
     }
-}
-
-// Test case for handling client connection
-TEST(ServerTests, HandleClient) {
-    io_context ioc;
-    tcp::acceptor acceptor(ioc, tcp::endpoint(tcp::v4(), 8080));
-
-    // Start a server thread that accepts one client
-    std::thread server_thread([&]() {
-        tcp::socket socket(ioc);
-        acceptor.accept(socket);
-        handleClient(std::move(socket));
-    });
-
-    std::this_thread::sleep_for(std::chrono::seconds(1)); // Wait for the server to start
-
-    std::string received_message;
-    bool connection_status = false;
-    simulateClient(received_message, connection_status);
-
-    EXPECT_TRUE(connection_status);
-    EXPECT_FALSE(received_message.empty());
-
-    server_thread.join();
 }
