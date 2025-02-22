@@ -1,3 +1,21 @@
+void signalHandler(int signum) {
+    std::cout << "\nClosing WebSocket connection...\n";
+    try {
+        ws.close(websocket::close_code::normal);  // Graceful close
+    } catch (const std::exception &e) {
+        std::cerr << "Error closing WebSocket: " << e.what() << "\n";
+    }
+    exit(signum);
+}
+
+
+
+
+
+
+
+
+
 // Continuous reading (for periodic updates)
 while (true) {
     ws->read(buffer, ec);
