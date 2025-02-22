@@ -1,36 +1,32 @@
-#ifndef CLIENT_H
-#define CLIENT_H
+int main(int argc, char* argv[]) 
+{
+    signal(SIGINT, signalHandler);
+    bool logToFile = false;
+    std::string host = "localhost"; // Default to localhost
+    int port = 9000;
 
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <memory>
-#include <atomic>
-#include <csignal>
-#include <ctime>
-#include <boost/asio.hpp>
-#include <boost/beast.hpp>
-#include <nlohmann/json.hpp>
+    if (argc > 1) {
+        host = argv[1];  // Set the server IP from command-line argument
+    }
 
-void saveStatsToCSV(int boot_count, long uptime);
-/**
- * @brief Saves system statistics to a CSV file.
- * @param boot_count The number of times the system has booted.
- * @param uptime The system uptime in seconds.
- */
+    if (argc > 2) {
+        try {
+            port = std::stoi(argv[2]);
+        } catch (...) {
+            std::cerr << "Error: Invalid port number. Using default port 9000.\n";
+            port = 9000;
+        }
+    }
 
-void connectToServer(const std::string& host, int port, bool logToFile);
-/**
- * @brief Connects to the WebSocket server and listens for periodic updates.
- * @param host The server's hostname or IP address.
- * @param port The port number to connect to.
- * @param logToFile If true, saves received stats to a CSV file.
- */
+    if (argc > 3 && std::string(argv[3]) == "--log") {
+        logToFile = true;
+    }
 
-void signalHandler(int signum);
-/**
- * @brief Handles SIGINT (Ctrl+C) signal to safely disconnect the client.
- * @param signum The signal number.
- */
+    std::cout << "=============================\n"
+              << " SYSTEM STAT LOGGING CLIENT\n"
+              << "=============================\n\n";
+    std::cout << "Connecting to server at " << host << ":" << port << "\n";
 
-#endif // CLIENT_H
+    connectToServer(host, port, logToFile);
+    return 0;
+}
