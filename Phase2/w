@@ -1,3 +1,64 @@
+#include <csignal>  // Required for handling signals
+#include <iostream>
+#include <boost/asio.hpp>
+#include <boost/beast/websocket.hpp>
+
+namespace websocket = boost::beast::websocket;
+boost::asio::io_context ioc;
+std::shared_ptr<websocket::stream<boost::asio::ip::tcp::socket>> ws_client;
+
+void signalHandler(int signum) {
+    std::cout << "\nClient received SIGINT (Ctrl + C), closing WebSocket...\n";
+
+    if (ws_client) {
+        boost::system::error_code ec;
+        ws_client->close(websocket::close_code::normal, ec);
+        if (ec) {
+            std::cerr << "Error closing WebSocket: " << ec.message() << "\n";
+        } else {
+            std::cout << "WebSocket closed successfully.\n";
+        }
+    }
+
+    exit(signum);
+}
+
+int main() {
+    signal(SIGINT, signalHandler);  // Register SIGINT handler
+
+    try {
+        boost::asio::ip::tcp::resolver resolver(ioc);
+        auto const results = resolver.resolve("localhost", "9000");
+        boost::asio::ip::tcp::socket socket(ioc);
+        boost::asio::connect(socket, results.begin(), results.end());
+
+        ws_client = std::make_shared<websocket::stream<boost::asio::ip::tcp::socket>>(std::move(socket));
+        ws_client->handshake("localhost", "/");
+
+        std::cout << "Connected to server. Press Ctrl + C to disconnect.\n";
+
+        while (true) {
+            boost::beast::flat_buffer buffer;
+            ws_client->read(buffer);
+            std::cout << "Received: " << boost::beast::buffers_to_string(buffer.data()) << "\n";
+        }
+    } catch (const std::exception &e) {
+        std::cerr << "Error: " << e.what() << "\n";
+    }
+
+    return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
 void signalHandler(int signum) {
     std::cout << "\nClosing WebSocket connection...\n";
     try {
