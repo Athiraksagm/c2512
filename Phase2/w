@@ -1,6 +1,4 @@
 #include "server.h"
-#include <csignal>
-#include <atomic>
 
 using namespace boost::asio;
 using namespace boost::beast;
@@ -10,27 +8,8 @@ using namespace tinyxml2;
 std::atomic<int> boot_count(0);
 std::unordered_set<std::shared_ptr<websocket::stream<ip::tcp::socket>>> clients;
 std::mutex clients_mutex;
-std::atomic<bool> running(true);  // Flag to control the server loop
 int logging_interval = 5;
 io_context ioc;
-
-void signalHandler(int signal) {
-    std::cout << "\nReceived signal " << signal << ". Shutting down server...\n";
-
-    running = false;  // Stop the broadcast loop
-
-    // Close all client connections
-    {
-        std::lock_guard<std::mutex> lock(clients_mutex);
-        for (auto &client : clients) {
-            boost::system::error_code ec;
-            client->close(websocket::close_code::normal, ec);
-        }
-        clients.clear();
-    }
-
-    ioc.stop();  // Stop accepting new connections
-}
 
 int getBootCount() {
     FILE *pipe = popen("last reboot | wc -l", "r");
@@ -91,7 +70,7 @@ void loadConfig() {
 }
 
 void broadcastStats() {
-    while (running) {
+    while (true) {
         json stats;
         stats["boot_count"] = boot_count.load();
         stats["uptime"] = getUptime();
@@ -158,7 +137,7 @@ void handleClient(ip::tcp::socket socket) {
         }
 
         // Continuous reading (for periodic updates)
-        while (running) {
+        while (true) {
             buffer.consume(buffer.size());
             ws->read(buffer, ec);
 
@@ -198,20 +177,15 @@ int main(int argc, char* argv[]) {
     loadConfig();
     boot_count.store(getBootCount());
 
-    // Register signal handlers for graceful shutdown
-    std::signal(SIGINT, signalHandler);
-    std::signal(SIGTERM, signalHandler);
-
     ip::tcp::acceptor acceptor(ioc, ip::tcp::endpoint(ip::tcp::v4(), port));
 
     std::thread logger(broadcastStats);
     logger.detach();
 
-    while (running) {
+    while (true) {
         ip::tcp::socket socket(ioc);
         boost::system::error_code ec;
         acceptor.accept(socket, ec);
-        if (!running) break;
         if (!ec) {
             std::thread(handleClient, std::move(socket)).detach();
         } else {
@@ -219,7 +193,6 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    std::cout << "Server shutting down gracefully...\n";
     return 0;
 }
 
