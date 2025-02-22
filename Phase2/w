@@ -1,127 +1,26 @@
-#include <gtest/gtest.h>
-#include "../include/server.h"
-#include <fstream>
-#include <thread>
-#include <boost/asio.hpp>
-#include <boost/beast.hpp>
-
-using namespace boost::asio;
-using namespace boost::beast;
-
-const std::string TEST_CONFIG_FILE = "../source/test_config.xml";  // Temp test config file
-
-// Create a temporary test config file
-void CreateTestConfig(const std::string& filename, const std::string& content) {
-    std::ofstream file(filename);
-    file << content;
-    file.close();
-}
-
-// Test boot count retrieval
-TEST(ServerTests, GetBootCount) {
-    int boot_count = getBootCount();
-    EXPECT_GT(boot_count, 0) << "Boot count should be greater than zero.";
-}
-
-// Test system uptime retrieval
-TEST(ServerTests, GetUptime) {
-    long uptime = getUptime();
-    EXPECT_GT(uptime, 0) << "Uptime should be greater than zero.";
-}
-
-// Test loading valid config file
-TEST(ServerTests, LoadConfig_ValidFile) {
-    std::string config_content =
-        "<config>\n"
-        "    <logging_interval>15</logging_interval>\n"
-        "</config>";
-
-    CreateTestConfig(TEST_CONFIG_FILE, config_content);
-    configFile = TEST_CONFIG_FILE;  // Point to test config
-
-    loadConfig();
-    EXPECT_EQ(logging_interval, 15) << "Logging interval should be set to 15.";
-}
-
-// Test loading config when file is missing
-TEST(ServerTests, LoadConfig_MissingFile) {
-    remove(TEST_CONFIG_FILE.c_str());  // Delete test config if exists
-
-    configFile = TEST_CONFIG_FILE;
-    loadConfig();
-    EXPECT_EQ(logging_interval, 10) << "Logging interval should default to 10 when file is missing.";
-}
-
-// Test WebSocket client connection handling
-TEST(ServerTests, HandleClient_Connection) {
-    net::io_context ioc;
-    ip::tcp::acceptor acceptor(ioc, {ip::tcp::v4(), 9001});
-    ip::tcp::socket server_socket(ioc);
-    ip::tcp::socket client_socket(ioc);
-
-    // Accept connection in a separate thread
-    std::thread accept_thread([&] {
-        acceptor.accept(server_socket);
-    });
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    client_socket.connect(ip::tcp::endpoint(ip::address_v4::loopback(), 9001));
-    accept_thread.join();
-
-    // Start WebSocket session
-    std::thread session_thread([&] {
-        handleClient(std::move(server_socket));
-    });
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
-    // Verify client added to active list
-    {
-        std::lock_guard<std::mutex> lock(clients_mutex);
-        EXPECT_FALSE(clients.empty()) << "Client should be added to active list.";
+int getBootCount() {
+    FILE *pipe = popen("last reboot | wc -l", "r");
+    if (!pipe) {
+        std::cerr << "Error: Failed to execute system command for boot count..\n";
+        return -1;
     }
-
-    client_socket.close();
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
-    // Verify client removed after disconnection
-    {
-        std::lock_guard<std::mutex> lock(clients_mutex);
-        EXPECT_TRUE(clients.empty()) << "Client should be removed after disconnect.";
+    char buffer[128];
+    if (!fgets(buffer, sizeof(buffer), pipe)) {
+        std::cerr << "Error: Failed to read boot count from command output.\n";
+        pclose(pipe);
+        return -1;
     }
-
-    session_thread.join();
+    pclose(pipe);
+    try {
+        return std::stoi(buffer);
+    } catch (...) {
+        std::cerr << "Error: Invalid boot count format.\n";
+        return -1;
+    }
 }
 
-// Test WebSocket broadcasting system stats
-TEST(ServerTests, BroadcastStats) {
-    net::io_context ioc;
-    auto ws = std::make_shared<websocket::stream<ip::tcp::socket>>(ioc);
-
-    {
-        std::lock_guard<std::mutex> lock(clients_mutex);
-        clients.insert(ws);
-    }
-
-    boot_count.store(5);
-
-    // Simulate broadcast
-    std::thread broadcast_thread([] {
-        broadcastStats();
-    });
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
-    {
-        std::lock_guard<std::mutex> lock(clients_mutex);
-        EXPECT_FALSE(clients.empty()) << "Broadcast should not remove clients.";
-    }
-
-    clients.clear();
-    broadcast_thread.detach();
-}
-
-int main(int argc, char **argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
+long getUptime() {
+    struct sysinfo info;
+    sysinfo(&info);
+    return info.uptime;
 }
