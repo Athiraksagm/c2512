@@ -4,22 +4,43 @@ athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/se
 [ 60%] Linking CXX executable server
 [ 60%] Built target server
 [ 80%] Building CXX object CMakeFiles/test_server.dir/test/test_server.cpp.o
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/test/test_server.cpp: In member function ‘virtual void SystemStatsTest_LoadConfigValid_Test::TestBody()’:
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/test/test_server.cpp:201:15: error: too many arguments to function ‘void loadConfig()’
-  201 |     loadConfig("config.xml");  // Call actual function
-      |     ~~~~~~~~~~^~~~~~~~~~~~~~
-In file included from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/test/test_server.cpp:160:
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/test/../include/server.h:19:6: note: declared here
-   19 | void loadConfig();
-      |      ^~~~~~~~~~
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/test/test_server.cpp: In member function ‘virtual void SystemStatsTest_LoadConfigInvalid_Test::TestBody()’:
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/test/test_server.cpp:212:15: error: too many arguments to function ‘void loadConfig()’
-  212 |     loadConfig("config.xml");
-      |     ~~~~~~~~~~^~~~~~~~~~~~~~
-In file included from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/test/test_server.cpp:160:
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/test/../include/server.h:19:6: note: declared here
-   19 | void loadConfig();
-      |      ^~~~~~~~~~
-make[2]: *** [CMakeFiles/test_server.dir/build.make:76: CMakeFiles/test_server.dir/test/test_server.cpp.o] Error 1
+[100%] Linking CXX executable test_server
+/usr/bin/ld: CMakeFiles/test_server.dir/test/test_server.cpp.o: warning: relocation against `logging_interval' in read-only section `.text'
+/usr/bin/ld: CMakeFiles/test_server.dir/test/test_server.cpp.o: in function `SystemStatsTest_BootCountRetrieval_Test::TestBody()':
+test_server.cpp:(.text+0x2d): undefined reference to `getBootCount()'
+/usr/bin/ld: CMakeFiles/test_server.dir/test/test_server.cpp.o: in function `SystemStatsTest_BootCountRetrievalEdgeCase_Test::TestBody()':
+test_server.cpp:(.text+0x17a): undefined reference to `getBootCount()'
+/usr/bin/ld: CMakeFiles/test_server.dir/test/test_server.cpp.o: in function `SystemStatsTest_UptimeRetrieval_Test::TestBody()':
+test_server.cpp:(.text+0x2b9): undefined reference to `getUptime()'
+/usr/bin/ld: CMakeFiles/test_server.dir/test/test_server.cpp.o: in function `SystemStatsTest_LoadConfigValid_Test::TestBody()':
+test_server.cpp:(.text+0x446): undefined reference to `logging_interval'
+/usr/bin/ld: test_server.cpp:(.text+0x44f): undefined reference to `loadConfig()'
+/usr/bin/ld: test_server.cpp:(.text+0x471): undefined reference to `logging_interval'
+/usr/bin/ld: CMakeFiles/test_server.dir/test/test_server.cpp.o: in function `SystemStatsTest_LoadConfigInvalid_Test::TestBody()':
+test_server.cpp:(.text+0x62e): undefined reference to `logging_interval'
+/usr/bin/ld: test_server.cpp:(.text+0x637): undefined reference to `loadConfig()'
+/usr/bin/ld: test_server.cpp:(.text+0x659): undefined reference to `logging_interval'
+/usr/bin/ld: CMakeFiles/test_server.dir/test/test_server.cpp.o: in function `SystemStatsTest_JsonResponseFormat_Test::TestBody()':
+test_server.cpp:(.text+0x7e0): undefined reference to `getBootCount()'
+/usr/bin/ld: test_server.cpp:(.text+0x815): undefined reference to `boot_count'
+/usr/bin/ld: test_server.cpp:(.text+0x841): undefined reference to `boot_count'
+/usr/bin/ld: test_server.cpp:(.text+0x898): undefined reference to `getUptime()'
+/usr/bin/ld: CMakeFiles/test_server.dir/test/test_server.cpp.o: in function `SystemStatsTest_WebSocketClientAddition_Test::TestBody()':
+test_server.cpp:(.text+0xcb1): undefined reference to `clients_mutex'
+/usr/bin/ld: test_server.cpp:(.text+0xcc3): undefined reference to `clients'
+/usr/bin/ld: test_server.cpp:(.text+0xcdd): undefined reference to `clients'
+/usr/bin/ld: test_server.cpp:(.text+0xcf8): undefined reference to `clients'
+/usr/bin/ld: CMakeFiles/test_server.dir/test/test_server.cpp.o: in function `SystemStatsTest_WebSocketClientRemoval_Test::TestBody()':
+test_server.cpp:(.text+0xe8f): undefined reference to `clients_mutex'
+/usr/bin/ld: test_server.cpp:(.text+0xea8): undefined reference to `clients'
+/usr/bin/ld: test_server.cpp:(.text+0xeb7): undefined reference to `clients'
+/usr/bin/ld: test_server.cpp:(.text+0xed1): undefined reference to `clients'
+/usr/bin/ld: test_server.cpp:(.text+0xeec): undefined reference to `clients'
+/usr/bin/ld: CMakeFiles/test_server.dir/test/test_server.cpp.o: in function `SystemStatsTest_BroadcastStatsSendsData_Test::TestBody()':
+test_server.cpp:(.text+0x13fc): undefined reference to `boot_count'
+/usr/bin/ld: test_server.cpp:(.text+0x1453): undefined reference to `getUptime()'
+/usr/bin/ld: warning: creating DT_TEXTREL in a PIE
+collect2: error: ld returned 1 exit status
+make[2]: *** [CMakeFiles/test_server.dir/build.make:97: test_server] Error 1
 make[1]: *** [CMakeFiles/Makefile2:111: CMakeFiles/test_server.dir/all] Error 2
 make: *** [Makefile:101: all] Error 2
