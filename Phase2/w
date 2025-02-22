@@ -1,143 +1,36 @@
-#include "client.h"
+#ifndef CLIENT_H
+#define CLIENT_H
 
-using namespace boost::asio;
-using namespace boost::beast;
-using json = nlohmann::json;
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <memory>
+#include <atomic>
+#include <csignal>
+#include <ctime>
+#include <boost/asio.hpp>
+#include <boost/beast.hpp>
+#include <nlohmann/json.hpp>
 
-namespace websocket = boost::beast::websocket;
-boost::asio::io_context ioc;
-std::shared_ptr<websocket::stream<boost::asio::ip::tcp::socket>> ws_client;
-std::atomic<bool> stopClient(false);
+void saveStatsToCSV(int boot_count, long uptime);
+/**
+ * @brief Saves system statistics to a CSV file.
+ * @param boot_count The number of times the system has booted.
+ * @param uptime The system uptime in seconds.
+ */
 
-// Save system stats to CSV
-void saveStatsToCSV(int boot_count, long uptime) 
-{
-    std::string filename = "../system_stats.csv";
+void connectToServer(const std::string& host, int port, bool logToFile);
+/**
+ * @brief Connects to the WebSocket server and listens for periodic updates.
+ * @param host The server's hostname or IP address.
+ * @param port The port number to connect to.
+ * @param logToFile If true, saves received stats to a CSV file.
+ */
 
-    std::ifstream fileCheck(filename);
-    bool fileExists = fileCheck.good();
-    bool isEmpty = fileCheck.peek() == std::ifstream::traits_type::eof();
-    fileCheck.close();
+void signalHandler(int signum);
+/**
+ * @brief Handles SIGINT (Ctrl+C) signal to safely disconnect the client.
+ * @param signum The signal number.
+ */
 
-    std::ofstream file(filename, std::ios_base::app);
-
-    if (!fileExists || isEmpty) {
-        file << "Date(YYYY-MM-DD), Time(HH:MM:SS), Boot Count, Uptime (seconds)\n";
-    }
-
-    std::time_t now = std::time(nullptr);
-    std::tm *local_time = std::localtime(&now);
-
-    file << 1900 + local_time->tm_year << "-"  
-         << 1 + local_time->tm_mon << "-"  
-         << local_time->tm_mday << ", "  
-         << local_time->tm_hour << ":"  
-         << local_time->tm_min << ":"  
-         << local_time->tm_sec << ", "  
-         << boot_count << ", "  
-         << uptime << "\n";
-}
-
-void connectToServer(const std::string& host, int port, bool logToFile) 
-{
-    io_context ioc;
-    ip::tcp::resolver resolver(ioc);
-    auto endpoints = resolver.resolve(host, std::to_string(port));
-
-    websocket::stream<ip::tcp::socket> ws(ioc);
-    ws_client = std::make_shared<websocket::stream<ip::tcp::socket>>(std::move(ws)); // Store ws_client for signal handling
-    boost::asio::connect(ws_client->next_layer(), endpoints);
-    ws_client->handshake(host, "/");
-
-    std::cout << "Connected to server on port " << port << "\n\n";
-    std::cout << "Sending REQUEST_STATS to server...\n\n";
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-    ws_client->write(net::buffer(std::string("REQUEST_STATS")));
-
-    boost::beast::flat_buffer buffer;
-    boost::system::error_code ec;
-    ws_client->read(buffer, ec);
-
-    if (ec) {
-        std::cerr << "Error receiving initial stats: " << ec.message() << "\n";
-        return;
-    }
-
-    std::string data = boost::beast::buffers_to_string(buffer.data());
-    json stats = json::parse(data);
-
-    std::cout << "[Received Stats] Boot Count: " << stats["boot_count"]
-              << ", Uptime: " << stats["uptime"] << " seconds\n";
-
-    if (logToFile) {
-        saveStatsToCSV(stats["boot_count"], stats["uptime"]);
-    }
-
-    buffer.consume(buffer.size());
-
-    while (!stopClient) { // Check stopClient flag
-        ws_client->read(buffer, ec);
-        if (ec) {
-            if (ec == boost::asio::error::eof) { 
-                std::cout << "Error receiving periodic stats: End of file (server closed connection)\n";
-                break;
-            } else if (ec == websocket::error::closed) {
-                std::cout << "Client disconnected: WebSocket closed\n";
-                break;
-            } else {
-                std::cerr << "Error receiving periodic stats: " << ec.message() << "\n";
-                break;
-            }
-        }
-
-        std::string periodicData = boost::beast::buffers_to_string(buffer.data());
-        json periodicStats = json::parse(periodicData);
-
-        std::cout << "[Periodic Update] Boot Count: " << periodicStats["boot_count"]
-                  << ", Uptime: " << periodicStats["uptime"] << " seconds\n";
-
-        buffer.consume(buffer.size());
-    }
-
-    std::cout << "Client exiting gracefully.\n";
-    ws_client.reset(); // Properly delete the WebSocket instance
-}
-
-void signalHandler(int signum)
-{
-    std::cout << "\nClient received SIGINT (Ctrl+C), closing WebSocket...\n";
-    stopClient = true; // Stop the client loop
-
-    if (ws_client) {
-        boost::system::error_code ec;
-        ws_client->close(websocket::close_code::normal, ec);
-        if (ec) {
-            std::cerr << "Error closing WebSocket: " << ec.message() << "\n";
-        } else {
-            std::cout << "WebSocket closed successfully.\n";
-        }
-    }
-
-    ws_client.reset(); // Free the WebSocket instance
-    exit(signum);
-}
-
-int main(int argc, char* argv[]) 
-{
-    signal(SIGINT, signalHandler);
-    bool logToFile = false;
-    std::string host = "localhost";
-    int port = 9000;
-
-    if (argc > 1) {
-        port = std::stoi(argv[1]);
-    }
-
-    if (argc > 2 && std::string(argv[2]) == "--log") {
-        logToFile = true;
-    }
-    std::cout << "=============================\n" << " SYSTEM STAT LOGGING CLIENT\n" << "=============================\n";
-    std::cout << "\n";
-    connectToServer(host, port, logToFile);
-    return 0;
-}
+#endif // CLIENT_H
