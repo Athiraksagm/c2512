@@ -1,208 +1,64 @@
-#include "gtest/gtest.h"
-#include "../include/server.h"
-#include <fstream>
-#include <atomic>
-#include <unordered_set>
-#include <mutex>
-#include <boost/asio.hpp>
-#include <boost/beast.hpp>
-#include <boost/asio/ip/tcp.hpp>
-#include <tinyxml2.h>
-#include <sys/sysinfo.h>
-
-using json = nlohmann::json;
-using namespace boost::asio;
-using namespace boost::beast;
-using namespace boost::asio::ip;
-using namespace tinyxml2;
-
-// Global variables (mocked from server.cpp)
-std::atomic<int> boot_count(0);
-std::unordered_set<std::shared_ptr<websocket::stream<ip::tcp::socket>>> clients;
-std::mutex clients_mutex;
-int logging_interval = 10; 
-
-// ===================== Helper Functions =====================
-
-// Retrieve system boot count (Mocked from server.cpp)
-int getBootCount() {
-    FILE *pipe = popen("last reboot | wc -l", "r");
-    if (!pipe) {
-        std::cerr << "Error: Failed to execute system command for boot count.\n";
-        return -1;
-    }
-    char buffer[128];
-    if (!fgets(buffer, sizeof(buffer), pipe)) {
-        std::cerr << "Error: Failed to read boot count from command output.\n";
-        pclose(pipe);
-        return -1;
-    }
-    pclose(pipe);
+void handleClient(ip::tcp::socket socket)
+{
     try {
-        return std::stoi(buffer);
-    } catch (...) {
-        std::cerr << "Error: Invalid boot count format.\n";
-        return -1;
-    }
-}
+        auto ws = std::make_shared<websocket::stream<ip::tcp::socket>>(std::move(socket));
+        ws->accept();
 
-// Retrieve system uptime (Mocked from server.cpp)
-long getUptime() {
-    struct sysinfo info;
-    if (sysinfo(&info) != 0) {
-        std::cerr << "Error: Failed to get system uptime.\n";
-        return -1;
-    }
-    return info.uptime;
-}
+        boost::beast::flat_buffer buffer;
+        boost::system::error_code ec;
 
-// Load configuration settings from config.xml (Mocked from server.cpp)
-void loadConfig() {
-    XMLDocument doc;
-    if (doc.LoadFile("../source/config.xml") != XML_SUCCESS) {
-        std::cerr << "Error: Could not load config.xml. Using default logging interval (10s).\n";
-        return;
-    }
-    
-    XMLElement *root = doc.FirstChildElement("config");
-    if (!root) {
-        std::cerr << "Error: <config> element missing in config.xml. Using default (10s).\n";
-        return;
-    }
-
-    XMLElement *interval_element = root->FirstChildElement("logging_interval");
-    if (!interval_element) {
-        std::cerr << "Error: <logging_interval> element missing in config.xml. Using default (10s).\n";
-        return;
-    }
-
-    const char* interval_text = interval_element->GetText();
-    if (interval_text && std::all_of(interval_text, interval_text + strlen(interval_text), ::isdigit)) {
-        try {
-            logging_interval = std::stoi(interval_text);
-            std::cerr << "Logging interval set to: " << logging_interval << "s\n" << std::flush;
-        } catch (...) {
-            std::cerr << "Error: Invalid logging interval in config.xml. Using default (10s).\n";
-            logging_interval = 10;
+        // Read initial client request
+        ws->read(buffer, ec);
+        if (ec) {
+            if (ec == boost::beast::websocket::error::closed) {
+                std::cout << "Client disconnected: WebSocket closed\n";
+            } else if (ec == boost::asio::error::eof) {
+                std::cout << "Client disconnected.\n";
+            } else {
+                std::cerr << "Error reading from client: " << ec.message() << "\n";
+            }
+            return;
         }
-    } else {
-        std::cerr << "Error: Invalid logging interval in config.xml (non-numeric). Using default (10s).\n" << std::flush;
-        logging_interval = 10;
-    }
-}
 
-// Broadcast system stats to connected WebSocket clients (Mocked from server.cpp)
-void broadcastStats() {
-    json stats;
-    stats["boot_count"] = boot_count.load();
-    stats["uptime"] = getUptime();
-    std::string message = stats.dump();
+        std::string client_message = boost::beast::buffers_to_string(buffer.data());
+        buffer.consume(buffer.size());
 
-    std::vector<std::shared_ptr<websocket::stream<ip::tcp::socket>>> disconnected_clients;
+        if (client_message == "REQUEST_STATS") {
+            std::cout << "Request received from client. Sending current stats...\n";
+            json first_stat;
+            first_stat["boot_count"] = boot_count.load();
+            first_stat["uptime"] = getUptime();
+            ws->write(net::buffer(first_stat.dump()), ec);
+        }
 
-    {
-        std::lock_guard<std::mutex> lock(clients_mutex);
-        for (auto &client : clients) {
-            boost::system::error_code ec;
-            client->write(net::buffer(message), ec);
+        // Add client to active list
+        {
+            std::lock_guard<std::mutex> lock(clients_mutex);
+            clients.insert(ws);
+        }
+
+        // Continuous reading (for periodic updates)
+        while (true) {
+            buffer.consume(buffer.size());
+            ws->read(buffer, ec);
+
+            if (ec == websocket::error::closed) {
+                std::cout << "Client disconnected: WebSocket closed\n";
+                break;
+            }
+
             if (ec) {
-                std::cerr << "Client disconnected: " << ec.message() << "\n";
-                disconnected_clients.push_back(client);
+                std::cerr << "Error reading from WebSocket: " << ec.message() << "\n";
+                break;
             }
         }
 
-        for (const auto &client : disconnected_clients) {
-            clients.erase(client);
+        // Remove client from active list safely
+        {
+            std::lock_guard<std::mutex> lock(clients_mutex);
+            clients.erase(ws);
         }
+    } catch (...) {
+        std::cerr << "Client error.\n";
     }
-}
-
-// ===================== TEST CASES =====================
-
-// **Test getBootCount()**
-TEST(SystemStatsTest, GetBootCount) {
-    int boot_count = getBootCount();
-
-    // Boot count should be a non-negative integer
-    EXPECT_GE(boot_count, 0) << "Boot count must be >= 0";
-
-    // Verify that a valid integer is returned
-    if (boot_count > 0) {
-        EXPECT_GT(boot_count, 0) << "Boot count must be positive when greater than zero";
-    }
-}
-
-// **Test getUptime()**
-TEST(SystemStatsTest, GetUptime) {
-    long uptime = getUptime();
-
-    // Uptime should be a positive value
-    EXPECT_GT(uptime, 0) << "System uptime should be greater than zero";
-}
-
-// **Test loadConfig()**
-TEST(SystemStatsTest, LoadConfig) {
-    // Ensure logging_interval is correctly set
-    loadConfig();
-    EXPECT_GT(logging_interval, 0) << "Logging interval should be a positive value";
-}
-
-// **Test broadcastStats()**
-TEST(SystemStatsTest, BroadcastStats) {
-    // Clear existing clients before testing
-    {
-        std::lock_guard<std::mutex> lock(clients_mutex);
-        clients.clear();
-    }
-    
-    // Ensure function does not crash
-    EXPECT_NO_FATAL_FAILURE(broadcastStats());
-}
-
-// **Test loadConfig() with different cases**
-TEST(SystemStatsTest, LoadConfig_ValidXML) {
-    // Create a test config.xml
-    std::ofstream configFile("../source/config.xml");
-    configFile << "<config>\n"
-               << "    <logging_interval>15</logging_interval>\n"
-               << "</config>";
-    configFile.close();
-
-    // Load the configuration
-    loadConfig();
-
-    // Validate that the interval was updated correctly
-    EXPECT_EQ(logging_interval, 15) << "Logging interval should be set to 15 from config.xml";
-}
-
-TEST(SystemStatsTest, LoadConfig_InvalidXML) {
-    // Create an invalid test config.xml
-    std::ofstream configFile("../source/config.xml");
-    configFile << "<config>\n"
-               << "    <logging_interval>invalid</logging_interval>\n"
-               << "</config>";
-    configFile.close();
-
-    // Load the configuration
-    loadConfig();
-
-    // Validate that the default value is used
-    EXPECT_EQ(logging_interval, 10) << "Logging interval should default to 10 for invalid XML values";
-}
-
-TEST(SystemStatsTest, LoadConfig_MissingFile) {
-    // Ensure missing config.xml scenario
-    remove("../source/config.xml");
-
-    // Load the configuration
-    loadConfig();
-
-    // Validate that the default value is used
-    EXPECT_EQ(logging_interval, 10) << "Logging interval should default to 10 if config.xml is missing";
-}
-
-// ===================== MAIN FUNCTION FOR TESTS =====================
-int main(int argc, char **argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
 }
