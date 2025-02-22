@@ -37,9 +37,9 @@ void saveStatsToCSV(int boot_count, long uptime) {
          << uptime << "\n";
 }
 
-// Signal handler to handle Ctrl + C and close WebSocket properly
+// Signal handler to handle Ctrl+C in the client
 void signalHandler(int signum) {
-    std::cout << "\nClient received SIGINT (Ctrl + C), closing WebSocket...\n";
+    std::cout << "\nClient received SIGINT (Ctrl+C), closing WebSocket...\n";
     stopClient = true; // Set flag to stop client loop
 
     if (ws_client) {
