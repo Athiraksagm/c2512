@@ -1,17 +1,40 @@
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/build$ make
-Consolidate compiler generated dependencies of target server
-[ 60%] Built target server
-Consolidate compiler generated dependencies of target test_server
-[ 80%] Building CXX object CMakeFiles/test_server.dir/test/test_server.cpp.o
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/test/test_server.cpp: In member function ‘virtual void ServerTests_HandleClient_Test::TestBody()’:
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/test/test_server.cpp:588:18: error: could not convert ‘received_message’ from ‘std::string’ {aka ‘std::__cxx11::basic_string<char>’} to ‘boost::asio::ip::tcp::socket’ {aka ‘boost::asio::basic_stream_socket<boost::asio::ip::tcp>’}
-  588 |     handleClient(received_message, connection_status);
-      |                  ^~~~~~~~~~~~~~~~
-      |                  |
-      |                  std::string {aka std::__cxx11::basic_string<char>}
-make[2]: *** [CMakeFiles/test_server.dir/build.make:76: CMakeFiles/test_server.dir/test/test_server.cpp.o] Error 1
-make[1]: *** [CMakeFiles/Makefile2:111: CMakeFiles/test_server.dir/all] Error 2
-make: *** [Makefile:101: all] Error 2
+TEST(ServerTests, HandleClient) {
+    io_context ioc;
+    tcp::acceptor acceptor(ioc, tcp::endpoint(tcp::v4(), 8080));
+
+    // Start a thread to accept a client connection and handle it
+    std::thread server_thread([&]() {
+        tcp::socket socket(ioc);
+        acceptor.accept(socket);
+        handleClient(std::move(socket));  // Testing the actual function
+    });
+
+    std::this_thread::sleep_for(std::chrono::seconds(1)); // Give the server time to start
+
+    // Simulate a WebSocket client
+    websocket::stream<tcp::socket> ws(ioc);
+    tcp::resolver resolver(ioc);
+    auto const results = resolver.resolve("127.0.0.1", "8080");
+    connect(ws.next_layer(), results.begin(), results.end());
+    ws.handshake("127.0.0.1", "/");
+
+    // Send a request to the server and read the response
+    ws.write(net::buffer(std::string("REQUEST_STATS")));
+    flat_buffer buffer;
+    ws.read(buffer);
+    std::string received_message = buffers_to_string(buffer.data());
+
+    // Verify the server response contains valid JSON with expected fields
+    json response = json::parse(received_message);
+    EXPECT_TRUE(response.contains("boot_count"));
+    EXPECT_TRUE(response.contains("uptime"));
+    EXPECT_GE(response["boot_count"].get<int>(), 0);
+    EXPECT_GE(response["uptime"].get<long>(), 0);
+
+    // Clean up
+    ws.close(websocket::close_code::normal);
+    server_thread.join();
+}
 
 
 
