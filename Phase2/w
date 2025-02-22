@@ -1,12 +1,23 @@
 // Continuous reading (for periodic updates)
-        while (true) {
-            ws->read(buffer, ec);
-            if (ec == websocket::error::closed) {
-                std::cout << "Client disconnected: WebSocket closed\n";
-                break;
-            }
-            if (ec) {
-                std::cerr << "Client disconnected!! " << "\n";
-                break;
-            }
-        }
+while (true) {
+    ws->read(buffer, ec);
+    
+    if (ec == websocket::error::closed) {
+        std::cout << "Client disconnected: WebSocket closed\n";
+        break;
+    }
+    
+    if (ec) {
+        std::cerr << "Error reading from WebSocket: " << ec.message() << "\n";
+        break;
+    }
+
+    // Clear buffer after reading
+    buffer.consume(buffer.size());
+}
+
+// Remove client from active list safely
+{
+    std::lock_guard<std::mutex> lock(clients_mutex);
+    clients.erase(ws);
+}
