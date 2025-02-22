@@ -1,32 +1,18 @@
-int main(int argc, char* argv[]) 
+void signalHandler(int signum)
 {
-    signal(SIGINT, signalHandler);
-    bool logToFile = false;
-    std::string host = "localhost"; // Default to localhost
-    int port = 9000;
+    std::cout << "\nClient received SIGINT, closing WebSocket...\n";
+    stopClient = true; // Stop the client loop
 
-    if (argc > 1) {
-        host = argv[1];  // Set the server IP from command-line argument
-    }
-
-    if (argc > 2) {
-        try {
-            port = std::stoi(argv[2]);
-        } catch (...) {
-            std::cerr << "Error: Invalid port number. Using default port 9000.\n";
-            port = 9000;
+    if (ws_client) {
+        boost::system::error_code ec;
+        ws_client->close(websocket::close_code::normal, ec);
+        if (ec) {
+            std::cerr << "Error closing WebSocket: " << ec.message() << "\n";
+        } else {
+            std::cout << "WebSocket closed successfully.\n";
         }
     }
 
-    if (argc > 3 && std::string(argv[3]) == "--log") {
-        logToFile = true;
-    }
-
-    std::cout << "=============================\n"
-              << " SYSTEM STAT LOGGING CLIENT\n"
-              << "=============================\n\n";
-    std::cout << "Connecting to server at " << host << ":" << port << "\n";
-
-    connectToServer(host, port, logToFile);
-    return 0;
+    ws_client.reset(); // Free the WebSocket instance
+    exit(signum);
 }
