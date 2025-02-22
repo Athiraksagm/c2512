@@ -1,16 +1,26 @@
+#include <gtest/gtest.h>
+#include <iostream>
+#include <cstdio>
+#include <cstdlib>
+#include <sys/sysinfo.h>
+
+// Function to get boot count
 int getBootCount() {
     FILE *pipe = popen("last reboot | wc -l", "r");
     if (!pipe) {
         std::cerr << "Error: Failed to execute system command for boot count..\n";
         return -1;
     }
+    
     char buffer[128];
     if (!fgets(buffer, sizeof(buffer), pipe)) {
         std::cerr << "Error: Failed to read boot count from command output.\n";
         pclose(pipe);
         return -1;
     }
+    
     pclose(pipe);
+    
     try {
         return std::stoi(buffer);
     } catch (...) {
@@ -19,8 +29,64 @@ int getBootCount() {
     }
 }
 
+// Function to get system uptime
 long getUptime() {
     struct sysinfo info;
-    sysinfo(&info);
+    if (sysinfo(&info) != 0) {
+        std::cerr << "Error: Failed to get system uptime.\n";
+        return -1;
+    }
     return info.uptime;
+}
+
+// Test for getBootCount()
+TEST(SystemStatsTest, BootCount) {
+    // Normal case: Boot count should be non-negative
+    int bootCount = getBootCount();
+    EXPECT_GE(bootCount, 0);
+
+    // Edge case: Simulating command failure
+    FILE *pipe = popen("invalid_command", "r");
+    if (!pipe) {
+        EXPECT_EQ(getBootCount(), -1);
+    }
+
+    // Edge case: Empty output
+    pipe = popen("echo ''", "r");
+    if (pipe) {
+        char buffer[128];
+        if (!fgets(buffer, sizeof(buffer), pipe)) {
+            EXPECT_EQ(getBootCount(), -1);
+        }
+        pclose(pipe);
+    }
+
+    // Edge case: Non-numeric output
+    pipe = popen("echo 'abc'", "r");
+    if (pipe) {
+        char buffer[128];
+        if (fgets(buffer, sizeof(buffer), pipe)) {
+            EXPECT_EQ(getBootCount(), -1);
+        }
+        pclose(pipe);
+    }
+}
+
+// Test for getUptime()
+TEST(SystemStatsTest, Uptime) {
+    // Normal case: Uptime should be positive
+    long uptime = getUptime();
+    EXPECT_GT(uptime, 0);
+
+    // Edge case: sysinfo() failure
+    struct sysinfo info;
+    if (sysinfo(&info) != 0) {
+        EXPECT_EQ(getUptime(), -1);
+    }
+}
+
+// Main function to run tests
+int main(int argc, char **argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
 }
