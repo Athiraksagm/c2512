@@ -5,7 +5,7 @@ void connectToServer(const std::string& host, int port, bool logToFile)
     auto endpoints = resolver.resolve(host, std::to_string(port));
 
     websocket::stream<ip::tcp::socket> ws(ioc);
-    ws_client = std::make_shared<websocket::stream<ip::tcp::socket>>(std::move(ws)); // Store ws_client for signal handler
+    ws_client = std::make_shared<websocket::stream<ip::tcp::socket>>(std::move(ws)); // Store ws_client for signal handling
     boost::asio::connect(ws_client->next_layer(), endpoints);
     ws_client->handshake(host, "/");
 
@@ -35,16 +35,19 @@ void connectToServer(const std::string& host, int port, bool logToFile)
 
     buffer.consume(buffer.size());
 
-    // Loop for receiving periodic updates
     while (!stopClient) { // Check stopClient flag
         ws_client->read(buffer, ec);
         if (ec) {
-            if (ec == websocket::error::closed) {
+            if (ec == boost::asio::error::eof) { 
+                std::cout << "Error receiving periodic stats: End of file (server closed connection)\n";
+                break;
+            } else if (ec == websocket::error::closed) {
                 std::cout << "Client disconnected: WebSocket closed\n";
+                break;
             } else {
                 std::cerr << "Error receiving periodic stats: " << ec.message() << "\n";
+                break;
             }
-            break;
         }
 
         std::string periodicData = boost::beast::buffers_to_string(buffer.data());
@@ -57,6 +60,7 @@ void connectToServer(const std::string& host, int port, bool logToFile)
     }
 
     std::cout << "Client exiting gracefully.\n";
+    ws_client.reset(); // Properly delete the WebSocket instance
 }
 
 
@@ -79,6 +83,6 @@ void signalHandler(int signum) {
         }
     }
 
+    ws_client.reset(); // Free the WebSocket instance
     exit(signum);
 }
-
