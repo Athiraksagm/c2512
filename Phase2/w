@@ -56,7 +56,8 @@ void signalHandler(int signum) {
 }
 
 // Establish WebSocket connection and receive system stats
-void connectToServer(const std::string& host, int port, bool logToFile) {
+void connectToServer(const std::string& host, int port, bool logToFile)
+{
     ip::tcp::resolver resolver(ioc);
     auto endpoints = resolver.resolve(host, std::to_string(port));
 
@@ -91,37 +92,20 @@ void connectToServer(const std::string& host, int port, bool logToFile) {
 
     buffer.consume(buffer.size());
 
-    // Periodic reading loop
-    while (!stopClient) {
-        ws_client->read(buffer, ec);
-        if (ec == websocket::error::closed) {
-            std::cout << "Server closed WebSocket, exiting...\n";
-            break;
-        }
-        if (ec) {
-            std::cerr << "Error receiving periodic stats: " << ec.message() << "\n";
-            break;
-        }
-
-        std::string periodicData = boost::beast::buffers_to_string(buffer.data());
-        json periodicStats = json::parse(periodicData);
-
-        std::cout << "[Periodic Update] Boot Count: " << periodicStats["boot_count"]
-                  << ", Uptime: " << periodicStats["uptime"] << " seconds\n";
-
-        if (logToFile) {
-            saveStatsToCSV(periodicStats["boot_count"], periodicStats["uptime"]);
-        }
-
-        buffer.consume(buffer.size());
-    }
-
-    // Close WebSocket properly when exiting
-    ws_client->close(websocket::close_code::normal, ec);
-    if (ec) {
-        std::cerr << "Error closing WebSocket: " << ec.message() << "\n";
-    } else {
-        std::cout << "WebSocket closed successfully.\n";
+    while (true) {
+                ws_client.read(buffer, ec);
+                if (ec) {
+                    std::cerr << "Error receiving periodic stats: " << ec.message() << "\n";
+                    break;
+                }
+        
+                std::string periodicData = boost::beast::buffers_to_string(buffer.data());
+                json periodicStats = json::parse(periodicData);
+        
+                std::cout << "[Periodic Update] Boot Count: " << periodicStats["boot_count"]
+                          << ", Uptime: " << periodicStats["uptime"] << " seconds\n";
+        
+                buffer.consume(buffer.size());
     }
 }
 
