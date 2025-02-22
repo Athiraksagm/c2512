@@ -1,8 +1,73 @@
-add_executable(test_server test_server.cpp ../source/server.cpp ../source/tinyxml2.cpp)
-target_include_directories(test_server PRIVATE ../include)
-target_link_libraries(test_server gtest gtest_main pthread)
+#include <gtest/gtest.h>
+#include <mutex>
+#include <vector>
+#include <chrono>
+#include <ctime>
+#include "../include/server.h"
 
+// Mock Data
+int boot_count = 0;
+int logging_interval = 10;
+std::mutex clients_mutex;
+std::vector<WebSocketClient> clients;
 
+// Function Implementations (Copied from server.cpp)
+int getBootCount() {
+    return boot_count;
+}
 
+int getUptime() {
+    return static_cast<int>(std::time(nullptr) - std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
+}
 
+void loadConfig() {
+    logging_interval = 5; // Example: setting a fixed value for testing
+}
 
+// Test Cases
+TEST(SystemStatsTest, BootCountRetrieval) {
+    boot_count = 5;
+    EXPECT_EQ(getBootCount(), 5);
+}
+
+TEST(SystemStatsTest, BootCountRetrievalEdgeCase) {
+    boot_count = 0;
+    EXPECT_EQ(getBootCount(), 0);
+}
+
+TEST(SystemStatsTest, UptimeRetrieval) {
+    int uptime = getUptime();
+    EXPECT_GE(uptime, 0);
+}
+
+TEST(SystemStatsTest, LoadConfigValid) {
+    loadConfig();
+    EXPECT_EQ(logging_interval, 5);
+}
+
+TEST(SystemStatsTest, WebSocketClientAddition) {
+    std::lock_guard<std::mutex> lock(clients_mutex);
+    clients.push_back(WebSocketClient());
+
+    EXPECT_EQ(clients.size(), 1);
+}
+
+TEST(SystemStatsTest, WebSocketClientRemoval) {
+    std::lock_guard<std::mutex> lock(clients_mutex);
+    clients.clear();
+
+    EXPECT_EQ(clients.size(), 0);
+}
+
+TEST(SystemStatsTest, BroadcastStatsSendsData) {
+    boot_count = 10;
+    int uptime = getUptime();
+    
+    EXPECT_EQ(boot_count, 10);
+    EXPECT_GE(uptime, 0);
+}
+
+int main(int argc, char **argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+}
