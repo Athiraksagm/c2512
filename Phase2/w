@@ -1,7 +1,66 @@
-void broadcastStats()
-{
-    while (true)
-    {
+#include <gtest/gtest.h>
+#include <iostream>
+#include <cstdio>
+#include <cstdlib>
+#include <sys/sysinfo.h>
+#include <boost/asio.hpp>
+#include <boost/beast.hpp>
+#include <thread>
+#include <mutex>
+#include <vector>
+#include <memory>
+#include <nlohmann/json.hpp>
+#include <atomic>
+
+using json = nlohmann::json;
+namespace net = boost::asio;
+namespace websocket = boost::beast::websocket;
+using ip = boost::asio::ip;
+
+// Global variables
+std::mutex clients_mutex;
+std::vector<std::shared_ptr<websocket::stream<ip::tcp::socket>>> clients;
+std::atomic<int> boot_count(10);
+int logging_interval = 5;  // 5 seconds for testing
+
+// Function to get boot count
+int getBootCount() {
+    FILE *pipe = popen("last reboot | wc -l", "r");
+    if (!pipe) {
+        std::cerr << "Error: Failed to execute system command for boot count..\n";
+        return -1;
+    }
+    
+    char buffer[128];
+    if (!fgets(buffer, sizeof(buffer), pipe)) {
+        std::cerr << "Error: Failed to read boot count from command output.\n";
+        pclose(pipe);
+        return -1;
+    }
+    
+    pclose(pipe);
+    
+    try {
+        return std::stoi(buffer);
+    } catch (...) {
+        std::cerr << "Error: Invalid boot count format.\n";
+        return -1;
+    }
+}
+
+// Function to get system uptime
+long getUptime() {
+    struct sysinfo info;
+    if (sysinfo(&info) != 0) {
+        std::cerr << "Error: Failed to get system uptime.\n";
+        return -1;
+    }
+    return info.uptime;
+}
+
+// Function to broadcast system statistics
+void broadcastStats() {
+    while (true) {
         json stats;
         stats["boot_count"] = boot_count.load();
         stats["uptime"] = getUptime();
@@ -21,10 +80,48 @@ void broadcastStats()
             }
 
             for (const auto &client : disconnected_clients) {
-                clients.erase(client);
+                clients.erase(std::remove(clients.begin(), clients.end(), client), clients.end());
             }
         }
 
         std::this_thread::sleep_for(std::chrono::seconds(logging_interval));
     }
+}
+
+// Test for getBootCount()
+TEST(SystemStatsTest, BootCount) {
+    int bootCount = getBootCount();
+    EXPECT_GE(bootCount, 0);
+}
+
+// Test for getUptime()
+TEST(SystemStatsTest, Uptime) {
+    long uptime = getUptime();
+    EXPECT_GT(uptime, 0);
+}
+
+// Test for broadcastStats()
+TEST(SystemStatsTest, BroadcastStats) {
+    // Simulate an empty client list
+    {
+        std::lock_guard<std::mutex> lock(clients_mutex);
+        clients.clear();
+    }
+
+    // Call broadcastStats() in a separate thread and run for a short time
+    std::thread broadcastThread([]() {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    });
+
+    // Ensure the function runs and doesn't crash
+    EXPECT_NO_FATAL_FAILURE(broadcastStats());
+
+    // Clean up
+    broadcastThread.detach();
+}
+
+// Main function to run tests
+int main(int argc, char **argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
 }
