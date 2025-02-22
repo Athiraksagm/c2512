@@ -1,67 +1,30 @@
-#include <gtest/gtest.h>
-#include <iostream>
-#include <cstdio>
-#include <cstdlib>
-#include <sys/sysinfo.h>
+void broadcastStats()
+{
+    while (true)
+    {
+        json stats;
+        stats["boot_count"] = boot_count.load();
+        stats["uptime"] = getUptime();
+        std::string message = stats.dump();
 
-// Function to get boot count
-int getBootCount() {
-    FILE *pipe = popen("last reboot | wc -l", "r");
-    if (!pipe) {
-        std::cerr << "Error: Failed to execute system command for boot count..\n";
-        return -1;
+        std::vector<std::shared_ptr<websocket::stream<ip::tcp::socket>>> disconnected_clients;
+
+        {
+            std::lock_guard<std::mutex> lock(clients_mutex);
+            for (auto &client : clients) {
+                boost::system::error_code ec;
+                client->write(net::buffer(message), ec);
+                if (ec) {
+                    std::cerr << "Client disconnected: " << ec.message() << "\n";
+                    disconnected_clients.push_back(client);
+                }
+            }
+
+            for (const auto &client : disconnected_clients) {
+                clients.erase(client);
+            }
+        }
+
+        std::this_thread::sleep_for(std::chrono::seconds(logging_interval));
     }
-    
-    char buffer[128];
-    if (!fgets(buffer, sizeof(buffer), pipe)) {
-        std::cerr << "Error: Failed to read boot count from command output.\n";
-        pclose(pipe);
-        return -1;
-    }
-    
-    pclose(pipe);
-    
-    try {
-        return std::stoi(buffer);
-    } catch (...) {
-        std::cerr << "Error: Invalid boot count format.\n";
-        return -1;
-    }
-}
-
-// Function to get system uptime
-long getUptime() {
-    struct sysinfo info;
-    if (sysinfo(&info) != 0) {
-        std::cerr << "Error: Failed to get system uptime.\n";
-        return -1;
-    }
-    return info.uptime;
-}
-
-// Test for getBootCount()
-TEST(SystemStatsTest, BootCount) {
-    int bootCount = getBootCount();
-    
-    // Boot count should be a non-negative integer
-    EXPECT_GE(bootCount, 0);
-
-    // Verify that a valid integer is returned
-    if (bootCount > 0) {
-        EXPECT_GT(bootCount, 0);
-    }
-}
-
-// Test for getUptime()
-TEST(SystemStatsTest, Uptime) {
-    long uptime = getUptime();
-    
-    // Uptime should be a positive value
-    EXPECT_GT(uptime, 0);
-}
-
-// Main function to run tests
-int main(int argc, char **argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
 }
