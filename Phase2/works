@@ -1,9 +1,60 @@
-long getUptime()
+void handleClient(ip::tcp::socket socket)
 {
-    struct sysinfo info;
-    if (sysinfo(&info) != 0) {
-        std::cerr << "Error: Failed to retrieve system uptime.\n";
-        return -1;
+    try {
+        auto ws = std::make_shared<websocket::stream<ip::tcp::socket>>(std::move(socket));
+        ws->accept();
+
+        // Ensure WebSocket is still open before proceeding
+        if (!ws->is_open()) return;
+
+        boost::beast::flat_buffer buffer;
+        boost::system::error_code ec;
+
+        // Read initial client request
+        ws->read(buffer, ec);
+        if (ec) {
+            std::cerr << "Error reading from client: " << ec.message() << "\n";
+            return;
+        }
+
+        std::string client_message = boost::beast::buffers_to_string(buffer.data());
+        buffer.consume(buffer.size());
+
+        if (client_message == "REQUEST_STATS") {
+            json first_stat;
+            first_stat["boot_count"] = boot_count.load();
+            first_stat["uptime"] = getUptime();
+            ws->write(net::buffer(first_stat.dump()), ec);
+        }
+
+        // Add client to active list
+        {
+            std::lock_guard<std::mutex> lock(clients_mutex);
+            clients.insert(ws);
+        }
+
+        // Continuous reading for periodic updates
+        while (ws->is_open()) {
+            buffer.clear();  // Ensure buffer is empty before reading
+            ws->read(buffer, ec);
+
+            if (ec == websocket::error::closed) {
+                break;  // Normal disconnect, no need to log error
+            }
+            if (ec) {
+                std::cerr << "Error reading from WebSocket: " << ec.message() << "\n";
+                break;
+            }
+        }
+    } catch (const std::exception &e) {
+        std::cerr << "Client error: " << e.what() << "\n";
+    } catch (...) {
+        std::cerr << "Unknown client error.\n";
     }
-    return info.uptime;
+
+    // Ensure client is always removed from the set
+    {
+        std::lock_guard<std::mutex> lock(clients_mutex);
+        clients.erase(ws);
+    }
 }
