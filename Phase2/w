@@ -1,6 +1,340 @@
+#include "server.h"
+
+using namespace boost::asio;
+using namespace boost::beast;
+using json = nlohmann::json;
+using namespace tinyxml2;
+
+std::atomic<int> boot_count(0);
+std::unordered_set<std::shared_ptr<websocket::stream<ip::tcp::socket>>> clients;
+std::mutex clients_mutex;
+int logging_interval = 10;
+io_context ioc;
+
+int getBootCount()
+{
+    FILE *pipe = popen("last reboot | wc -l", "r");
+    if (!pipe) {
+        std::cerr << "Error: Failed to execute system command for boot count..\n";
+        return -1;
+    }
+    char buffer[128];
+    if (!fgets(buffer, sizeof(buffer), pipe)) {
+        std::cerr << "Error: Failed to read boot count from command output.\n";
+        pclose(pipe);
+        return -1;
+    }
+    pclose(pipe);
+    try {
+        return std::stoi(buffer);
+    } catch (...) {
+        std::cerr << "Error: Invalid boot count format.\n";
+        return -1;
+    }
+}
+
+long getUptime()
+{
+    struct sysinfo info;
+    sysinfo(&info);
+    return info.uptime;
+}
+
+void loadConfig()
+{
+    XMLDocument doc;
+    if (doc.LoadFile("../source/config.xml") != XML_SUCCESS)
+    {
+        std::cerr << "Error: Could not load config.xml. Using default logging interval.\n";
+        return;
+    }
+    XMLElement *root = doc.FirstChildElement("config");
+    if (!root)
+    {
+        std::cerr << "Error: <config> element missing in config.xml. Using default 10s.\n";
+        return;
+    }
+    XMLElement *interval_element = root->FirstChildElement("logging_interval");
+    if (!interval_element)
+    {
+        std::cerr << "Error: <logging_interval> element missing in config.xml. Using default 10s.\n";
+        return;
+    }
+    const char* interval_text = interval_element->GetText();
+    if (interval_text && std::all_of(interval_text, interval_text + strlen(interval_text), ::isdigit))
+    {
+        try {
+            logging_interval = std::stoi(interval_text);
+            std::cerr << "Logging interval set to: " << logging_interval << "s\n\n" << std::flush;
+        } catch (...) {
+            std::cerr << "Error: Invalid logging interval in config.xml. Using default 10s.\n";
+            logging_interval = 10;
+        }
+    } else {
+        std::cerr << "Error: Invalid logging interval in config.xml (non-numeric value). Using default 10s.\n" << std::flush;
+        logging_interval = 10;
+    }
+}
+
+void broadcastStats()
+{
+    while (true)
+    {
+        json stats;
+        stats["boot_count"] = boot_count.load();
+        stats["uptime"] = getUptime();
+        std::string message = stats.dump();
+
+        std::vector<std::shared_ptr<websocket::stream<ip::tcp::socket>>> disconnected_clients;
+
+        {
+            std::lock_guard<std::mutex> lock(clients_mutex);
+            for (auto &client : clients)
+            {
+                boost::system::error_code ec;
+                client->write(net::buffer(message), ec);
+                if (ec) {
+                    std::cerr << "Client disconnected: " << ec.message() << "\n";
+                    disconnected_clients.push_back(client);
+                }
+            }
+
+            for (const auto &client : disconnected_clients)
+            {
+                clients.erase(client);
+            }
+        }
+
+        std::this_thread::sleep_for(std::chrono::seconds(logging_interval));
+    }
+}
+
+void handleClient(ip::tcp::socket socket)
+{
+    try {
+        auto ws = std::make_shared<websocket::stream<ip::tcp::socket>>(std::move(socket));
+        ws->accept();
+
+        boost::beast::flat_buffer buffer;
+        boost::system::error_code ec;
+
+        // Read initial client request
+        ws->read(buffer, ec);
+        if (ec) {
+            if (ec == boost::beast::websocket::error::closed) {
+                std::cout << "Client disconnected: WebSocket closed\n";
+            } else if (ec == boost::asio::error::eof) {
+                std::cout << "Client disconnected.\n";
+            } else {
+                std::cerr << "Error reading from client: " << ec.message() << "\n";
+            }
+            return;
+        }
+
+        std::string client_message = boost::beast::buffers_to_string(buffer.data());
+        buffer.consume(buffer.size());
+
+        if (client_message == "REQUEST_STATS") {
+            std::cout << "Request received from client. Sending current stats...\n\n";
+            json first_stat;
+            first_stat["boot_count"] = boot_count.load();
+            first_stat["uptime"] = getUptime();
+            ws->write(net::buffer(first_stat.dump()), ec);
+        }
+
+        // Add client to active list
+        {
+            std::lock_guard<std::mutex> lock(clients_mutex);
+            clients.insert(ws);
+        }
+
+        // Continuous reading for periodic updates
+        while (true) {
+            buffer.consume(buffer.size());
+            ws->read(buffer, ec);
+
+            if (ec == websocket::error::closed) {
+                std::cout << "Client disconnected: WebSocket closed\n\n";
+                break;
+            }
+
+            if (ec) {
+                std::cerr << "Error reading from WebSocket: " << ec.message() << "\n";
+                break;
+            }
+        }
+
+        // Remove client from active list safely
+        {
+            std::lock_guard<std::mutex> lock(clients_mutex);
+            clients.erase(ws);
+        }
+    } catch (...) {
+        std::cerr << "Client error.\n";
+    }
+}
+
+int main(int argc, char* argv[])
+{
+    std::cout << "=============================\n"
+              << " SYSTEM STAT LOGGING SERVER\n"
+              << "=============================\n\n";
+
+    std::string ip_address = "0.0.0.0";
+    int port = 9000;
+
+    if (argc > 1) {
+        ip_address = argv[1];
+    }
+    
+    if (argc > 2) {
+        try {
+            port = std::stoi(argv[2]);
+            if (port <= 0 || port > 65535) {
+                throw std::out_of_range("Invalid port range");
+            }
+        } catch (...) {
+            std::cerr << "Error: Invalid port argument. Using default port 9000.\n";
+            port = 9000;
+        }
+    }
+
+    std::cout << "Server running at http://" << ip_address << ":" << port << "...\n\n";
+
+    loadConfig();
+    boot_count.store(getBootCount());
+
+    boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::make_address(ip_address), port);
+    ip::tcp::acceptor acceptor(ioc, endpoint);
+
+    std::thread logger(broadcastStats);
+    logger.detach();
+
+    while (true)
+    {
+        ip::tcp::socket socket(ioc);
+        boost::system::error_code ec;
+        acceptor.accept(socket, ec);
+        if (!ec) {
+            std::thread(handleClient, std::move(socket)).detach();
+        } else {
+            std::cerr << "Error accepting connection: " << ec.message() << "\n";
+        }
+    }
+
+    return 0;
+}
+
+
+
+
+
+#include "client.h"
+
+using namespace boost::asio;
+using namespace boost::beast;
+using json = nlohmann::json;
+
+namespace websocket = boost::beast::websocket;
+boost::asio::io_context ioc;
+std::shared_ptr<websocket::stream<boost::asio::ip::tcp::socket>> ws_client;
+std::atomic<bool> stopClient(false);
+
+void saveStatsToCSV(int boot_count, long uptime) 
+{
+    std::string filename = "../system_stats.csv";
+
+    std::ifstream fileCheck(filename);
+    bool fileExists = fileCheck.good();
+    bool isEmpty = fileCheck.peek() == std::ifstream::traits_type::eof();
+    fileCheck.close();
+
+    std::ofstream file(filename, std::ios_base::app);
+
+    if (!fileExists || isEmpty) {
+        file << "Date(YYYY-MM-DD), Time(HH:MM:SS), Boot Count, Uptime (seconds)\n";
+    }
+
+    std::time_t now = std::time(nullptr);
+    std::tm *local_time = std::localtime(&now);
+
+    file << 1900 + local_time->tm_year << "-"  
+         << 1 + local_time->tm_mon << "-"  
+         << local_time->tm_mday << ", "  
+         << local_time->tm_hour << ":"  
+         << local_time->tm_min << ":"  
+         << local_time->tm_sec << ", "  
+         << boot_count << ", "  
+         << uptime << "\n";
+}
+
+void connectToServer(const std::string& host, int port, bool logToFile) 
+{
+    io_context ioc;
+    ip::tcp::resolver resolver(ioc);
+    auto endpoints = resolver.resolve(host, std::to_string(port));
+
+    websocket::stream<ip::tcp::socket> ws(ioc);
+    ws_client = std::make_shared<websocket::stream<ip::tcp::socket>>(std::move(ws)); // Store ws_client for signal handling
+    boost::asio::connect(ws_client->next_layer(), endpoints);
+    ws_client->handshake(host, "/");
+
+    std::cout << "Sending REQUEST_STATS to server...\n\n";
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    ws_client->write(net::buffer(std::string("REQUEST_STATS")));
+
+    boost::beast::flat_buffer buffer;
+    boost::system::error_code ec;
+    ws_client->read(buffer, ec);
+
+    if (ec) {
+        std::cerr << "Error receiving initial stats: " << ec.message() << "\n";
+        return;
+    }
+
+    std::string data = boost::beast::buffers_to_string(buffer.data());
+    json stats = json::parse(data);
+
+    std::cout << "[Received Stats] Boot Count: " << stats["boot_count"]
+              << ", Uptime: " << stats["uptime"] << " seconds\n";
+
+    if (logToFile) {
+        saveStatsToCSV(stats["boot_count"], stats["uptime"]);
+    }
+
+    buffer.consume(buffer.size());
+
+    while (!stopClient) { // Check stopClient flag
+        ws_client->read(buffer, ec);
+        if (ec) {
+            if (ec == boost::asio::error::eof) { 
+                std::cout << "Error receiving periodic stats: End of file (server closed connection)\n";
+                break;
+            } else if (ec == websocket::error::closed) {
+                std::cout << "Client disconnected: WebSocket closed\n";
+                break;
+            } else {
+                std::cerr << "Error receiving periodic stats: " << ec.message() << "\n";
+                break;
+            }
+        }
+
+        std::string periodicData = boost::beast::buffers_to_string(buffer.data());
+        json periodicStats = json::parse(periodicData);
+
+        std::cout << "[Periodic Update] Boot Count: " << periodicStats["boot_count"]
+                  << ", Uptime: " << periodicStats["uptime"] << " seconds\n";
+
+        buffer.consume(buffer.size());
+    }
+
+    std::cout << "Client exiting gracefully.\n";
+    ws_client.reset(); // Properly delete the WebSocket instance
+}
+
 void signalHandler(int signum)
 {
-    std::cout << "\nClient received SIGINT, closing WebSocket...\n";
+    std::cout << "\nClient received SIGINT, closing WebSocket...\n\n";
     stopClient = true; // Stop the client loop
 
     if (ws_client) {
@@ -15,4 +349,37 @@ void signalHandler(int signum)
 
     ws_client.reset(); // Free the WebSocket instance
     exit(signum);
+}
+
+int main(int argc, char* argv[]) 
+{
+    signal(SIGINT, signalHandler);
+    bool logToFile = false;
+    std::string host = "localhost";
+    int port = 9000;
+
+    if (argc > 1) {
+        host = argv[1]; 
+    }
+
+    if (argc > 2) {
+        try {
+            port = std::stoi(argv[2]);
+        } catch (...) {
+            std::cerr << "Error: Invalid port number. Using default port 9000.\n";
+            port = 9000;
+        }
+    }
+
+    if (argc > 3 && std::string(argv[3]) == "--log") {
+        logToFile = true;
+    }
+
+    std::cout << "=============================\n"
+              << " SYSTEM STAT LOGGING CLIENT\n"
+              << "=============================\n\n";
+    std::cout << "Connecting to server at " << host << ":" << port << "\n\n";
+
+    connectToServer(host, port, logToFile);
+    return 0;
 }
