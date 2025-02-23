@@ -1,11 +1,9 @@
-l No	File Name	Line Number	Comments
- 	server.cpp	16	If the function fails, the boot count would be -1. Is this OK ?
- 	 	33	If the  server binary is placed some other VM, then the config.xml file has to be copied to one folder back. Consider placing config.xml and binary are in same folder
- 	 	41	What will happen if the config.xml file contains anything other than number for intervall ?
- 	 	38	Use snake_case for variable names
- 	 	122	What is the difference between 122 and 126
- 	 	119	Why this code ?
- 	 	148	Port also can be given as command line argument
- 	test_server.cpp	2	Why ../include/ used here ?
- 	 	General	Why did you mock the server functions. Server functions should be used as it is.
- 
+long getUptime()
+{
+    struct sysinfo info;
+    if (sysinfo(&info) != 0) {
+        std::cerr << "Error: Failed to retrieve system uptime.\n";
+        return -1;
+    }
+    return info.uptime;
+}
