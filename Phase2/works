@@ -5,10 +5,11 @@ using namespace boost::beast;
 using json = nlohmann::json;
 using namespace tinyxml2;
 
+const int DEFAULT_LOGGING_INTERVAL = 10;
 std::atomic<int> boot_count(0);
 std::unordered_set<std::shared_ptr<websocket::stream<ip::tcp::socket>>> clients;
 std::mutex clients_mutex;
-int logging_interval = 10;
+int logging_interval = DEFAULT_LOGGING_INTERVAL;
 io_context ioc;
 
 int getBootCount()
@@ -55,13 +56,13 @@ void loadConfig()
     XMLElement *root = doc.FirstChildElement("config");
     if (!root)
     {
-        std::cerr << "Error: <config> element missing in config.xml. Using default 10s.\n";
+        std::cerr << "Error: <config> element missing in config.xml. Using default " << DEFAULT_LOGGING_INTERVAL << "s.\n";
         return;
     }
     XMLElement *interval_element = root->FirstChildElement("logging_interval");
     if (!interval_element)
     {
-        std::cerr << "Error: <logging_interval> element missing in config.xml. Using default 10s.\n";
+        std::cerr << "Error: <logging_interval> element missing in config.xml. Using default " << DEFAULT_LOGGING_INTERVAL << "s.\n";
         return;
     }
     const char* interval_text = interval_element->GetText();
@@ -69,14 +70,14 @@ void loadConfig()
     {
         try {
             logging_interval = std::stoi(interval_text);
-            std::cerr << "Logging interval set to: " << logging_interval << "s\n\n" << std::flush;
+            std::cerr << "Logging interval set to: " << DEFAULT_LOGGING_INTERVAL << "s\n\n" << std::flush;
         } catch (...) {
-            std::cerr << "Error: Invalid logging interval in config.xml. Using default 10s.\n";
-            logging_interval = 10;
+            std::cerr << "Error: Invalid logging interval in config.xml. Using default " << DEFAULT_LOGGING_INTERVAL << "s.\n";
+            logging_interval = DEFAULT_LOGGING_INTERVAL;
         }
     } else {
-        std::cerr << "Error: Invalid logging interval in config.xml (non-numeric value). Using default 10s.\n" << std::flush;
-        logging_interval = 10;
+        std::cerr << "Error: Invalid logging interval in config.xml (non-numeric value). Using default " << DEFAULT_LOGGING_INTERVAL << "s.\n" << std::flush;
+        logging_interval = DEFAULT_LOGGING_INTERVAL;
     }
 }
 
