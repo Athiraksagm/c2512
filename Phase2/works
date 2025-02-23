@@ -9,6 +9,12 @@ boost::asio::io_context ioc;
 std::shared_ptr<websocket::stream<boost::asio::ip::tcp::socket>> ws_client;
 std::atomic<bool> stopClient(false);
 
+/**
+ * @brief Saves system statistics (boot count and uptime) to a CSV file.
+ * 
+ * @param boot_count The system's boot count.
+ * @param uptime The system's uptime in seconds.
+ */
 void saveStatsToCSV(int boot_count, long uptime) 
 {
     std::string filename = "system_stats.csv";
@@ -37,6 +43,13 @@ void saveStatsToCSV(int boot_count, long uptime)
          << uptime << "\n";
 }
 
+/**
+ * @brief Connects to the server using WebSocket and retrieves system statistics.
+ * 
+ * @param host The server's hostname or IP address.
+ * @param port The server's port number.
+ * @param logToFile Flag to enable logging received statistics to a CSV file.
+ */
 void connectToServer(const std::string& host, int port, bool logToFile) 
 {
     io_context ioc;
@@ -101,6 +114,11 @@ void connectToServer(const std::string& host, int port, bool logToFile)
     ws_client.reset(); // Properly delete the WebSocket instance
 }
 
+/**
+ * @brief Handles SIGINT (Ctrl+C) to close the WebSocket connection and exit safely.
+ * 
+ * @param signum The signal number received.
+ */
 void signalHandler(int signum)
 {
     std::cout << "\nClient received SIGINT, closing WebSocket...\n\n";
@@ -120,6 +138,13 @@ void signalHandler(int signum)
     exit(signum);
 }
 
+/**
+ * @brief Main function to start the client and handle command-line arguments.
+ * 
+ * @param argc The number of command-line arguments.
+ * @param argv The command-line argument array.
+ * @return int Exit status.
+ */
 int main(int argc, char* argv[]) 
 {
     signal(SIGINT, signalHandler);
