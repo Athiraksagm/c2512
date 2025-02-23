@@ -125,12 +125,15 @@ void handleClient(ip::tcp::socket socket)
             boost::system::error_code ec;
             // Read initial client request
             ws->read(buffer, ec);
-            if (ec == boost::beast::websocket::error::closed) {
-                std::cout << "Client disconnected: WebSocket closed\n";
-                }
             if (ec) {
-                std::cerr << "Error reading from client: " << ec.message() << "\n";
-                break;
+                if (ec == boost::beast::websocket::error::closed) {
+                    std::cout << "Client disconnected: WebSocket closed\n";
+                } else if (ec == boost::asio::error::eof) {
+                    std::cout << "Client disconnected.\n";
+                } else {
+                    std::cerr << "Error reading from client: " << ec.message() << "\n";
+                }
+                return;
             }
 
         std::string client_message = boost::beast::buffers_to_string(buffer.data());
@@ -153,6 +156,7 @@ void handleClient(ip::tcp::socket socket)
         // Continuous reading for periodic updates
         while (ws->is_open()) {
             buffer.clear(); 
+            buffer.consume(buffer.size());
             ws->read(buffer, ec);
 
             if (ec == websocket::error::closed) {
@@ -163,14 +167,16 @@ void handleClient(ip::tcp::socket socket)
                 break;
             }
         }
+
+        {
+            std::lock_guard<std::mutex> lock(clients_mutex);
+            clients.erase(ws);
+        }
+
     } catch (const std::exception &e) {
         std::cerr << "Client error: " << e.what() << "\n";
     } catch (...) {
         std::cerr << "Unknown client error.\n";
-    }
-    {
-        std::lock_guard<std::mutex> lock(clients_mutex);
-        clients.erase(ws);
     }
 }
 
