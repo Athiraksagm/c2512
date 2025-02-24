@@ -14,26 +14,29 @@ io_context ioc;
 
 /**
  * @brief Retrieves the system boot count.
- * @return The number of times the system has rebooted, or -1 on failure.
  */
 int getBootCount()
 {
     FILE *pipe = popen("last reboot | wc -l", "r");
-    if (!pipe) {
+    if (!pipe)
+    {
         std::cerr << "Error: Failed to execute system command for boot count.\n";
         return -1;
     }
     char buffer[128];
-    if (!fgets(buffer, sizeof(buffer), pipe)) {
+    if (!fgets(buffer, sizeof(buffer), pipe))
+    {
         std::cerr << "Error: Failed to read boot count from command output.\n";
         pclose(pipe);
         return -1;
     }
     pclose(pipe);
-    try {
-        int count = std::stoi(buffer);
-        return (count > 0) ? count : -1;
-    } catch (...) {
+    try
+    {
+        return std::stoi(buffer);
+    }
+    catch (...)
+    {
         std::cerr << "Error: Invalid boot count format.\n";
         return -1;
     }
@@ -41,12 +44,12 @@ int getBootCount()
 
 /**
  * @brief Retrieves the system uptime in seconds.
- * @return The system uptime in seconds, or -1 on failure.
  */
 long getUptime()
 {
     struct sysinfo info;
-    if (sysinfo(&info) != 0) {
+    if (sysinfo(&info) != 0)
+    {
         std::cerr << "Error: Failed to retrieve system uptime.\n";
         return -1;
     }
@@ -54,8 +57,7 @@ long getUptime()
 }
 
 /**
- * @brief Loads the logging interval configuration from config.xml.
- * @details If the configuration file is missing or invalid, it falls back to the default interval.
+ * @brief Loads logging interval from `config.xml`.
  */
 void loadConfig()
 {
@@ -67,34 +69,23 @@ void loadConfig()
     }
     XMLElement *root = doc.FirstChildElement("config");
     if (!root)
-    {
-        std::cerr << "Error: <config> element missing in config.xml. Using default " << DEFAULT_LOGGING_INTERVAL << "s.\n";
         return;
-    }
     XMLElement *interval_element = root->FirstChildElement("logging_interval");
     if (!interval_element)
-    {
-        std::cerr << "Error: <logging_interval> element missing in config.xml. Using default " << DEFAULT_LOGGING_INTERVAL << "s.\n";
         return;
-    }
-    const char* interval_text = interval_element->GetText();
-    if (interval_text && std::all_of(interval_text, interval_text + strlen(interval_text), ::isdigit))
+
+    try
     {
-        try {
-            logging_interval = std::stoi(interval_text);
-            std::cerr << "Logging interval set to: " << DEFAULT_LOGGING_INTERVAL << "s\n\n" << std::flush;
-        } catch (...) {
-            std::cerr << "Error: Invalid logging interval in config.xml. Using default " << DEFAULT_LOGGING_INTERVAL << "s.\n";
-            logging_interval = DEFAULT_LOGGING_INTERVAL;
-        }
-    } else {
-        std::cerr << "Error: Invalid logging interval in config.xml (non-numeric value). Using default " << DEFAULT_LOGGING_INTERVAL << "s.\n" << std::flush;
+        logging_interval = std::stoi(interval_element->GetText());
+    }
+    catch (...)
+    {
         logging_interval = DEFAULT_LOGGING_INTERVAL;
     }
 }
 
 /**
- * @brief Periodically broadcasts system statistics to all connected WebSocket clients.
+ * @brief Periodically broadcasts system stats to all connected WebSocket clients.
  */
 void broadcastStats()
 {
@@ -105,23 +96,17 @@ void broadcastStats()
         stats["uptime"] = getUptime();
         std::string message = stats.dump();
 
-        std::vector<std::shared_ptr<websocket::stream<ip::tcp::socket>>> disconnected_clients;
-
         {
             std::lock_guard<std::mutex> lock(clients_mutex);
             for (auto &client : periodic_clients)
             {
                 boost::system::error_code ec;
                 client->write(net::buffer(message), ec);
-                if (ec) {
+                if (ec)
+                {
                     std::cerr << "Client disconnected: " << ec.message() << "\n";
-                    disconnected_clients.push_back(client);
+                    periodic_clients.erase(client);
                 }
-            }
-
-            for (const auto &client : disconnected_clients)
-            {
-                periodic_clients.erase(client);
             }
         }
 
@@ -130,171 +115,65 @@ void broadcastStats()
 }
 
 /**
- * @brief Handles incoming WebSocket connections for requested stats.
- */
-void handleClient(ip::tcp::socket socket)
-{
-    try {
-        auto ws = std::make_shared<websocket::stream<ip::tcp::socket>>(std::move(socket));
-        ws->accept();
-        if (!ws->is_open())
-            return;
-
-        boost::beast::flat_buffer buffer;
-        boost::system::error_code ec;
-        
-        ws->read(buffer, ec);
-        if (ec) {
-            if (ec == boost::beast::websocket::error::closed) {
-                std::cout << "Client disconnected: WebSocket closed\n";
-            } else if (ec == boost::asio::error::eof) {
-                std::cout << "Client disconnected.\n";
-            } else {
-                std::cerr << "Error reading from client: " << ec.message() << "\n";
-            }
-            return;
-        }
-
-        std::string client_message = boost::beast::buffers_to_string(buffer.data());
-        buffer.consume(buffer.size());
-
-        if (client_message == "REQUEST_STATS") {
-            std::cout << "Request received from client. Sending current stats...\n";
-            json first_stat;
-            first_stat["boot_count"] = boot_count.load();
-            first_stat["uptime"] = getUptime();
-            ws->write(net::buffer(first_stat.dump()), ec);
-        }
-        //Add client to active list
-        // {
-        //     std::lock_guard<std::mutex> lock(clients_mutex);
-        //     clients.insert(ws);
-        // }
-    } 
-    catch (const std::exception &e) {
-        std::cerr << "Client error: " << e.what() << "\n";
-    }
-}
-
-/**
  * @brief Handles WebSocket connections for periodic updates.
  */
 void handlePeriodicUpdates(ip::tcp::socket socket)
 {
-    try {
+    try
+    {
         auto ws = std::make_shared<websocket::stream<ip::tcp::socket>>(std::move(socket));
         ws->accept();
-        if (!ws->is_open())
-            return;
-
-            boost::beast::flat_buffer buffer;
-            boost::system::error_code ec;
 
         {
             std::lock_guard<std::mutex> lock(clients_mutex);
             periodic_clients.insert(ws);
         }
 
-        //Continuous reading for periodic updates
-        while (ws->is_open()) {
-            buffer.clear(); 
-            buffer.consume(buffer.size());
+        boost::beast::flat_buffer buffer;
+        while (ws->is_open())
+        {
+            boost::system::error_code ec;
             ws->read(buffer, ec);
-
-            if (ec == websocket::error::closed) {
-                break;  
-            }
-            if (ec) {
-                std::cerr << "Error reading from WebSocket: " << ec.message() << "\n";
+            if (ec == websocket::error::closed)
                 break;
-            }
         }
-
 
         {
             std::lock_guard<std::mutex> lock(clients_mutex);
             periodic_clients.erase(ws);
         }
-    } 
-    catch (const std::exception &e) {
+    }
+    catch (const std::exception &e)
+    {
         std::cerr << "WebSocket error: " << e.what() << "\n";
     }
 }
 
-int main(int argc, char *argv[])
+int main()
 {
-    std::cout << "=============================\n"
-              << " SYSTEM STAT LOGGING SERVER\n"
-              << "=============================\n\n";
-
-    std::string ip_address = "0.0.0.0";
-    int request_port = 9000;
-    int periodic_port = 9001;
-
-    if (argc > 1) {
-        ip_address = argv[1];
-    }
-
-    if (argc > 2) {
-        try {
-            request_port = std::stoi(argv[2]);
-        } catch (...) {
-            std::cerr << "Error: Invalid request port. Using default 9000.\n";
-            request_port = 9000;
-        }
-    }
-
-    if (argc > 3) {
-        try {
-            periodic_port = std::stoi(argv[3]);
-        } catch (...) {
-            std::cerr << "Error: Invalid periodic port. Using default 9001.\n";
-            periodic_port = 9001;
-        }
-    }
-
-    std::cout << "Request server running at ws://" << ip_address << ":" << request_port << "\n";
-    std::cout << "Periodic data server running at ws://" << ip_address << ":" << periodic_port << "\n\n";
-
     loadConfig();
     boot_count.store(getBootCount());
 
-    boost::asio::ip::tcp::endpoint request_endpoint(boost::asio::ip::make_address(ip_address), request_port);
-    boost::asio::ip::tcp::endpoint periodic_endpoint(boost::asio::ip::make_address(ip_address), periodic_port);
-
-    ip::tcp::acceptor request_acceptor(ioc, request_endpoint);
-    ip::tcp::acceptor periodic_acceptor(ioc, periodic_endpoint);
+    ip::tcp::acceptor periodic_acceptor(ioc, ip::tcp::endpoint(ip::tcp::v4(), 9001));
 
     std::thread logger(broadcastStats);
     logger.detach();
 
-    std::thread request_server([&]() {
-        while (true) {
-            ip::tcp::socket socket(ioc);
-            boost::system::error_code ec;
-            request_acceptor.accept(socket, ec);
-            if (!ec) {
-                std::thread(handleClient, std::move(socket)).detach();
-            }
+    while (true)
+    {
+        ip::tcp::socket socket(ioc);
+        boost::system::error_code ec;
+        periodic_acceptor.accept(socket, ec);
+        if (!ec)
+        {
+            std::thread(handlePeriodicUpdates, std::move(socket)).detach();
         }
-    });
-
-    std::thread periodic_server([&]() {
-        while (true) {
-            ip::tcp::socket socket(ioc);
-            boost::system::error_code ec;
-            periodic_acceptor.accept(socket, ec);
-            if (!ec) {
-                std::thread(handlePeriodicUpdates, std::move(socket)).detach();
-            }
-        }
-    });
-
-    request_server.join();
-    periodic_server.join();
+    }
 
     return 0;
 }
+
+
 
 
 
@@ -306,146 +185,71 @@ using namespace boost::beast;
 using json = nlohmann::json;
 
 const std::string CSV_FILE_PATH = "../source/system_stats.csv";
-namespace websocket = boost::beast::websocket;
 std::atomic<bool> stopClient(false);
 
-/**
- * @brief Saves system statistics (boot count and uptime) to a CSV file.
- */
-void saveStatsToCSV(int boot_count, long uptime) 
+void saveStatsToCSV(int boot_count, long uptime)
 {
-    std::ifstream fileCheck(CSV_FILE_PATH);
-    bool fileExists = fileCheck.good();
-    bool isEmpty = fileCheck.peek() == std::ifstream::traits_type::eof();
-    fileCheck.close();
-
     std::ofstream file(CSV_FILE_PATH, std::ios_base::app);
-    if (!fileExists || isEmpty) {
-        file << "Date(YYYY-MM-DD), Time(HH:MM:SS), Boot Count, Uptime (seconds)\n";
+    if (!file)
+    {
+        std::cerr << "Error opening CSV file for writing.\n";
+        return;
     }
 
     std::time_t now = std::time(nullptr);
     std::tm *local_time = std::localtime(&now);
-    file << std::put_time(local_time,"%Y-%m-%d, %H:%M:%S") << ", " << boot_count << ", " << uptime << "\n";
+    file << std::put_time(local_time, "%Y-%m-%d, %H:%M:%S") << ", " << boot_count << ", " << uptime << "\n";
 }
 
-/**
- * @brief Connects to the server to request stats and receive periodic updates.
- */
-void connectToServer(const std::string& host, int request_port, int periodic_port, bool logToFile) 
+void listenForUpdates(const std::string &host, int periodic_port, bool logToFile)
 {
     boost::asio::io_context ioc;
     ip::tcp::resolver resolver(ioc);
 
-    // Connect to request stats port (9000)
-    auto endpoints_req = resolver.resolve(host, std::to_string(request_port));
-    websocket::stream<ip::tcp::socket> ws_request(ioc);
-    boost::asio::connect(ws_request.next_layer(), endpoints_req);
-    ws_request.handshake(host, "/");
-
-    std::cout << "Sending REQUEST_STATS to server...\n\n";
-    ws_request.write(net::buffer(std::string("REQUEST_STATS")));
+    auto endpoints_periodic = resolver.resolve(host, std::to_string(periodic_port));
+    websocket::stream<ip::tcp::socket> ws(ioc);
+    boost::asio::connect(ws.next_layer(), endpoints_periodic);
+    ws.handshake(host, "/");
 
     boost::beast::flat_buffer buffer;
     boost::system::error_code ec;
-    ws_request.read(buffer, ec);
 
-    if (ec) {
-        std::cerr << "Error receiving initial stats: " << ec.message() << "\n";
-        return;
-    }
+    std::cout << "Listening for periodic updates...\n";
 
-    std::string data = boost::beast::buffers_to_string(buffer.data());
-    json stats = json::parse(data);
-    std::cout << "[Received Stats] Boot Count: " << stats["boot_count"]
-              << ", Uptime: " << stats["uptime"] << " seconds\n";
-
-    if (logToFile) {
-        saveStatsToCSV(stats["boot_count"], stats["uptime"]);
-    }
-
-    buffer.consume(buffer.size());
-    ws_request.close(websocket::close_code::normal);
-
-    // Connect to periodic updates port (9001)
-    auto endpoints_periodic = resolver.resolve(host, std::to_string(periodic_port));
-    websocket::stream<ip::tcp::socket> ws_periodic(ioc);
-    boost::asio::connect(ws_periodic.next_layer(), endpoints_periodic);
-    ws_periodic.handshake(host, "/");
-
-    std::cout << "Listening for periodic updates...\n\n";
-
-    while (!stopClient) {
-        ws_periodic.read(buffer, ec);
-        if (ec) {
-            if (ec == websocket::error::closed) {
-                std::cout << "Server closed periodic updates connection.\n";
-                break;
-            } else {
-                std::cerr << "Error receiving periodic stats: " << ec.message() << "\n";
-                break;
-            }
-        }
-
-        std::string periodicData = boost::beast::buffers_to_string(buffer.data());
-        json periodicStats = json::parse(periodicData);
-
-        std::cout << "[Periodic Update] Boot Count: " << periodicStats["boot_count"]
-                  << ", Uptime: " << periodicStats["uptime"] << " seconds\n";
-
-        if (logToFile) {
-            saveStatsToCSV(periodicStats["boot_count"], periodicStats["uptime"]);
-        }
-
+    while (!stopClient)
+    {
         buffer.consume(buffer.size());
+        ws.read(buffer, ec);
+
+        if (ec)
+        {
+            if (ec == websocket::error::closed)
+                break;
+            std::cerr << "Error receiving periodic stats: " << ec.message() << "\n";
+            break;
+        }
+
+        std::string data = boost::beast::buffers_to_string(buffer.data());
+        json stats = json::parse(data);
+
+        std::cout << "[Periodic Update] Boot Count: " << stats["boot_count"]
+                  << ", Uptime: " << stats["uptime"] << " seconds\n";
+
+        if (logToFile)
+        {
+            saveStatsToCSV(stats["boot_count"], stats["uptime"]);
+        }
     }
 
-    ws_periodic.close(websocket::close_code::normal);
+    ws.close(websocket::close_code::normal);
 }
 
-/**
- * @brief Handles SIGINT (Ctrl+C) to safely exit.
- */
-void signalHandler(int signum)
+int main()
 {
-    std::cout << "\nClient received SIGINT, closing WebSocket...\n\n";
-    stopClient = true; 
-    exit(signum);
-}
-
-/**
- * @brief Main function to start the client.
- */
-int main(int argc, char* argv[]) 
-{
-    signal(SIGINT, signalHandler);
-    bool logToFile = false;
     std::string host = "localhost";
-    int request_port = 9000;
     int periodic_port = 9001;
+    bool logToFile = true;
 
-    if (argc > 1) host = argv[1]; 
-
-    if (argc > 2) {
-        try { request_port = std::stoi(argv[2]); }
-        catch (...) { std::cerr << "Invalid request port. Using default 9000.\n"; }
-    }
-
-    if (argc > 3) {
-        try { periodic_port = std::stoi(argv[3]); }
-        catch (...) { std::cerr << "Invalid periodic port. Using default 9001.\n"; }
-    }
-
-    if (argc > 4 && std::string(argv[4]) == "--log") {
-        logToFile = true;
-    }
-
-    std::cout << "=============================\n"
-              << " SYSTEM STAT LOGGING CLIENT\n"
-              << "=============================\n\n";
-    std::cout << "Connecting to server at " << host << " (Request Port: " << request_port
-              << ", Periodic Port: " << periodic_port << ")\n\n";
-
-    connectToServer(host, request_port, periodic_port, logToFile);
+    listenForUpdates(host, periodic_port, logToFile);
     return 0;
 }
