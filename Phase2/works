@@ -1,25 +1,21 @@
-#include "gtest/gtest.h"
 #include "server.h"
-#include <fstream>
-#include <boost/asio/ip/tcp.hpp>
-#include <tinyxml2.h>
 
-using json = nlohmann::json;
 using namespace boost::asio;
 using namespace boost::beast;
-using namespace boost::asio::ip;
+using json = nlohmann::json;
 using namespace tinyxml2;
 
-// Global variables
 const int DEFAULT_LOGGING_INTERVAL = 10;
 std::atomic<int> boot_count(0);
 std::unordered_set<std::shared_ptr<websocket::stream<ip::tcp::socket>>> clients;
 std::mutex clients_mutex;
-int logging_interval = DEFAULT_LOGGING_INTERVAL; 
+int logging_interval = DEFAULT_LOGGING_INTERVAL;
+io_context ioc;
 
-// ===================== Helper Functions =====================
-
-// Retrieve system boot count
+/**
+ * @brief Retrieves the system boot count.
+ * @return The number of times the system has rebooted, or -1 on failure.
+ */
 int getBootCount()
 {
     FILE *pipe = popen("last reboot | wc -l", "r");
@@ -43,7 +39,10 @@ int getBootCount()
     }
 }
 
-// Retrieve system uptime 
+/**
+ * @brief Retrieves the system uptime in seconds.
+ * @return The system uptime in seconds, or -1 on failure.
+ */
 long getUptime()
 {
     struct sysinfo info;
@@ -54,7 +53,10 @@ long getUptime()
     return info.uptime;
 }
 
-// Load configuration settings from config.xml
+/**
+ * @brief Loads the logging interval configuration from config.xml.
+ * @details If the configuration file is missing or invalid, it falls back to the default interval.
+ */
 void loadConfig()
 {
     XMLDocument doc;
@@ -91,7 +93,10 @@ void loadConfig()
     }
 }
 
-// Broadcast system stats to connected WebSocket clients
+/**
+ * @brief Periodically broadcasts system statistics to all connected WebSocket clients.
+ * @details Runs in a loop, sending the latest boot count and uptime at configured intervals.
+ */
 void broadcastStats()
 {
     while (true)
@@ -192,198 +197,53 @@ void handleClient(ip::tcp::socket socket)
     }
 }
 
-// ===================== TEST CASES =====================
+int main(int argc, char* argv[])
+{
+    std::cout << "=============================\n"
+              << " SYSTEM STAT LOGGING SERVER\n"
+              << "=============================\n\n";
 
-// Test getBootCount()
-TEST(SystemStatsTest, GetBootCount_Valid) {
-    int boot_count = getBootCount();
-    EXPECT_GE(boot_count, 0) << "Boot count should be a non-negative integer.";
-}
+    std::string ip_address = "0.0.0.0";
+    int port = 9000;
 
-TEST(SystemStatsTest, GetBootCount_Failure) {
-    // Simulate failure by redirecting `popen()` to an invalid command
-    FILE* pipe = popen("invalid_command", "r");
-    if (!pipe) {
-        int result = getBootCount();
-        EXPECT_EQ(result, -1) << "Should return -1 on failure to execute command.";
+    if (argc > 1) {
+        ip_address = argv[1];
     }
-}
-
-// est getUptime()
-TEST(SystemStatsTest, GetUptime_Valid) {
-    long uptime = getUptime();
-    EXPECT_GT(uptime, 0) << "Uptime should be a positive value.";
-}
-
-TEST(SystemStatsTest, GetUptime_Failure) {
-    // Simulate failure by modifying `sysinfo` response (Requires mocking)
-    struct sysinfo info;
-    memset(&info, 0, sizeof(info));  // Set uptime to 0 artificially
-
-    long result = getUptime();
-    EXPECT_NE(result, -1) << "Should return -1 if sysinfo() fails.";
-}
-
-// Test loadConfig()
-TEST(SystemStatsTest, LoadConfig) {
-    // Ensure logging_interval is correctly set
-    loadConfig();
-    EXPECT_GT(logging_interval, 0) << "Logging interval should be a positive value";
-}
-
-// Test loadConfig() with different cases
-TEST(SystemStatsTest, LoadConfig_ValidXML) {
-    // Create a test config.xml
-    std::ofstream configFile("../source/config.xml");
-    configFile << "<config>\n"
-               << "    <logging_interval>15</logging_interval>\n"
-               << "</config>";
-    configFile.close();
-
-    // Load the configuration
-    loadConfig();
-
-    // Validate that the interval was updated correctly
-    EXPECT_EQ(logging_interval, 15);
-}
-
-TEST(SystemStatsTest, LoadConfig_InvalidXML) {
-    // Create an invalid test config.xml
-    std::ofstream configFile("../source/config.xml");
-    configFile << "<config>\n"
-               << "    <logging_interval>invalid</logging_interval>\n"
-               << "</config>";
-    configFile.close();
-
-    // Load the configuration
-    loadConfig();
-
-    // Validate that the default value is used
-    EXPECT_EQ(logging_interval, 10);
-}
-
-TEST(SystemStatsTest, LoadConfig_MissingFile) {
-    // Ensure missing config.xml scenario
-    remove("../source/config.xml");
-
-    // Load the configuration
-    loadConfig();
-
-    // Validate that the default value is used
-    EXPECT_EQ(logging_interval, 10);
-}
-
-TEST(SystemStatsTest, LoadConfig_MissingLoggingInterval) {
-    std::ofstream configFile("../source/config.xml");
-    configFile << "<config>\n"
-               << "    <!-- Missing logging_interval -->\n"
-               << "</config>";
-    configFile.close();
-
-    loadConfig();
-    EXPECT_EQ(logging_interval, 10) << "Default logging interval should be used when missing.";
-}
-
-// Test if a client can successfully connect and disconnect
-TEST(ServerTest, ClientConnection) {
-    io_context ioc;
-    ip::tcp::acceptor acceptor(ioc, ip::tcp::endpoint(ip::tcp::v4(), 9000));
-    ip::tcp::socket socket(ioc);
     
-    // Simulate a client connection
-    std::thread server_thread([&]() {
-        ip::tcp::socket server_socket(ioc);
-        acceptor.accept(server_socket);
-        handleClient(std::move(server_socket));
-    });
+    if (argc > 2) {
+        try {
+            port = std::stoi(argv[2]);
+            if (port <= 0 || port > 65535) {
+                throw std::out_of_range("Invalid port range");
+            }
+        } catch (...) {
+            std::cerr << "Error: Invalid port argument. Using default port 9000.\n";
+            port = 9000;
+        }
+    }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Give server some time to start
+    std::cout << "Server running at http://" << ip_address << ":" << port << "...\n\n";
 
-    // Connect the client
-    socket.connect(acceptor.local_endpoint());
-    EXPECT_TRUE(socket.is_open());
+    loadConfig();
+    boot_count.store(getBootCount());
 
-    // Disconnect the client
-    socket.close();
-    EXPECT_FALSE(socket.is_open());
+    boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::make_address(ip_address), port);
+    ip::tcp::acceptor acceptor(ioc, endpoint);
 
-    server_thread.join();
-}
+    std::thread logger(broadcastStats);
+    logger.detach();
 
-// Test adding a client to the active list
-TEST(ServerTest, AddClientToActiveList) {
-    io_context ioc;
-    ip::tcp::socket socket(ioc);
-    
-    auto ws = std::make_shared<websocket::stream<ip::tcp::socket>>(std::move(socket));
-    
+    while (true)
     {
-        std::lock_guard<std::mutex> lock(clients_mutex);
-        clients.insert(ws);
+        ip::tcp::socket socket(ioc);
+        boost::system::error_code ec;
+        acceptor.accept(socket, ec);
+        if (!ec) {
+            std::thread(handleClient, std::move(socket)).detach();
+        } else {
+            std::cerr << "Error accepting connection: " << ec.message() << "\n";
+        }
     }
 
-    // Ensure the client was added
-    EXPECT_EQ(clients.size(), 1);
-}
-
-// Test removing a client from the active list
-TEST(ServerTest, RemoveClientFromActiveList) {
-    io_context ioc;
-    ip::tcp::socket socket(ioc);
-    
-    auto ws = std::make_shared<websocket::stream<ip::tcp::socket>>(std::move(socket));
-    
-    {
-        std::lock_guard<std::mutex> lock(clients_mutex);
-        clients.insert(ws);
-    }
-}
-
-// Test client sending "REQUEST_STATS" and receiving a response
-TEST(ServerTest, HandleClientRequestStats) {
-    io_context ioc;
-    ip::tcp::socket client_socket(ioc);
-    ip::tcp::acceptor acceptor(ioc, ip::tcp::endpoint(ip::tcp::v4(), 9000));
-
-    std::thread server_thread([&]() {
-        ip::tcp::socket server_socket(ioc);
-        acceptor.accept(server_socket);
-        handleClient(std::move(server_socket));
-    });
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Allow server to start
-
-    // Connect the client
-    client_socket.connect(acceptor.local_endpoint());
-    EXPECT_TRUE(client_socket.is_open());
-
-    websocket::stream<ip::tcp::socket> ws(std::move(client_socket));
-    ws.handshake("localhost", "/");
-    
-    // Send REQUEST_STATS message
-    ws.write(net::buffer(std::string("REQUEST_STATS")));
-
-    boost::beast::flat_buffer buffer;
-    boost::system::error_code ec;
-
-    // Receive response
-    ws.read(buffer, ec);
-    EXPECT_FALSE(ec) << "Error reading response: " << ec.message();
-
-    std::string response = boost::beast::buffers_to_string(buffer.data());
-    json stats = json::parse(response);
-
-    // Ensure response contains boot_count and uptime
-    EXPECT_TRUE(stats.contains("boot_count"));
-    EXPECT_TRUE(stats.contains("uptime"));
-
-    ws.close(websocket::close_code::normal);
-
-    server_thread.join();
-}
-
-// ===================== MAIN FUNCTION FOR TESTS =====================
-int main(int argc, char **argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
+    return 0;
 }
