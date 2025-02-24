@@ -1,3 +1,4 @@
+//server.h
 #ifndef SERVER_H
 #define SERVER_H
 
@@ -204,7 +205,7 @@ void sendPeriodicStats() {
 
 
 
-
+//client.cpp
 #include "client.h"
 
 using namespace boost::asio;
