@@ -1,32 +1,42 @@
+#include "client.h"
+
 int main(int argc, char* argv[]) 
 {
     signal(SIGINT, signalHandler);
+    
     bool logToFile = false;
     std::string host = "localhost";
-    int port = 9000;
+    int rest_port = 8080;  // Default REST API port
+    int ws_port = 9000;    // Default WebSocket port
 
+    // Parse command-line arguments
     if (argc > 1) {
         host = argv[1]; 
     }
 
     if (argc > 2) {
         try {
-            port = std::stoi(argv[2]);
+            rest_port = std::stoi(argv[2]); // REST API port
+            ws_port = std::stoi(argv[3]);   // WebSocket port
         } catch (...) {
-            std::cerr << "Error: Invalid port number. Using default port 9000.\n";
-            port = 9000;
+            std::cerr << "Error: Invalid port numbers. Using default ports (REST: 8080, WS: 9000).\n";
+            rest_port = 8080;
+            ws_port = 9000;
         }
     }
 
-    if (argc > 3 && std::string(argv[3]) == "--log") {
+    if (argc > 4 && std::string(argv[4]) == "--log") {
         logToFile = true;
     }
 
     std::cout << "=============================\n"
               << " SYSTEM STAT LOGGING CLIENT\n"
               << "=============================\n\n";
-    std::cout << "Connecting to server at " << host << ":" << port << "\n\n";
+    std::cout << "Requesting initial stats from " << host << ":" << rest_port << "\n";
 
-    connectToServer(host, port, logToFile);
+    requestInitialStats(host, rest_port, logToFile);  // Fetch initial stats via REST API
+    std::cout << "\nConnecting to WebSocket at " << host << ":" << ws_port << " for periodic updates...\n";
+
+    connectToWebSocket(host, ws_port, logToFile);  // Connect to WebSocket for periodic stats
     return 0;
 }
