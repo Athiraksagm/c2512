@@ -1,156 +1,174 @@
-#include "gtest/gtest.h"
-#include "server.h"
-#include <fstream>
-#include <boost/asio/ip/tcp.hpp>
-#include <boost/asio/io_context.hpp>
-#include <boost/asio/connect.hpp>
-#include <thread>
+#include "client.h"
 
 using namespace boost::asio;
 using namespace boost::beast;
-using namespace boost::asio::ip;
+using json = nlohmann::json;
 
-// ===================== TEST CASES =====================
+const std::string CSV_FILE_PATH = "../source/system_stats.csv";
+namespace websocket = boost::beast::websocket;
+std::shared_ptr<websocket::stream<boost::asio::ip::tcp::socket>> ws_client;
+std::atomic<bool> stopClient(false);
 
-// Test getBootCount()
-TEST(ServerTest, GetBootCount_Valid) {
-    int boot_count = getBootCount();
-    EXPECT_GE(boot_count, 0) << "Boot count should be non-negative.";
+/**
+ * @brief Saves system statistics (boot count and uptime) to a CSV file.
+ * 
+ * @param boot_count The system's boot count.
+ * @param uptime The system's uptime in seconds.
+ */
+void saveStatsToCSV(int boot_count, long uptime) 
+{
+    std::ifstream fileCheck(CSV_FILE_PATH);
+    bool fileExists = fileCheck.good();
+    bool isEmpty = fileCheck.peek() == std::ifstream::traits_type::eof();
+    fileCheck.close();
+
+    std::ofstream file(CSV_FILE_PATH, std::ios_base::app);
+
+    if (!fileExists || isEmpty) {
+        file << "Date(YYYY-MM-DD), Time(HH:MM:SS), Boot Count, Uptime (seconds)\n";
+    }
+
+    std::time_t now = std::time(nullptr);
+    std::tm *local_time = std::localtime(&now);
+
+    file << std::put_time(local_time,"%Y-%m-%d, %H:%M:%S") << ", " << boot_count << ", " << uptime << "\n";
 }
 
-TEST(ServerTest, GetBootCount_Failure) {
-    // Simulate a failure by running an invalid command
-    FILE *pipe = popen("invalid_command", "r");
-    if (!pipe) {
-        int result = getBootCount();
-        EXPECT_EQ(result, -1) << "Should return -1 on failure.";
+// Function to request initial stats via REST API
+json requestInitialStats(const std::string& host, int restPort, bool logToFile) {
+    httplib::Client client(host, restPort);
+    auto res = client.Get("/fetchSystemStats");
+
+    if (res && res->status == 200) {
+        json stats = json::parse(res->body);
+        std::cout << "[Received Stats] Boot Count: " << stats["boot_count"]
+                  << ", Uptime: " << stats["uptime"] << " seconds\n";
+
+        // Ensure stats are saved only if logToFile is enabled
+        if (logToFile) {
+            saveStatsToCSV(stats["boot_count"], stats["uptime"]);
+            std::cout << "Initial stats saved to CSV file.\n";
+        }
+
+        return stats;
+    } else {
+        std::cerr << "Failed to fetch initial stats via REST API. Status: " 
+                  << (res ? res->status : -1) << "\n";
+        return json();
     }
 }
 
-// Test getUptime()
-TEST(ServerTest, GetUptime_Valid) {
-    long uptime = getUptime();
-    EXPECT_GT(uptime, 0) << "Uptime should be a positive number.";
-}
+// Function to receive periodic stats via WebSocket
+void connectToWebSocket(const std::string& host, int wsPort) {
+    boost::asio::io_context ioc;
+    ip::tcp::resolver resolver(ioc);
+    auto endpoints = resolver.resolve(host, std::to_string(wsPort));
 
-TEST(ServerTest, GetUptime_Failure) {
-    struct sysinfo info;
-    memset(&info, 0, sizeof(info));  // Simulating failure
+    ws_client = std::make_shared<websocket::stream<ip::tcp::socket>>(ioc);
+    boost::asio::connect(ws_client->next_layer(), endpoints);
+    ws_client->handshake(host, "/");
 
-    long result = getUptime();
-    EXPECT_NE(result, -1) << "Should return -1 if sysinfo() fails.";
-}
+    boost::beast::flat_buffer buffer;
+    boost::system::error_code ec;
 
-// Test loadConfig()
-TEST(ServerTest, LoadConfig_ValidXML) {
-    std::ofstream configFile("../source/config.xml");
-    configFile << "<config>\n"
-               << "    <logging_interval>20</logging_interval>\n"
-               << "</config>";
-    configFile.close();
+    while (!stopClient) {
+        ws_client->read(buffer, ec);
+        if (ec) {
+            if (ec == websocket::error::closed) {
+                std::cout << "WebSocket closed by server.\n";
+                break;
+            } else {
+                std::cerr << "Error receiving periodic stats: " << ec.message() << "\n";
+                break;
+            }
+        }
 
-    loadConfig();
-    EXPECT_EQ(logging_interval, 20) << "Should correctly set logging interval.";
-}
+        std::string periodicData = boost::beast::buffers_to_string(buffer.data());
+        json periodicStats = json::parse(periodicData);
 
-TEST(ServerTest, LoadConfig_InvalidXML) {
-    std::ofstream configFile("../source/config.xml");
-    configFile << "<config>\n"
-               << "    <logging_interval>invalid</logging_interval>\n"
-               << "</config>";
-    configFile.close();
+        std::cout << "[Periodic Update] Boot Count: " << periodicStats["boot_count"]
+                  << ", Uptime: " << periodicStats["uptime"] << " seconds\n";
 
-    loadConfig();
-    EXPECT_EQ(logging_interval, 10) << "Should fall back to default on invalid value.";
-}
+        // if (logToFile) {
+        //     saveStatsToCSV(periodicStats["boot_count"], periodicStats["uptime"]);
+        // }
 
-TEST(ServerTest, LoadConfig_MissingFile) {
-    remove("../source/config.xml");
-    loadConfig();
-    EXPECT_EQ(logging_interval, 10) << "Should fall back to default if file is missing.";
-}
-
-TEST(ServerTest, LoadConfig_MissingLoggingInterval) {
-    std::ofstream configFile("../source/config.xml");
-    configFile << "<config>\n"
-               << "    <!-- Missing logging_interval -->\n"
-               << "</config>";
-    configFile.close();
-
-    loadConfig();
-    EXPECT_EQ(logging_interval, 10) << "Should fall back to default if element is missing.";
-}
-
-// Test broadcastStats()
-TEST(ServerTest, BroadcastStats_EmptyClients) {
-    {
-        std::lock_guard<std::mutex> lock(clients_mutex);
-        clients.clear();
+        buffer.consume(buffer.size());
     }
-    EXPECT_NO_FATAL_FAILURE(broadcastStats()) << "Should not crash when no clients exist.";
+
+    std::cout << "Client exiting WebSocket gracefully.\n";
+    ws_client.reset();
 }
 
-// Test WebSocket Client Handling
-TEST(ServerTest, HandleWebSocketClient) {
-    io_context ioc;
-    ip::tcp::acceptor acceptor(ioc, ip::tcp::endpoint(ip::tcp::v4(), 8081));
 
-    std::thread server_thread([&]() {
-        ip::tcp::socket socket(ioc);
-        acceptor.accept(socket);
-        handleWebSocketClient(std::move(socket));
-    });
+/**
+ * @brief Handles SIGINT (Ctrl+C) to close the WebSocket connection and exit safely.
+ * 
+ * @param signum The signal number received.
+ */
+void signalHandler(int signum)
+{
+    std::cout << "\nClient received SIGINT, closing WebSocket...\n\n";
+    stopClient = true; // Stop the client loop
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    if (ws_client) {
+        boost::system::error_code ec;
+        ws_client->close(websocket::close_code::normal, ec);
+        if (ec) {
+            std::cerr << "Error closing WebSocket: " << ec.message() << "\n";
+        } else {
+            std::cout << "WebSocket closed successfully.\n";
+        }
+    }
 
-    websocket::stream<ip::tcp::socket> ws(ioc);
-    tcp::resolver resolver(ioc);
-    auto results = resolver.resolve("127.0.0.1", "8081");
-    connect(ws.next_layer(), results.begin(), results.end());
-    ws.handshake("127.0.0.1", "/");
-
-    EXPECT_TRUE(ws.is_open());
-
-    ws.close(websocket::close_code::normal);
-    server_thread.join();
+    ws_client.reset(); // Free the WebSocket instance
+    exit(signum);
 }
 
-// Test REST API Server
-TEST(ServerTest, RESTServerFetchStats) {
-    std::thread rest_thread([]() { startRESTServer(8090); });
-    std::this_thread::sleep_for(std::chrono::seconds(1));
+int main(int argc, char* argv[]) 
+{
+    signal(SIGINT, signalHandler);
 
-    httplib::Client cli("http://127.0.0.1:8090");
-    auto res = cli.Get("/fetchSystemStats");
+    bool logToFile = false;
+    std::string host = "0.0.0.0";  // Must match the server IP
+    int rest_port = 8080;  // Default REST API port
+    int ws_port = 9000;    // Default WebSocket port
 
-    EXPECT_EQ(res->status, 200);
-    json response = json::parse(res->body);
-    EXPECT_TRUE(response.contains("boot_count"));
-    EXPECT_TRUE(response.contains("uptime"));
+    // Parse command-line arguments
+    if (argc > 1) {
+        std::string input_host = argv[1];
 
-    rest_thread.detach();
-}
+        if (input_host != host) {
+            std::cerr << "Error: Client must use the same IP as the server (" << host << ").\n";
+            return 1;
+        }
 
-// Test WebSocket Server
-TEST(ServerTest, WebSocketServerConnection) {
-    std::thread ws_thread([]() { startWebSocketServer(8091); });
-    std::this_thread::sleep_for(std::chrono::seconds(1));
+        host = input_host;
+    }
 
-    io_context ioc;
-    websocket::stream<ip::tcp::socket> ws(ioc);
-    tcp::resolver resolver(ioc);
-    auto results = resolver.resolve("127.0.0.1", "8091");
-    connect(ws.next_layer(), results.begin(), results.end());
-    ws.handshake("127.0.0.1", "/");
+    if (argc > 2) {
+        try {
+            rest_port = std::stoi(argv[2]); // REST API port
+            ws_port = std::stoi(argv[3]);   // WebSocket port
+        } catch (...) {
+            std::cerr << "Error: Invalid port numbers. Using default ports (REST: 8080, WS: 9000).\n";
+            rest_port = 8080;
+            ws_port = 9000;
+        }
+    }
 
-    EXPECT_TRUE(ws.is_open());
+    if (argc > 4 && std::string(argv[4]) == "--log") {
+        logToFile = true;
+    }
 
-    ws.close(websocket::close_code::normal);
-    ws_thread.detach();
-}
+    std::cout << "=============================\n"
+              << " SYSTEM STAT LOGGING CLIENT\n"
+              << "=============================\n\n";
+    std::cout << "Requesting initial stats from " << host << ":" << rest_port << "\n";
 
-// ===================== MAIN FUNCTION FOR TESTS =====================
-int main(int argc, char **argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
+    requestInitialStats(host, rest_port, logToFile);  // Fetch initial stats via REST API
+    std::cout << "\nConnecting to WebSocket at " << host << ":" << ws_port << " for periodic updates...\n";
+
+    connectToWebSocket(host, ws_port);  // Connect to WebSocket for periodic stats
+    return 0;
 }
