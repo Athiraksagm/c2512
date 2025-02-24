@@ -86,3 +86,138 @@ int main(int argc, char* argv[]) {
 
     return 0;
 }
+
+
+
+
+
+
+
+
+
+
+
+#include <iostream>
+#include <thread>
+#include <unordered_set>
+#include <mutex>
+#include <boost/asio.hpp>
+#include <boost/beast.hpp>
+#include <boost/beast/websocket.hpp>
+#include <nlohmann/json.hpp>
+#include <httplib.h>
+
+using namespace boost::asio;
+using namespace boost::beast;
+using json = nlohmann::json;
+
+std::atomic<int> boot_count(10); // Example boot count
+std::unordered_set<std::shared_ptr<websocket::stream<ip::tcp::socket>>> clients;
+std::mutex clients_mutex;
+
+int getUptime() {
+    return 3600; // Dummy uptime value
+}
+
+// Function to handle REST API requests for initial stats
+void startRESTServer(int restPort) {
+    httplib::Server server;
+
+    server.Get("/fetchSystemStats", [](const httplib::Request &, httplib::Response &res) {
+        json response;
+        response["boot_count"] = boot_count.load();
+        response["uptime"] = getUptime();
+        
+        res.set_content(response.dump(), "application/json");
+    });
+
+    std::cout << "REST API Server running on port " << restPort << "\n";
+    server.listen("0.0.0.0", restPort);
+}
+
+// Function to handle WebSocket clients for periodic stats
+void handleWebSocketClient(ip::tcp::socket socket) {
+    try {
+        auto ws = std::make_shared<websocket::stream<ip::tcp::socket>>(std::move(socket));
+        ws->accept();
+
+        {
+            std::lock_guard<std::mutex> lock(clients_mutex);
+            clients.insert(ws);
+        }
+
+        boost::beast::flat_buffer buffer;
+        boost::system::error_code ec;
+
+        while (ws->is_open()) {
+            ws->read(buffer, ec);
+            if (ec == websocket::error::closed) break;
+            if (ec) {
+                std::cerr << "WebSocket read error: " << ec.message() << "\n";
+                break;
+            }
+        }
+
+        {
+            std::lock_guard<std::mutex> lock(clients_mutex);
+            clients.erase(ws);
+        }
+
+    } catch (const std::exception &e) {
+        std::cerr << "WebSocket client error: " << e.what() << "\n";
+    }
+}
+
+// Function to start the WebSocket server
+void startWebSocketServer(int wsPort) {
+    boost::asio::io_context ioc;
+    ip::tcp::acceptor acceptor(ioc, ip::tcp::endpoint(ip::tcp::v4(), wsPort));
+
+    std::cout << "WebSocket Server running on port " << wsPort << "\n";
+
+    while (true) {
+        ip::tcp::socket socket(ioc);
+        acceptor.accept(socket);
+        std::thread(handleWebSocketClient, std::move(socket)).detach();
+    }
+}
+
+// Function to send periodic system stats via WebSocket
+void sendPeriodicStats() {
+    while (true) {
+        std::this_thread::sleep_for(std::chrono::seconds(10)); // Adjust interval as needed
+        json periodicStats;
+        periodicStats["boot_count"] = boot_count.load();
+        periodicStats["uptime"] = getUptime();
+
+        std::lock_guard<std::mutex> lock(clients_mutex);
+        for (auto &client : clients) {
+            boost::system::error_code ec;
+            client->write(net::buffer(periodicStats.dump()), ec);
+            if (ec) {
+                std::cerr << "Error sending periodic stats: " << ec.message() << "\n";
+            }
+        }
+    }
+}
+
+int main(int argc, char *argv[]) {
+    if (argc < 3) {
+        std::cerr << "Usage: " << argv[0] << " <REST_port> <WS_port>\n";
+        return 1;
+    }
+
+    int restPort = std::stoi(argv[1]);
+    int wsPort = std::stoi(argv[2]);
+
+    // Start REST API server in a separate thread
+    std::thread(restServerThread, startRESTServer, restPort).detach();
+
+    // Start WebSocket server in a separate thread
+    std::thread(wsServerThread, startWebSocketServer, wsPort).detach();
+
+    // Start periodic stat updates
+    sendPeriodicStats();
+
+    return 0;
+}
