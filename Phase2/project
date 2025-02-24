@@ -1,226 +1,39 @@
-#include "server.h"
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/build$ make
+Consolidate compiler generated dependencies of target server
+[ 20%] Building CXX object CMakeFiles/server.dir/source/server.cpp.o
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/source/server.cpp: In function ‘int main(int, char**)’:
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/source/server.cpp:367:61: error: no matching function for call to ‘std::thread::thread(<unresolved overloaded function type>, int&)’
+  367 | ::thread periodicThread(broadcastStats, periodic_port);
+      |                                                      ^
 
-using namespace boost::asio;
-using namespace boost::beast;
-using json = nlohmann::json;
-using namespace tinyxml2;
+In file included from /usr/include/c++/11/future:48,
+                 from /usr/include/boost/asio/detail/future.hpp:20,
+                 from /usr/include/boost/asio/packaged_task.hpp:19,
+                 from /usr/include/boost/asio.hpp:134,
+                 from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/include/server.h:4,
+                 from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/source/server.cpp:254:
+/usr/include/c++/11/bits/std_thread.h:127:7: note: candidate: ‘template<class _Callable, class ... _Args, class> std::thread::thread(_Callable&&, _Args&& ...)’
+  127 |       thread(_Callable&& __f, _Args&&... __args)
+      |       ^~~~~~
+/usr/include/c++/11/bits/std_thread.h:127:7: note:   template argument deduction/substitution failed:
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/source/server.cpp:367:61: note:   couldn’t deduce template parameter ‘_Callable’
+  367 | ::thread periodicThread(broadcastStats, periodic_port);
+      |                                                      ^
 
-const int DEFAULT_REQUEST_PORT = 9000;
-const int DEFAULT_PERIODIC_PORT = 9001;
-const int DEFAULT_LOGGING_INTERVAL = 10;
-
-std::atomic<int> boot_count(0);
-std::unordered_set<std::shared_ptr<websocket::stream<ip::tcp::socket>>> clients;
-std::mutex clients_mutex;
-int logging_interval = DEFAULT_LOGGING_INTERVAL;
-io_context ioc;
-
-/**
- * @brief Retrieves the system boot count.
- */
-int getBootCount() {
-    FILE *pipe = popen("last reboot | wc -l", "r");
-    if (!pipe) return -1;
-    char buffer[128];
-    if (!fgets(buffer, sizeof(buffer), pipe)) {
-        pclose(pipe);
-        return -1;
-    }
-    pclose(pipe);
-    try { return std::stoi(buffer); } catch (...) { return -1; }
-}
-
-/**
- * @brief Retrieves the system uptime in seconds.
- */
-long getUptime() {
-    struct sysinfo info;
-    return (sysinfo(&info) == 0) ? info.uptime : -1;
-}
-
-/**
- * @brief Loads logging interval from config.xml.
- */
-void loadConfig() {
-    XMLDocument doc;
-    if (doc.LoadFile("../source/config.xml") != XML_SUCCESS) return;
-    XMLElement *interval_element = doc.FirstChildElement("config")->FirstChildElement("logging_interval");
-    if (interval_element) {
-        try { logging_interval = std::stoi(interval_element->GetText()); } catch (...) {}
-    }
-}
-
-/**
- * @brief Periodically sends stats to subscribed WebSocket clients.
- */
-void broadcastStats(int periodic_port) {
-    ip::tcp::acceptor acceptor(ioc, ip::tcp::endpoint(ip::tcp::v4(), periodic_port));
-    while (true) {
-        ip::tcp::socket socket(ioc);
-        acceptor.accept(socket);
-        auto ws = std::make_shared<websocket::stream<ip::tcp::socket>>(std::move(socket));
-        ws->accept();
-        {
-            std::lock_guard<std::mutex> lock(clients_mutex);
-            clients.insert(ws);
-        }
-
-        while (ws->is_open()) {
-            json stats = {{"boot_count", boot_count.load()}, {"uptime", getUptime()}};
-            boost::system::error_code ec;
-            ws->write(net::buffer(stats.dump()), ec);
-            if (ec) break;
-            std::this_thread::sleep_for(std::chrono::seconds(logging_interval));
-        }
-
-        std::lock_guard<std::mutex> lock(clients_mutex);
-        clients.erase(ws);
-    }
-}
-
-/**
- * @brief Handles a single request-response WebSocket client.
- */
-void handleRequestClient(ip::tcp::socket socket) {
-    try {
-        websocket::stream<ip::tcp::socket> ws(std::move(socket));
-        ws.accept();
-        boost::beast::flat_buffer buffer;
-        ws.read(buffer);
-        std::string client_message = boost::beast::buffers_to_string(buffer.data());
-
-        if (client_message == "REQUEST_STATS") {
-            json stats = {{"boot_count", boot_count.load()}, {"uptime", getUptime()}};
-            ws.write(net::buffer(stats.dump()));
-        }
-    } catch (...) {}
-}
-
-/**
- * @brief Main function for handling server logic.
- */
-int main(int argc, char* argv[]) {
-    int request_port = DEFAULT_REQUEST_PORT;
-    int periodic_port = DEFAULT_PERIODIC_PORT;
-
-    if (argc > 1) request_port = std::stoi(argv[1]);
-    if (argc > 2) periodic_port = std::stoi(argv[2]);
-
-    std::cout << "Server running...\nRequest Port: " << request_port << ", Periodic Port: " << periodic_port << "\n";
-
-    loadConfig();
-    boot_count.store(getBootCount());
-
-    std::thread periodicThread(broadcastStats, periodic_port);
-    periodicThread.detach();
-
-    ip::tcp::acceptor acceptor(ioc, ip::tcp::endpoint(ip::tcp::v4(), request_port));
-    while (true) {
-        ip::tcp::socket socket(ioc);
-        acceptor.accept(socket);
-        std::thread(handleRequestClient, std::move(socket)).detach();
-    }
-
-    return 0;
-}
-
-
-
-
-
-
-
-
-#include "client.h"
-
-using namespace boost::asio;
-using namespace boost::beast;
-using json = nlohmann::json;
-
-const std::string CSV_FILE_PATH = "../source/system_stats.csv";
-std::atomic<bool> stopClient(false);
-
-/**
- * @brief Saves stats to CSV file.
- */
-void saveStatsToCSV(int boot_count, long uptime) {
-    std::ofstream file(CSV_FILE_PATH, std::ios_base::app);
-    std::time_t now = std::time(nullptr);
-    std::tm *local_time = std::localtime(&now);
-    file << std::put_time(local_time, "%Y-%m-%d, %H:%M:%S") << ", " << boot_count << ", " << uptime << "\n";
-}
-
-/**
- * @brief Requests system statistics from the server.
- */
-void requestStats(const std::string& host, int request_port) {
-    boost::asio::io_context ioc;
-    ip::tcp::resolver resolver(ioc);
-    auto endpoints = resolver.resolve(host, std::to_string(request_port));
-    websocket::stream<ip::tcp::socket> ws(ioc);
-    connect(ws.next_layer(), endpoints);
-    ws.handshake(host, "/");
-
-    ws.write(net::buffer("REQUEST_STATS"));
-
-    boost::beast::flat_buffer buffer;
-    ws.read(buffer);
-
-    json stats = json::parse(boost::beast::buffers_to_string(buffer.data()));
-    std::cout << "[Received Stats] Boot Count: " << stats["boot_count"] << ", Uptime: " << stats["uptime"] << " seconds\n";
-}
-
-/**
- * @brief Listens for periodic system statistics.
- */
-void listenForPeriodicStats(const std::string& host, int periodic_port, bool logToFile) {
-    boost::asio::io_context ioc;
-    ip::tcp::resolver resolver(ioc);
-    auto endpoints = resolver.resolve(host, std::to_string(periodic_port));
-    websocket::stream<ip::tcp::socket> ws(ioc);
-    connect(ws.next_layer(), endpoints);
-    ws.handshake(host, "/");
-
-    while (!stopClient) {
-        boost::beast::flat_buffer buffer;
-        boost::system::error_code ec;
-        ws.read(buffer, ec);
-        if (ec) break;
-
-        json stats = json::parse(boost::beast::buffers_to_string(buffer.data()));
-        std::cout << "[Periodic Update] Boot Count: " << stats["boot_count"] << ", Uptime: " << stats["uptime"] << " seconds\n";
-
-        if (logToFile) saveStatsToCSV(stats["boot_count"], stats["uptime"]);
-    }
-}
-
-/**
- * @brief Handles SIGINT (Ctrl+C) to close WebSocket connections.
- */
-void signalHandler(int signum) {
-    stopClient = true;
-    exit(signum);
-}
-
-/**
- * @brief Main function for client.
- */
-int main(int argc, char* argv[]) {
-    signal(SIGINT, signalHandler);
-
-    std::string host = "localhost";
-    int request_port = 9000, periodic_port = 9001;
-    bool logToFile = false;
-
-    if (argc > 1) host = argv[1];
-    if (argc > 2) request_port = std::stoi(argv[2]);
-    if (argc > 3) periodic_port = std::stoi(argv[3]);
-    if (argc > 4 && std::string(argv[4]) == "--log") logToFile = true;
-
-    std::cout << "Client connecting to " << host << " [Request Port: " << request_port << ", Periodic Port: " << periodic_port << "]\n";
-
-    requestStats(host, request_port);
-    listenForPeriodicStats(host, periodic_port, logToFile);
-
-    return 0;
-}
+In file included from /usr/include/c++/11/future:48,
+                 from /usr/include/boost/asio/detail/future.hpp:20,
+                 from /usr/include/boost/asio/packaged_task.hpp:19,
+                 from /usr/include/boost/asio.hpp:134,
+                 from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/include/server.h:4,
+                 from /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/source/server.cpp:254:
+/usr/include/c++/11/bits/std_thread.h:157:5: note: candidate: ‘std::thread::thread(std::thread&&)’
+  157 |     thread(thread&& __t) noexcept
+      |     ^~~~~~
+/usr/include/c++/11/bits/std_thread.h:157:5: note:   candidate expects 1 argument, 2 provided
+/usr/include/c++/11/bits/std_thread.h:121:5: note: candidate: ‘std::thread::thread()’
+  121 |     thread() noexcept = default;
+      |     ^~~~~~
+/usr/include/c++/11/bits/std_thread.h:121:5: note:   candidate expects 0 arguments, 2 provided
+make[2]: *** [CMakeFiles/server.dir/build.make:76: CMakeFiles/server.dir/source/server.cpp.o] Error 1
+make[1]: *** [CMakeFiles/Makefile2:85: CMakeFiles/server.dir/all] Error 2
+make: *** [Makefile:101: all] Error 2
