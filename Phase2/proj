@@ -1,4 +1,22 @@
 #include "server.h"
+#include <thread>
+#include <chrono>
+#include <atomic>
+#include <iostream>
+
+// Atomic flag to control periodic stats broadcasting
+std::atomic<bool> running(true);
+
+void sendPeriodicStats() {
+    while (running.load()) {
+        SystemStats stats = getSystemStats(); // Fetch updated system stats
+
+        std::string stats_json = convertStatsToJson(stats); // Convert to JSON
+        broadcastWebSocketMessage(stats_json); // Send via WebSocket
+
+        std::this_thread::sleep_for(std::chrono::seconds(logging_interval)); // Wait for next interval
+    }
+}
 
 int main(int argc, char* argv[]) {
     std::cout << "=============================\n"
@@ -6,10 +24,10 @@ int main(int argc, char* argv[]) {
               << "=============================\n\n";
 
     const std::string ip_address = "0.0.0.0";
-    int rest_port = 8080;  // Default REST API port
-    int ws_port = 9000;    // Default WebSocket port
+    int rest_port = DEFAULT_REST_PORT;
+    int ws_port = DEFAULT_WS_PORT;
 
-    // Parse command-line arguments
+    // Parse command-line arguments for ports
     if (argc > 2) {
         try {
             rest_port = std::stoi(argv[1]);
@@ -20,23 +38,23 @@ int main(int argc, char* argv[]) {
             }
         } catch (...) {
             std::cerr << "Error: Invalid port arguments. Using default ports (REST: 8080, WS: 9000).\n";
-            rest_port = 8080;
-            ws_port = 9000;
+            rest_port = DEFAULT_REST_PORT;
+            ws_port = DEFAULT_WS_PORT;
         }
     }
 
     std::cout << "REST API Server running at http://" << ip_address << ":" << rest_port << "\n";
     std::cout << "WebSocket Server running at ws://" << ip_address << ":" << ws_port << "\n\n";
 
-    loadConfig();
+    loadConfig();  // Load interval from config.xml
     boot_count.store(getBootCount());
 
     // Start REST API server in a separate thread
-    std::thread rest_thread(startRESTServer, rest_port);
+    std::thread rest_thread([rest_port]() { startRESTServer(rest_port); });
     rest_thread.detach();
 
     // Start WebSocket server in a separate thread
-    std::thread ws_thread(startWebSocketServer, ws_port);
+    std::thread ws_thread([ws_port]() { startWebSocketServer(ws_port); });
     ws_thread.detach();
 
     // Start periodic broadcasting in the main thread
