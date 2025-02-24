@@ -1,19 +1,26 @@
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/build$ lcov --capture --directory . --output-file coverage.info
-genhtml coverage.info --output-directory coverage_report
-xdg-open coverage_report/index.html
-Capturing coverage data from .
-Subroutine read_intermediate_text redefined at /usr/bin/geninfo line 2623.
-Subroutine read_intermediate_json redefined at /usr/bin/geninfo line 2655.
-Subroutine intermediate_text_to_info redefined at /usr/bin/geninfo line 2703.
-Subroutine intermediate_json_to_info redefined at /usr/bin/geninfo line 2792.
-Subroutine get_output_fd redefined at /usr/bin/geninfo line 2872.
-Subroutine print_gcov_warnings redefined at /usr/bin/geninfo line 2900.
-Subroutine process_intermediate redefined at /usr/bin/geninfo line 2930.
-Found gcov version: 11.4.0
-Using intermediate gcov format
-Scanning . for .gcda files ...
-geninfo: WARNING: no .gcda files found in . - skipping!
-Finished .info-file creation
-Reading data file coverage.info
-genhtml: ERROR: no valid records found in tracefile coverage.info
-xdg-open: file 'coverage_report/index.html' does not exist
+This System Stat Logging Microservice tracks system boot count and total uptime over its lifetime. The server periodically sends system statistics to clients at a configurable interval.
+
+1. Server Application
+Monitor the number of boots and total uptime of the system.
+Configurable interval for sending statistics (defined in an XML file).
+Client shall request the server using REST API.
+Respond to client requests with current statistics in JSON format.
+Send periodic updates to clients based on the configured interval.
+Handle multiple client requests concurrently.
+
+2 Client Application
+Request system statistics from the server.
+Receive and parse JSON responses.
+Store system statistics in a CSV file when enabled via a command-line option.
+The CSV file should include date, time, number of boots, and total uptime with proper heading.
+2.3 Non-Functional Requirements
+Implemented in C++14 or above.
+Separate projects for server and client, compiled using CMake.
+Unit tests (UT) for the server using GTest.
+Multi-threaded architecture to handle multiple client requests simultaneously.
+Common Considerations
+Communication between server and client will use JSON format.
+Server applications will use multi-threading to handle concurrent client requests.
+Configuration settings (thresholds and intervals) will be stored in XML files.
+The system should be robust, ensuring minimal resource usage and optimized performance.
+Error handling should be implemented to manage connection failures, invalid requests, and unexpected conditions
