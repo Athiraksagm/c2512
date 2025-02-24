@@ -6,41 +6,41 @@ int main(int argc, char* argv[]) {
               << "=============================\n\n";
 
     const std::string ip_address = "0.0.0.0";
-    int port = 9000;
+    int rest_port = 8080;  // Default REST API port
+    int ws_port = 9000;    // Default WebSocket port
 
-    if (argc > 1) {
+    // Parse command-line arguments
+    if (argc > 2) {
         try {
-            port = std::stoi(argv[1]);
-            if (port <= 0 || port > 65535) {
+            rest_port = std::stoi(argv[1]);
+            ws_port = std::stoi(argv[2]);
+
+            if (rest_port <= 0 || rest_port > 65535 || ws_port <= 0 || ws_port > 65535) {
                 throw std::out_of_range("Invalid port range");
             }
         } catch (...) {
-            std::cerr << "Error: Invalid port argument. Using default port 9000.\n";
-            port = 9000;
+            std::cerr << "Error: Invalid port arguments. Using default ports (REST: 8080, WS: 9000).\n";
+            rest_port = 8080;
+            ws_port = 9000;
         }
     }
 
-    std::cout << "Server running at http://" << ip_address << ":" << port << "...\n\n";
+    std::cout << "REST API Server running at http://" << ip_address << ":" << rest_port << "\n";
+    std::cout << "WebSocket Server running at ws://" << ip_address << ":" << ws_port << "\n\n";
 
     loadConfig();
     boot_count.store(getBootCount());
 
-    boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::make_address(ip_address), port);
-    ip::tcp::acceptor acceptor(ioc, endpoint);
+    // Start REST API server in a separate thread
+    std::thread rest_thread(startRESTServer, rest_port);
+    rest_thread.detach();
 
-    std::thread logger(broadcastStats);
-    logger.detach();
+    // Start WebSocket server in a separate thread
+    std::thread ws_thread(startWebSocketServer, ws_port);
+    ws_thread.detach();
 
-    while (true) {
-        ip::tcp::socket socket(ioc);
-        boost::system::error_code ec;
-        acceptor.accept(socket, ec);
-        if (!ec) {
-            std::thread(handleClient, std::move(socket)).detach();
-        } else {
-            std::cerr << "Error accepting connection: " << ec.message() << "\n";
-        }
-    }
+    // Start periodic broadcasting in the main thread
+    sendPeriodicStats();
 
     return 0;
 }
