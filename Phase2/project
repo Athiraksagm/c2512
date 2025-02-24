@@ -2,8 +2,8 @@ athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/se
 Consolidate compiler generated dependencies of target server
 [ 20%] Building CXX object CMakeFiles/server.dir/source/server.cpp.o
 /mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/source/server.cpp: In function ‘int main(int, char**)’:
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/source/server.cpp:367:61: error: no matching function for call to ‘std::thread::thread(<unresolved overloaded function type>, int&)’
-  367 | ::thread periodicThread(broadcastStats, periodic_port);
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/source/server.cpp:367:62: error: no matching function for call to ‘std::thread::thread(<unresolved overloaded function type>, int&)’
+  367 | :thread periodicThread(&broadcastStats, periodic_port);
       |                                                      ^
 
 In file included from /usr/include/c++/11/future:48,
@@ -16,8 +16,8 @@ In file included from /usr/include/c++/11/future:48,
   127 |       thread(_Callable&& __f, _Args&&... __args)
       |       ^~~~~~
 /usr/include/c++/11/bits/std_thread.h:127:7: note:   template argument deduction/substitution failed:
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/source/server.cpp:367:61: note:   couldn’t deduce template parameter ‘_Callable’
-  367 | ::thread periodicThread(broadcastStats, periodic_port);
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/source/server.cpp:367:62: note:   couldn’t deduce template parameter ‘_Callable’
+  367 | :thread periodicThread(&broadcastStats, periodic_port);
       |                                                      ^
 
 In file included from /usr/include/c++/11/future:48,
