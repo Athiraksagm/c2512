@@ -1,188 +1,46 @@
-void handleClient(ip::tcp::socket socket) {
-    try {
-        auto ws = std::make_shared<websocket::stream<ip::tcp::socket>>(std::move(socket));
-        ws->accept();
-        if (!ws->is_open()) return;
+#include "server.h"
 
-        boost::beast::flat_buffer buffer;
+int main(int argc, char* argv[]) {
+    std::cout << "=============================\n"
+              << " SYSTEM STAT LOGGING SERVER\n"
+              << "=============================\n\n";
+
+    const std::string ip_address = "0.0.0.0";
+    int port = 9000;
+
+    if (argc > 1) {
+        try {
+            port = std::stoi(argv[1]);
+            if (port <= 0 || port > 65535) {
+                throw std::out_of_range("Invalid port range");
+            }
+        } catch (...) {
+            std::cerr << "Error: Invalid port argument. Using default port 9000.\n";
+            port = 9000;
+        }
+    }
+
+    std::cout << "Server running at http://" << ip_address << ":" << port << "...\n\n";
+
+    loadConfig();
+    boot_count.store(getBootCount());
+
+    boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::make_address(ip_address), port);
+    ip::tcp::acceptor acceptor(ioc, endpoint);
+
+    std::thread logger(broadcastStats);
+    logger.detach();
+
+    while (true) {
+        ip::tcp::socket socket(ioc);
         boost::system::error_code ec;
-        ws->read(buffer, ec);
-        if (ec) {
-            std::cerr << "Client disconnected: " << ec.message() << "\n";
-            return;
-        }
-
-        std::string client_message = boost::beast::buffers_to_string(buffer.data());
-        buffer.consume(buffer.size());
-
-        if (client_message == "REQUEST_STATS") {
-            json first_stat;
-            first_stat["boot_count"] = boot_count.load();
-            first_stat["uptime"] = getUptime();
-            ws->write(net::buffer(first_stat.dump()), ec);
-        }
-
-        {
-            std::lock_guard<std::mutex> lock(clients_mutex);
-            clients.insert(ws);
-        }
-
-        while (ws->is_open()) {
-            buffer.clear();
-            buffer.consume(buffer.size());
-            ws->read(buffer, ec);
-            if (ec == websocket::error::closed) break;
-            if (ec) {
-                std::cerr << "Error reading from WebSocket: " << ec.message() << "\n";
-                break;
-            }
-        }
-
-        {
-            std::lock_guard<std::mutex> lock(clients_mutex);
-            clients.erase(ws);
-        }
-
-    } catch (const std::exception &e) {
-        std::cerr << "Client error: " << e.what() << "\n";
-    } catch (...) {
-        std::cerr << "Unknown client error.\n";
-    }
-}
-
-#endif
-
-
-
-
-
-void DiskStatusRequestHandler(char *argv[]) {
-    if (!argv[1]) {
-        std::cerr << "Error: Missing argument for port." << std::endl;
-        return;
-    }
- 
-    try {
-        int port = std::stoi(argv[1]); // Ensure it's a valid integer
-        std::thread([argv, port]() {
-            httplib::Server server;
-            server.Get("/fetchDiskStatus", [](const httplib::Request &req, httplib::Response &res) {
-                DiskStatus current_status = FetchDiskStatus();
-                nlohmann::json json_response;
-                json_response["disk_space"] = current_status.disk_space;
-                json_response["free_space"] = current_status.free_space;
-                json_response["utilized_capacity"] = current_status.utilized_capacity;
- 
-                res.set_content(json_response.dump(), "application/json");
-            });
- 
-            std::cout << "HTTP Server is running on http://" << kServerIP << ":" << port << std::endl;
-            server.listen(kServerIP, port);
-        }).detach();
-    } catch (const std::exception &e) {
-        std::cerr << "Error: Invalid port number - " << e.what() << std::endl;
-    }
-}
-
-
-
-
-
-
-void connectToServer(const std::string& host, int port, bool logToFile) 
-{
-    boost::asio::io_context ioc;
-    ip::tcp::resolver resolver(ioc);
-    auto endpoints = resolver.resolve(host, std::to_string(port));
-
-    // websocket::stream<ip::tcp::socket> ws(ioc);
-    // ws_client = std::make_shared<websocket::stream<ip::tcp::socket>>(std::move(ws)); // Store ws_client for signal handling
-    ws_client = std::make_shared<websocket::stream<ip::tcp::socket>>(ioc);
-    boost::asio::connect(ws_client->next_layer(), endpoints);
-    ws_client->handshake(host, "/");
-
-    std::cout << "Sending REQUEST_STATS to server...\n\n";
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-    ws_client->write(net::buffer(std::string("REQUEST_STATS")));
-
-    boost::beast::flat_buffer buffer;
-    boost::system::error_code ec;
-    ws_client->read(buffer, ec);
-
-    if (ec) {
-        std::cerr << "Error receiving initial stats: " << ec.message() << "\n";
-        return;
-    }
-
-    std::string data = boost::beast::buffers_to_string(buffer.data());
-    json stats = json::parse(data);
-
-    std::cout << "[Received Stats] Boot Count: " << stats["boot_count"]
-              << ", Uptime: " << stats["uptime"] << " seconds\n";
-
-    if (logToFile) {
-        saveStatsToCSV(stats["boot_count"], stats["uptime"]);
-    }
-
-    buffer.consume(buffer.size());
-
-    while (!stopClient) { // Check stopClient flag
-        ws_client->read(buffer, ec);
-        if (ec) {
-            if (ec == boost::asio::error::eof) { 
-                std::cout << "Error receiving periodic stats: End of file (server closed connection)\n";
-                break;
-            } else if (ec == websocket::error::closed) {
-                std::cout << "Client disconnected: WebSocket closed\n";
-                break;
-            } else {
-                std::cerr << "Error receiving periodic stats: " << ec.message() << "\n";
-                break;
-            }
-        }
-
-        std::string periodicData = boost::beast::buffers_to_string(buffer.data());
-        json periodicStats = json::parse(periodicData);
-
-        std::cout << "[Periodic Update] Boot Count: " << periodicStats["boot_count"]
-                  << ", Uptime: " << periodicStats["uptime"] << " seconds\n";
-
-        buffer.consume(buffer.size());
-    }
-
-    std::cout << "Client exiting gracefully.\n";
-    ws_client.reset(); // Properly delete the WebSocket instance
-}
-
-
-
-
-void ReqDiskStatus(char *argv[]){
-    std::thread([argv](){
-        httplib::Client client(argv[1], std::stoi(argv[2]));
-        auto res = client.Get("/fetchDiskStatus");
- 
-        if (res && res->status == 200) {
-            nlohmann::json json_response = nlohmann::json::parse(res->body);
-            std::cout << "\nDisk usage information:\n" << std::endl;
-            std::cout << "Disk Space: " << json_response["disk_space"] << "GB" << std::endl;
-            std::cout << "Free Space: " << json_response["free_space"] << "GB" << std::endl;
-            std::cout << "Utilized Capacity: " << json_response["utilized_capacity"] << "%\n" << std::endl;
- 
-            if(argv[4] && std::string(argv[4]) == "log"){
-                if(!IsFileNotEmpty(kDiskLogFileName)){
-                    logger << "Disk Usage Logs\nDate,Time,Disk Usage %\n";
-                    logger.flush();
-                }
- 
-                std::string date_time[2];
-                FetchDateTime(date_time);
-                logger << date_time[0] << "," << date_time[1] << "," <<  json_response["utilized_capacity"] << "\n";
-                logger.flush();
-            }
- 
+        acceptor.accept(socket, ec);
+        if (!ec) {
+            std::thread(handleClient, std::move(socket)).detach();
         } else {
-            std::cerr << "Failed to connect to the server or receive a valid response.\n";
+            std::cerr << "Error accepting connection: " << ec.message() << "\n";
         }
-    }).detach();
+    }
+
+    return 0;
 }
