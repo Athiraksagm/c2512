@@ -1,3 +1,19 @@
-lcov --capture --directory . --output-file coverage.info
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/build$ lcov --capture --directory . --output-file coverage.info
 genhtml coverage.info --output-directory coverage_report
 xdg-open coverage_report/index.html
+Capturing coverage data from .
+Subroutine read_intermediate_text redefined at /usr/bin/geninfo line 2623.
+Subroutine read_intermediate_json redefined at /usr/bin/geninfo line 2655.
+Subroutine intermediate_text_to_info redefined at /usr/bin/geninfo line 2703.
+Subroutine intermediate_json_to_info redefined at /usr/bin/geninfo line 2792.
+Subroutine get_output_fd redefined at /usr/bin/geninfo line 2872.
+Subroutine print_gcov_warnings redefined at /usr/bin/geninfo line 2900.
+Subroutine process_intermediate redefined at /usr/bin/geninfo line 2930.
+Found gcov version: 11.4.0
+Using intermediate gcov format
+Scanning . for .gcda files ...
+geninfo: WARNING: no .gcda files found in . - skipping!
+Finished .info-file creation
+Reading data file coverage.info
+genhtml: ERROR: no valid records found in tracefile coverage.info
+xdg-open: file 'coverage_report/index.html' does not exist
