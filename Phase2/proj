@@ -1,3 +1,94 @@
+void handleClient(ip::tcp::socket socket) {
+    try {
+        auto ws = std::make_shared<websocket::stream<ip::tcp::socket>>(std::move(socket));
+        ws->accept();
+        if (!ws->is_open()) return;
+
+        boost::beast::flat_buffer buffer;
+        boost::system::error_code ec;
+        ws->read(buffer, ec);
+        if (ec) {
+            std::cerr << "Client disconnected: " << ec.message() << "\n";
+            return;
+        }
+
+        std::string client_message = boost::beast::buffers_to_string(buffer.data());
+        buffer.consume(buffer.size());
+
+        if (client_message == "REQUEST_STATS") {
+            json first_stat;
+            first_stat["boot_count"] = boot_count.load();
+            first_stat["uptime"] = getUptime();
+            ws->write(net::buffer(first_stat.dump()), ec);
+        }
+
+        {
+            std::lock_guard<std::mutex> lock(clients_mutex);
+            clients.insert(ws);
+        }
+
+        while (ws->is_open()) {
+            buffer.clear();
+            buffer.consume(buffer.size());
+            ws->read(buffer, ec);
+            if (ec == websocket::error::closed) break;
+            if (ec) {
+                std::cerr << "Error reading from WebSocket: " << ec.message() << "\n";
+                break;
+            }
+        }
+
+        {
+            std::lock_guard<std::mutex> lock(clients_mutex);
+            clients.erase(ws);
+        }
+
+    } catch (const std::exception &e) {
+        std::cerr << "Client error: " << e.what() << "\n";
+    } catch (...) {
+        std::cerr << "Unknown client error.\n";
+    }
+}
+
+#endif
+
+
+
+
+
+void DiskStatusRequestHandler(char *argv[]) {
+    if (!argv[1]) {
+        std::cerr << "Error: Missing argument for port." << std::endl;
+        return;
+    }
+ 
+    try {
+        int port = std::stoi(argv[1]); // Ensure it's a valid integer
+        std::thread([argv, port]() {
+            httplib::Server server;
+            server.Get("/fetchDiskStatus", [](const httplib::Request &req, httplib::Response &res) {
+                DiskStatus current_status = FetchDiskStatus();
+                nlohmann::json json_response;
+                json_response["disk_space"] = current_status.disk_space;
+                json_response["free_space"] = current_status.free_space;
+                json_response["utilized_capacity"] = current_status.utilized_capacity;
+ 
+                res.set_content(json_response.dump(), "application/json");
+            });
+ 
+            std::cout << "HTTP Server is running on http://" << kServerIP << ":" << port << std::endl;
+            server.listen(kServerIP, port);
+        }).detach();
+    } catch (const std::exception &e) {
+        std::cerr << "Error: Invalid port number - " << e.what() << std::endl;
+    }
+}
+
+
+
+
+
+
 void connectToServer(const std::string& host, int port, bool logToFile) 
 {
     boost::asio::io_context ioc;
