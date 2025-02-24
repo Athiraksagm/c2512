@@ -1,244 +1,392 @@
-#include <boost/asio.hpp>
-#include <boost/beast.hpp>
-#include <boost/beast/websocket.hpp>
-#include "json.hpp"
-#include "tinyxml2.h"
-#include <iostream>
-#include <unordered_set>
-#include <mutex>
-#include <thread>
-#include <sys/sysinfo.h>
-#include <atomic>
+// #include "gtest/gtest.h"
+// #include "server.h"
+// #include <fstream>
+// #include <boost/asio/ip/tcp.hpp>
+// #include <tinyxml2.h>
 
-using namespace boost::asio;
-using namespace boost::beast;
-using json = nlohmann::json;
-using namespace tinyxml2;
+// using json = nlohmann::json;
+// using namespace boost::asio;
+// using namespace boost::beast;
+// using namespace boost::asio::ip;
+// using namespace tinyxml2;
 
-std::atomic<int> boot_count(0);
-std::unordered_set<std::shared_ptr<websocket::stream<ip::tcp::socket>>> clients;
-std::mutex clients_mutex;
-int logging_interval = 10; // Default interval
+// // Global variables
+// const int DEFAULT_LOGGING_INTERVAL = 10;
+// std::atomic<int> boot_count(0);
+// std::unordered_set<std::shared_ptr<websocket::stream<ip::tcp::socket>>> clients;
+// std::mutex clients_mutex;
+// int logging_interval = DEFAULT_LOGGING_INTERVAL; 
 
-// Get boot count using "last reboot"
-int getBootCount() 
-{
-    FILE *pipe = popen("last reboot | wc -l", "r");
-    if (!pipe) return -1;
-    char buffer[128];
-    fgets(buffer, sizeof(buffer), pipe);
-    pclose(pipe);
-    return std::stoi(buffer);
-}
+// // ===================== Helper Functions =====================
 
-// Get system uptime
-long getUptime() 
-{
-    struct sysinfo info;
-    sysinfo(&info);
-    return info.uptime;
-}
+// // Retrieve system boot count
+// int getBootCount()
+// {
+//     FILE *pipe = popen("last reboot | wc -l", "r");
+//     if (!pipe) {
+//         std::cerr << "Error: Failed to execute system command for boot count..\n";
+//         return -1;
+//     }
+//     char buffer[128];
+//     if (!fgets(buffer, sizeof(buffer), pipe)) {
+//         std::cerr << "Error: Failed to read boot count from command output.\n";
+//         pclose(pipe);
+//         return -1;
+//     }
+//     pclose(pipe);
+//     try {
+//         int count = std::stoi(buffer);
+//         return (count > 0) ? count : -1;
+//     } catch (...) {
+//         std::cerr << "Error: Invalid boot count format.\n";
+//         return -1;
+//     }
+// }
 
-// Load logging interval from config.xml
-void loadConfig() 
-{
-    XMLDocument doc;
-    if (doc.LoadFile("../config.xml") == XML_SUCCESS) 
-    {
-        XMLElement *root = doc.FirstChildElement("config");
-        if (root) 
-        {
-            XMLElement *intervalElement = root->FirstChildElement("logging_interval");
-            if (intervalElement) 
-            {
-                logging_interval = std::stoi(intervalElement->GetText());
-            }
-        }
-    }
-}
+// // Retrieve system uptime 
+// long getUptime()
+// {
+//     struct sysinfo info;
+//     if (sysinfo(&info) !=0){
+//         std::cerr << "Error: Failed to retrieve system uptime.\n";
+//         return -1;
+//     }
+//     return info.uptime;
+// }
 
-// Send stats to all clients
-void broadcastStats() 
-{
-    while (true) {
-        json stats;
-        stats["boot_count"] = boot_count.load();
-        stats["uptime"] = getUptime();
-        std::string message = stats.dump();
+// // Load configuration settings from config.xml
+// void loadConfig()
+// {
+//     XMLDocument doc;
+//     if (doc.LoadFile("../source/config.xml") != XML_SUCCESS)
+//     {
+//         std::cerr << "Error: Could not load config.xml. Using default logging interval.\n";
+//         return;
+//     }
+//     XMLElement *root = doc.FirstChildElement("config");
+//     if (!root)
+//     {
+//         std::cerr << "Error: <config> element missing in config.xml. Using default " << DEFAULT_LOGGING_INTERVAL << "s.\n";
+//         return;
+//     }
+//     XMLElement *interval_element = root->FirstChildElement("logging_interval");
+//     if (!interval_element)
+//     {
+//         std::cerr << "Error: <logging_interval> element missing in config.xml. Using default " << DEFAULT_LOGGING_INTERVAL << "s.\n";
+//         return;
+//     }
+//     const char* interval_text = interval_element->GetText();
+//     if (interval_text && std::all_of(interval_text, interval_text + strlen(interval_text), ::isdigit))
+//     {
+//         try {
+//             logging_interval = std::stoi(interval_text);
+//             std::cerr << "Logging interval set to: " << DEFAULT_LOGGING_INTERVAL << "s\n\n" << std::flush;
+//         } catch (...) {
+//             std::cerr << "Error: Invalid logging interval in config.xml. Using default " << DEFAULT_LOGGING_INTERVAL << "s.\n";
+//             logging_interval = DEFAULT_LOGGING_INTERVAL;
+//         }
+//     } else {
+//         std::cerr << "Error: Invalid logging interval in config.xml (non-numeric value). Using default " << DEFAULT_LOGGING_INTERVAL << "s.\n" << std::flush;
+//         logging_interval = DEFAULT_LOGGING_INTERVAL;
+//     }
+// }
 
-        std::lock_guard<std::mutex> lock(clients_mutex);
-        for (auto &client : clients) {
-            boost::system::error_code ec;
-            client->write(net::buffer(message), ec);
-            if (ec) 
-            {
-                std::cerr << "Failed to send stats: " << ec.message() << "\n";
-            }
-        }
+// // Broadcast system stats to connected WebSocket clients
+// void broadcastStats()
+// {
+//     while (true)
+//     {
+//         json stats;
+//         stats["boot_count"] = boot_count.load();
+//         stats["uptime"] = getUptime();
+//         std::string message = stats.dump();
 
-        std::this_thread::sleep_for(std::chrono::seconds(logging_interval));
-    }
-}
+//         std::vector<std::shared_ptr<websocket::stream<ip::tcp::socket>>> disconnected_clients;
 
-// Handle individual client connection
-void handleClient(ip::tcp::socket socket) 
-{
-    try {
-        auto ws = std::make_shared<websocket::stream<ip::tcp::socket>>(std::move(socket));
-        ws->accept();
+//         {
+//             std::lock_guard<std::mutex> lock(clients_mutex);
+//             for (auto &client : clients)
+//             {
+//                 boost::system::error_code ec;
+//                 client->write(net::buffer(message), ec);
+//                 if (ec) {
+//                     std::cerr << "Client disconnected: " << ec.message() << "\n";
+//                     disconnected_clients.push_back(client);
+//                 }
+//             }
 
-        {
-            std::lock_guard<std::mutex> lock(clients_mutex);
-            clients.insert(ws);
-        }
+//             for (const auto &client : disconnected_clients)
+//             {
+//                 clients.erase(client);
+//             }
+//         }
 
-        // Read client's first message
-        boost::beast::flat_buffer buffer;
-        boost::system::error_code ec;
-        ws->read(buffer, ec);
+//         std::this_thread::sleep_for(std::chrono::seconds(std::max(1,logging_interval)));
+//     }
+// }
 
-        if (!ec) {
-            std::string request = boost::beast::buffers_to_string(buffer.data());
+// void handleClient(ip::tcp::socket socket)
+// {
+//         try {
+//             auto ws = std::make_shared<websocket::stream<ip::tcp::socket>>(std::move(socket));
+//             ws->accept();
+//             if (!ws->is_open())
+//             return;
 
-            // If the client requests stats, send them immediately
-            if (request == "request_stats") 
-            {
-                json firstStat;
-                firstStat["boot_count"] = boot_count.load();
-                firstStat["uptime"] = getUptime();
-                ws->write(net::buffer(firstStat.dump()));  
-                std::cout << "[Client Connected] Sent initial stats: " << firstStat.dump() << "\n";
-            }
-        }
+//             boost::beast::flat_buffer buffer;
+//             boost::system::error_code ec;
+//             // Read initial client request
+//             ws->read(buffer, ec);
+//             if (ec) {
+//                 if (ec == boost::beast::websocket::error::closed) {
+//                     std::cout << "Client disconnected: WebSocket closed\n";
+//                 } else if (ec == boost::asio::error::eof) {
+//                     std::cout << "Client disconnected.\n";
+//                 } else {
+//                     std::cerr << "Error reading from client: " << ec.message() << "\n";
+//                 }
+//                 return;
+//             }
 
-        // Wait for disconnection
-        while (true) {
-            ws->read(buffer, ec);
-            if (ec == websocket::error::closed) 
-            {
-                break;
-            }
-        }
+//         std::string client_message = boost::beast::buffers_to_string(buffer.data());
+//         buffer.consume(buffer.size());
 
-        std::lock_guard<std::mutex> lock(clients_mutex);
-        clients.erase(ws);
-    } catch (...) {
-        std::cerr << "Client disconnected.\n";
-    }
-}
+//         if (client_message == "REQUEST_STATS") {
+//             std::cout << "Request received from client. Sending current stats...\n\n";
+//             json first_stat;
+//             first_stat["boot_count"] = boot_count.load();
+//             first_stat["uptime"] = getUptime();
+//             ws->write(net::buffer(first_stat.dump()), ec);
+//         }
 
-int main() 
-{
-    loadConfig();
-    boot_count.store(getBootCount());
-    std::cout << "=============================\n"
-              << " SYSTEM STAT LOGGING SERVER\n"
-              << "=============================\n";
+//         // Add client to active list
+//         {
+//             std::lock_guard<std::mutex> lock(clients_mutex);
+//             clients.insert(ws);
+//         }
 
-    io_context ioc;
-    ip::tcp::acceptor acceptor(ioc, ip::tcp::endpoint(ip::tcp::v4(), 8080));
+//         // Continuous reading for periodic updates
+//         while (ws->is_open()) {
+//             buffer.clear(); 
+//             buffer.consume(buffer.size());
+//             ws->read(buffer, ec);
 
-    std::cout << "Server running at http://localhost:8080...\n";
-    std::cout << "Waiting for client requests...\n";
+//             if (ec == websocket::error::closed) {
+//                 break;  
+//             }
+//             if (ec) {
+//                 std::cerr << "Error reading from WebSocket: " << ec.message() << "\n";
+//                 break;
+//             }
+//         }
 
-    std::thread logger(broadcastStats);
-    logger.detach();
+//         {
+//             std::lock_guard<std::mutex> lock(clients_mutex);
+//             clients.erase(ws);
+//         }
 
-    while (true) {
-        ip::tcp::socket socket(ioc);
-        acceptor.accept(socket);
-        std::thread(handleClient, std::move(socket)).detach();
-    }
+//     } catch (const std::exception &e) {
+//         std::cerr << "Client error: " << e.what() << "\n";
+//     } catch (...) {
+//         std::cerr << "Unknown client error.\n";
+//     }
+// }
 
-    return 0;
-}
+// // ===================== TEST CASES =====================
 
+// // Test getBootCount()
+// TEST(SystemStatsTest, GetBootCount_Valid) {
+//     int boot_count = getBootCount();
+//     EXPECT_GE(boot_count, 0) << "Boot count should be a non-negative integer.";
+// }
 
+// TEST(SystemStatsTest, GetBootCount_Failure) {
+//     // Simulate failure by redirecting `popen()` to an invalid command
+//     FILE* pipe = popen("invalid_command", "r");
+//     if (!pipe) {
+//         int result = getBootCount();
+//         EXPECT_EQ(result, -1) << "Should return -1 on failure to execute command.";
+//     }
+// }
 
+// // est getUptime()
+// TEST(SystemStatsTest, GetUptime_Valid) {
+//     long uptime = getUptime();
+//     EXPECT_GT(uptime, 0) << "Uptime should be a positive value.";
+// }
 
+// TEST(SystemStatsTest, GetUptime_Failure) {
+//     // Simulate failure by modifying `sysinfo` response (Requires mocking)
+//     struct sysinfo info;
+//     memset(&info, 0, sizeof(info));  // Set uptime to 0 artificially
 
-#include <boost/asio.hpp>
-#include <boost/beast.hpp>
-#include <boost/beast/websocket.hpp>
-#include "json.hpp"
-#include <iostream>
-#include <fstream>
-#include <ctime>
+//     long result = getUptime();
+//     EXPECT_NE(result, -1) << "Should return -1 if sysinfo() fails.";
+// }
 
-using namespace boost::asio;
-using namespace boost::beast;
-using json = nlohmann::json;
+// // Test loadConfig()
+// TEST(SystemStatsTest, LoadConfig) {
+//     // Ensure logging_interval is correctly set
+//     loadConfig();
+//     EXPECT_GT(logging_interval, 0) << "Logging interval should be a positive value";
+// }
 
-// Function to save stats to CSV
-void saveStatsToCSV(int boot_count, long uptime) 
-{
-    std::ofstream file("../system_stats.csv", std::ios_base::app);
-    std::time_t now = std::time(nullptr);
-    std::tm *local_time = std::localtime(&now);
+// // Test loadConfig() with different cases
+// TEST(SystemStatsTest, LoadConfig_ValidXML) {
+//     // Create a test config.xml
+//     std::ofstream configFile("../source/config.xml");
+//     configFile << "<config>\n"
+//                << "    <logging_interval>15</logging_interval>\n"
+//                << "</config>";
+//     configFile.close();
 
-    file << 1900 + local_time->tm_year << "-"
-         << 1 + local_time->tm_mon << "-"
-         << local_time->tm_mday << ", "
-         << local_time->tm_hour << ":"
-         << local_time->tm_min << ":"
-         << local_time->tm_sec << ", "
-         << boot_count << ", "
-         << uptime << "\n";
-}
+//     // Load the configuration
+//     loadConfig();
 
-// Connect to WebSocket server and receive data
-void connectToServer(bool logToFile) 
-{
-    io_context ioc;
-    ip::tcp::resolver resolver(ioc);
-    auto endpoints = resolver.resolve("localhost", "8080");
+//     // Validate that the interval was updated correctly
+//     EXPECT_EQ(logging_interval, 15);
+// }
 
-    websocket::stream<ip::tcp::socket> ws(ioc);
-    boost::asio::connect(ws.next_layer(), endpoints);
-    ws.handshake("localhost", "/");
+// TEST(SystemStatsTest, LoadConfig_InvalidXML) {
+//     // Create an invalid test config.xml
+//     std::ofstream configFile("../source/config.xml");
+//     configFile << "<config>\n"
+//                << "    <logging_interval>invalid</logging_interval>\n"
+//                << "</config>";
+//     configFile.close();
 
-    std::cout << "Connected to server, requesting stats...\n";
+//     // Load the configuration
+//     loadConfig();
 
-    // Request stats from the server
-    ws.write(net::buffer("request_stats"));
+//     // Validate that the default value is used
+//     EXPECT_EQ(logging_interval, 10);
+// }
 
-    while (true) {
-        boost::beast::flat_buffer buffer;
-        boost::system::error_code ec;
-        ws.read(buffer, ec);
+// TEST(SystemStatsTest, LoadConfig_MissingFile) {
+//     // Ensure missing config.xml scenario
+//     remove("../source/config.xml");
 
-        if (ec) {
-            std::cerr << "Error receiving stats: " << ec.message() << "\n";
-            break;
-        }
+//     // Load the configuration
+//     loadConfig();
 
-        std::string data = boost::beast::buffers_to_string(buffer.data());
-        json stats = json::parse(data);
+//     // Validate that the default value is used
+//     EXPECT_EQ(logging_interval, 10);
+// }
 
-        std::cout << "[Received Stats] Boot Count: " << stats["boot_count"]
-                  << ", Uptime: " << stats["uptime"] << " seconds\n";
+// TEST(SystemStatsTest, LoadConfig_MissingLoggingInterval) {
+//     std::ofstream configFile("../source/config.xml");
+//     configFile << "<config>\n"
+//                << "    <!-- Missing logging_interval -->\n"
+//                << "</config>";
+//     configFile.close();
 
-        // Save to CSV if logging is enabled
-        if (logToFile) {
-            saveStatsToCSV(stats["boot_count"], stats["uptime"]);
-        }
-    }
-}
+//     loadConfig();
+//     EXPECT_EQ(logging_interval, 10) << "Default logging interval should be used when missing.";
+// }
 
-int main(int argc, char* argv[]) {
-    bool logToFile = false;
-
-    // Check if --log flag is passed
-    if (argc > 1 && std::string(argv[1]) == "--log") {
-        logToFile = true;
-        std::ifstream checkFile("../system_stats.csv");
-        if (!checkFile.is_open()) {
-            std::ofstream file("../system_stats.csv");
-            file << "Date (YYYY-MM-DD), Time (HH:MM:SS), Boot Count, Uptime (seconds)\n";
-        }
-    }
+// // Test if a client can successfully connect and disconnect
+// TEST(ServerTest, ClientConnection) {
+//     io_context ioc;
+//     ip::tcp::acceptor acceptor(ioc, ip::tcp::endpoint(ip::tcp::v4(), 9000));
+//     ip::tcp::socket socket(ioc);
     
-    std::cout << "=============================\n" << " SYSTEM STAT LOGGING CLIENT\n" << "=============================\n";
-    connectToServer(logToFile);
-    return 0;
-}
+//     // Simulate a client connection
+//     std::thread server_thread([&]() {
+//         ip::tcp::socket server_socket(ioc);
+//         acceptor.accept(server_socket);
+//         handleClient(std::move(server_socket));
+//     });
+
+//     std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Give server some time to start
+
+//     // Connect the client
+//     socket.connect(acceptor.local_endpoint());
+//     EXPECT_TRUE(socket.is_open());
+
+//     // Disconnect the client
+//     socket.close();
+//     EXPECT_FALSE(socket.is_open());
+
+//     server_thread.join();
+// }
+
+// // Test adding a client to the active list
+// TEST(ServerTest, AddClientToActiveList) {
+//     io_context ioc;
+//     ip::tcp::socket socket(ioc);
+    
+//     auto ws = std::make_shared<websocket::stream<ip::tcp::socket>>(std::move(socket));
+    
+//     {
+//         std::lock_guard<std::mutex> lock(clients_mutex);
+//         clients.insert(ws);
+//     }
+
+//     // Ensure the client was added
+//     EXPECT_EQ(clients.size(), 1);
+// }
+
+// // Test removing a client from the active list
+// TEST(ServerTest, RemoveClientFromActiveList) {
+//     io_context ioc;
+//     ip::tcp::socket socket(ioc);
+    
+//     auto ws = std::make_shared<websocket::stream<ip::tcp::socket>>(std::move(socket));
+    
+//     {
+//         std::lock_guard<std::mutex> lock(clients_mutex);
+//         clients.insert(ws);
+//     }
+// }
+
+// // Test client sending "REQUEST_STATS" and receiving a response
+// TEST(ServerTest, HandleClientRequestStats) {
+//     io_context ioc;
+//     ip::tcp::socket client_socket(ioc);
+//     ip::tcp::acceptor acceptor(ioc, ip::tcp::endpoint(ip::tcp::v4(), 9000));
+
+//     std::thread server_thread([&]() {
+//         ip::tcp::socket server_socket(ioc);
+//         acceptor.accept(server_socket);
+//         handleClient(std::move(server_socket));
+//     });
+
+//     std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Allow server to start
+
+//     // Connect the client
+//     client_socket.connect(acceptor.local_endpoint());
+//     EXPECT_TRUE(client_socket.is_open());
+
+//     websocket::stream<ip::tcp::socket> ws(std::move(client_socket));
+//     ws.handshake("localhost", "/");
+    
+//     // Send REQUEST_STATS message
+//     ws.write(net::buffer(std::string("REQUEST_STATS")));
+
+//     boost::beast::flat_buffer buffer;
+//     boost::system::error_code ec;
+
+//     // Receive response
+//     ws.read(buffer, ec);
+//     EXPECT_FALSE(ec) << "Error reading response: " << ec.message();
+
+//     std::string response = boost::beast::buffers_to_string(buffer.data());
+//     json stats = json::parse(response);
+
+//     // Ensure response contains boot_count and uptime
+//     EXPECT_TRUE(stats.contains("boot_count"));
+//     EXPECT_TRUE(stats.contains("uptime"));
+
+//     ws.close(websocket::close_code::normal);
+
+//     server_thread.join();
+// }
+
+// // ===================== MAIN FUNCTION FOR TESTS =====================
+// int main(int argc, char **argv) {
+//     ::testing::InitGoogleTest(&argc, argv);
+//     return RUN_ALL_TESTS();
+// }
+
+
+
