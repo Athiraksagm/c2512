@@ -4,20 +4,20 @@ athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/se
 [----------] 8 tests from ServerTest
 [ RUN      ] ServerTest.LoadConfig
 Logging interval set to: 10s
-[       OK ] ServerTest.LoadConfig (20 ms)
+[       OK ] ServerTest.LoadConfig (15 ms)
 [ RUN      ] ServerTest.GetBootCount
 Logging interval set to: 10s
-[       OK ] ServerTest.GetBootCount (6 ms)
+[       OK ] ServerTest.GetBootCount (5 ms)
 [ RUN      ] ServerTest.GetUptime
 Logging interval set to: 10s
-[       OK ] ServerTest.GetUptime (4 ms)
+[       OK ] ServerTest.GetUptime (3 ms)
 [ RUN      ] ServerTest.RESTApiResponseFormat
 Logging interval set to: 10s
 [       OK ] ServerTest.RESTApiResponseFormat (5 ms)
 [ RUN      ] ServerTest.WebSocketClientHandling
 Logging interval set to: 10s
 WebSocket Server running on port 9000
-[       OK ] ServerTest.WebSocketClientHandling (1004 ms)
+[       OK ] ServerTest.WebSocketClientHandling (1003 ms)
 [ RUN      ] ServerTest.StartRESTServer
 Logging interval set to: 10s
 REST API Server running on port 8080
@@ -25,18 +25,16 @@ REST API Server running on port 8080
 [ RUN      ] ServerTest.StartWebSocketServer
 Logging interval set to: 10s
 WebSocket Server running on port 9001
-[       OK ] ServerTest.StartWebSocketServer (1019 ms)
+[       OK ] ServerTest.StartWebSocketServer (1015 ms)
 [ RUN      ] ServerTest.HandleWebSocketClient
 Logging interval set to: 10s
 WebSocket client error: Bad file descriptor
-[       OK ] ServerTest.HandleWebSocketClient (41 ms)
-[----------] 8 tests from ServerTest (3116 ms total)
+[       OK ] ServerTest.HandleWebSocketClient (47 ms)
+[----------] 8 tests from ServerTest (3109 ms total)
 
 [----------] Global test environment tear-down
-[==========] 8 tests from 1 test suite ran. (3116 ms total)
+[==========] 8 tests from 1 test suite ran. (3109 ms total)
 [  PASSED  ] 8 tests.
-
-
 
 void Server::sendPeriodicStats(bool test_mode) {
     json periodicStats;
