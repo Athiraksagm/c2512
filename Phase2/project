@@ -1,230 +1,158 @@
-#ifndef SERVER_H
-#define SERVER_H
-
-#include <boost/asio.hpp>
-#include <boost/beast.hpp>
-#include <boost/beast/websocket.hpp>
-#include "json.hpp"
-#include "httplib.h"
-#include "tinyxml2.h"
-#include <iostream>
-#include <unordered_set>
-#include <mutex>
+#include "gtest/gtest.h"
+#include "server.h"
+#include <fstream>
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/io_context.hpp>
+#include <boost/asio/connect.hpp>
 #include <thread>
-#include <sys/sysinfo.h>
-#include <atomic>
 
 using namespace boost::asio;
 using namespace boost::beast;
-using json = nlohmann::json;
-using namespace tinyxml2;
+using namespace boost::asio::ip;
 
-class Server {
-private:
-    std::atomic<int> boot_count;
-    std::unordered_set<std::shared_ptr<websocket::stream<ip::tcp::socket>>> clients;
-    std::mutex clients_mutex;
-    int logging_interval;
-    io_context ioc;
+// ===================== TEST CASES =====================
 
-    void broadcastStats();
-    void handleWebSocketClient(ip::tcp::socket socket);
-    long getUptime();
-    int getBootCount();
-    void loadConfig();
-
-public:
-    Server();
-    void startRESTServer(int restPort);
-    void startWebSocketServer(int wsPort);
-    void sendPeriodicStats();
-};
-
-#endif
-
-
-
-
-
-
-#include "server.h"
-
-Server::Server() : boot_count(0), logging_interval(10) {
-    loadConfig();
-    boot_count.store(getBootCount());
+// Test getBootCount()
+TEST(ServerTest, GetBootCount_Valid) {
+    Server server;
+    int boot_count = server.getBootCount();
+    EXPECT_GE(boot_count, 0) << "Boot count should be non-negative.";
 }
 
-void Server::loadConfig() {
-    XMLDocument doc;
-    if (doc.LoadFile("../source/config.xml") != XML_SUCCESS) {
-        std::cerr << "Error: Could not load config.xml. Using default logging interval.\n";
-        return;
-    }
-    XMLElement *root = doc.FirstChildElement("config");
-    if (!root) return;
-
-    XMLElement *interval_element = root->FirstChildElement("logging_interval");
-    if (!interval_element) return;
-
-    const char* interval_text = interval_element->GetText();
-    if (interval_text && std::all_of(interval_text, interval_text + strlen(interval_text), ::isdigit)) {
-        try {
-            logging_interval = std::stoi(interval_text);
-            std::cerr << "Logging interval set to: " << logging_interval << "s\n";
-        } catch (...) {
-            logging_interval = 10;
-        }
+TEST(ServerTest, GetBootCount_Failure) {
+    Server server;
+    // Simulate a failure by running an invalid command
+    FILE *pipe = popen("invalid_command", "r");
+    if (!pipe) {
+        int result = server.getBootCount();
+        EXPECT_EQ(result, -1) << "Should return -1 on failure.";
     }
 }
 
-int Server::getBootCount() {
-    FILE *pipe = popen("last reboot | wc -l", "r");
-    if (!pipe) return -1;
-    char buffer[128];
-    if (!fgets(buffer, sizeof(buffer), pipe)) {
-        pclose(pipe);
-        return -1;
-    }
-    pclose(pipe);
-    try {
-        return std::stoi(buffer);
-    } catch (...) {
-        return -1;
-    }
+// Test getUptime()
+TEST(ServerTest, GetUptime_Valid) {
+    Server server;
+    long uptime = server.getUptime();
+    EXPECT_GT(uptime, 0) << "Uptime should be a positive number.";
 }
 
-long Server::getUptime() {
+TEST(ServerTest, GetUptime_Failure) {
+    Server server;
     struct sysinfo info;
-    return (sysinfo(&info) == 0) ? info.uptime : -1;
+    memset(&info, 0, sizeof(info));  // Simulating failure
+
+    long result = server.getUptime();
+    EXPECT_NE(result, -1) << "Should return -1 if sysinfo() fails.";
 }
 
-void Server::broadcastStats() {
-    while (true) {
-        json stats;
-        stats["boot_count"] = boot_count.load();
-        stats["uptime"] = getUptime();
-        std::string message = stats.dump();
+// Test loadConfig()
+TEST(ServerTest, LoadConfig_ValidXML) {
+    Server server;
+    std::ofstream configFile("../source/config.xml");
+    configFile << "<config>\n"
+               << "    <logging_interval>20</logging_interval>\n"
+               << "</config>";
+    configFile.close();
 
-        std::vector<std::shared_ptr<websocket::stream<ip::tcp::socket>>> disconnected_clients;
-
-        {
-            std::lock_guard<std::mutex> lock(clients_mutex);
-            for (auto &client : clients) {
-                boost::system::error_code ec;
-                client->write(net::buffer(message), ec);
-                if (ec) disconnected_clients.push_back(client);
-            }
-            for (const auto &client : disconnected_clients) {
-                clients.erase(client);
-            }
-        }
-
-        std::this_thread::sleep_for(std::chrono::seconds(logging_interval));
-    }
+    server.loadConfig();
+    EXPECT_EQ(logging_interval, 20) << "Should correctly set logging interval.";
 }
 
-void Server::startRESTServer(int restPort) {
-    httplib::Server server;
+TEST(ServerTest, LoadConfig_InvalidXML) {
+    Server server;
+    std::ofstream configFile("../source/config.xml");
+    configFile << "<config>\n"
+               << "    <logging_interval>invalid</logging_interval>\n"
+               << "</config>";
+    configFile.close();
 
-    server.Get("/fetchSystemStats", [this](const httplib::Request &, httplib::Response &res) {
-        json response;
-        response["boot_count"] = boot_count.load();
-        response["uptime"] = getUptime();
-        res.set_content(response.dump(), "application/json");
-    });
-
-    std::cout << "REST API Server running on port " << restPort << "\n";
-    server.listen("0.0.0.0", restPort);
+    server.loadConfig();
+    EXPECT_EQ(logging_interval, 10) << "Should fall back to default on invalid value.";
 }
 
-void Server::handleWebSocketClient(ip::tcp::socket socket) {
-    try {
-        auto ws = std::make_shared<websocket::stream<ip::tcp::socket>>(std::move(socket));
-        ws->accept();
-
-        {
-            std::lock_guard<std::mutex> lock(clients_mutex);
-            clients.insert(ws);
-        }
-
-        boost::beast::flat_buffer buffer;
-        boost::system::error_code ec;
-
-        while (ws->is_open()) {
-            ws->read(buffer, ec);
-            if (ec == websocket::error::closed) break;
-        }
-
-        {
-            std::lock_guard<std::mutex> lock(clients_mutex);
-            clients.erase(ws);
-        }
-
-    } catch (const std::exception &e) {
-        std::cerr << "WebSocket client error: " << e.what() << "\n";
-    }
+TEST(ServerTest, LoadConfig_MissingFile) {
+    Server server;
+    remove("../source/config.xml");
+    server.loadConfig();
+    EXPECT_EQ(logging_interval, 10) << "Should fall back to default if file is missing.";
 }
 
-void Server::startWebSocketServer(int wsPort) {
-    ip::tcp::acceptor acceptor(ioc, ip::tcp::endpoint(ip::tcp::v4(), wsPort));
-    std::cout << "WebSocket Server running on port " << wsPort << "\n";
+TEST(ServerTest, LoadConfig_MissingLoggingInterval) {
+    Server server;
+    std::ofstream configFile("../source/config.xml");
+    configFile << "<config>\n"
+               << "    <!-- Missing logging_interval -->\n"
+               << "</config>";
+    configFile.close();
 
-    while (true) {
+    server.loadConfig();
+    EXPECT_EQ(logging_interval, 10) << "Should fall back to default if element is missing.";
+}
+  
+// Test WebSocket Client Handling
+TEST(ServerTest, HandleWebSocketClient) {
+    Server server;
+    io_context ioc;
+    ip::tcp::acceptor acceptor(ioc, ip::tcp::endpoint(ip::tcp::v4(), 8081));
+
+    std::thread server_thread([&]() {
         ip::tcp::socket socket(ioc);
         acceptor.accept(socket);
-        std::thread(&Server::handleWebSocketClient, this, std::move(socket)).detach();
-    }
+        server.handleWebSocketClient(std::move(socket));
+    });
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+    websocket::stream<ip::tcp::socket> ws(ioc);
+    tcp::resolver resolver(ioc);
+    auto results = resolver.resolve("127.0.0.1", "8081");
+    connect(ws.next_layer(), results.begin(), results.end());
+    ws.handshake("127.0.0.1", "/");
+
+    EXPECT_TRUE(ws.is_open());
+
+    ws.close(websocket::close_code::normal);
+    server_thread.join();
 }
 
-void Server::sendPeriodicStats() {
-    while (true) {
-        std::this_thread::sleep_for(std::chrono::seconds(10));
-        json periodicStats;
-        periodicStats["boot_count"] = boot_count.load();
-        periodicStats["uptime"] = getUptime();
-
-        std::lock_guard<std::mutex> lock(clients_mutex);
-        for (auto &client : clients) {
-            boost::system::error_code ec;
-            client->write(net::buffer(periodicStats.dump()), ec);
-        }
-    }
-}
-
-
-
-
-#include "server.h"
-
-int main(int argc, char* argv[]) {
-    std::cout << "=============================\n"
-              << " SYSTEM STAT LOGGING SERVER\n"
-              << "=============================\n\n";
-
-    int rest_port = 8080;
-    int ws_port = 9000;
-
-    if (argc > 2) {
-        try {
-            rest_port = std::stoi(argv[1]);
-            ws_port = std::stoi(argv[2]);
-            if (rest_port <= 0 || rest_port > 65535 || ws_port <= 0 || ws_port > 65535) {
-                throw std::out_of_range("Invalid port range");
-            }
-        } catch (...) {
-            std::cerr << "Error: Invalid port arguments. Using default ports (REST: 8080, WS: 9000).\n";
-            rest_port = 8080;
-            ws_port = 9000;
-        }
-    }
-
+// Test REST API Server
+TEST(ServerTest, RESTServerFetchStats) {
     Server server;
-    std::thread rest_thread(&Server::startRESTServer, &server, rest_port);
-    std::thread ws_thread(&Server::startWebSocketServer, &server, ws_port);
+    std::thread rest_thread([]() { server.startRESTServer(8090); });
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    httplib::Client cli("http://127.0.0.1:8090");
+    auto res = cli.Get("/fetchSystemStats");
+
+    EXPECT_EQ(res->status, 200);
+    json response = json::parse(res->body);
+    EXPECT_TRUE(response.contains("boot_count"));
+    EXPECT_TRUE(response.contains("uptime"));
 
     rest_thread.detach();
-    ws_thread.detach();
+}
 
-    server.sendPeriodicStats();
-    return 0;
+// Test WebSocket Server
+TEST(ServerTest, WebSocketServerConnection) {
+    Server server;
+    std::thread ws_thread([]() { server.startWebSocketServer(8091); });
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    io_context ioc;
+    websocket::stream<ip::tcp::socket> ws(ioc);
+    tcp::resolver resolver(ioc);
+    auto results = resolver.resolve("127.0.0.1", "8091");
+    connect(ws.next_layer(), results.begin(), results.end());
+    ws.handshake("127.0.0.1", "/");
+
+    EXPECT_TRUE(ws.is_open());
+
+    ws.close(websocket::close_code::normal);
+    ws_thread.detach();
+}
+
+// ===================== MAIN FUNCTION FOR TESTS =====================
+int main(int argc, char **argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
 }
