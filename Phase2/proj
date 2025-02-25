@@ -1,6 +1,48 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<config>
-    <logging_interval>10</logging_interval>
-    <rest_port>8080</rest_port>
-    <ws_port>9000</ws_port>
-</config>
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/build$ ./test_server
+[==========] Running 8 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 8 tests from ServerTest
+[ RUN      ] ServerTest.GetBootCount_Valid
+Error: Could not load config.xml. Using default logging interval.
+[       OK ] ServerTest.GetBootCount_Valid (4 ms)
+[ RUN      ] ServerTest.GetUptime_Valid
+Error: Could not load config.xml. Using default logging interval.
+[       OK ] ServerTest.GetUptime_Valid (1 ms)
+[ RUN      ] ServerTest.LoadConfig_ValidXML
+Error: Could not load config.xml. Using default logging interval.
+Error: Could not load config.xml. Using default logging interval.
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/test/test_server.cpp:205: Failure
+Expected equality of these values:
+  server.getLoggingInterval()
+    Which is: 10
+  15
+Should correctly load logging interval.
+[  FAILED  ] ServerTest.LoadConfig_ValidXML (6 ms)
+[ RUN      ] ServerTest.LoadConfig_InvalidXML
+Error: Could not load config.xml. Using default logging interval.
+Error: Could not load config.xml. Using default logging interval.
+[       OK ] ServerTest.LoadConfig_InvalidXML (4 ms)
+[ RUN      ] ServerTest.LoadConfig_MissingFile
+Error: Could not load config.xml. Using default logging interval.
+Error: Could not load config.xml. Using default logging interval.
+[       OK ] ServerTest.LoadConfig_MissingFile (3 ms)
+[ RUN      ] ServerTest.WebSocketServerConnection
+Error: Could not load config.xml. Using default logging interval.
+WebSocket Server running on port 9091
+[       OK ] ServerTest.WebSocketServerConnection (1013 ms)
+[ RUN      ] ServerTest.RESTServerFetchStats
+Error: Could not load config.xml. Using default logging interval.
+REST API Server running on port 9090
+[       OK ] ServerTest.RESTServerFetchStats (1006 ms)
+[ RUN      ] ServerTest.HandleWebSocketClient
+Error: Could not load config.xml. Using default logging interval.
+[       OK ] ServerTest.HandleWebSocketClient (508 ms)
+[----------] 8 tests from ServerTest (2548 ms total)
+
+[----------] Global test environment tear-down
+[==========] 8 tests from 1 test suite ran. (2549 ms total)
+[  PASSED  ] 7 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] ServerTest.LoadConfig_ValidXML
+
+ 1 FAILED TEST
