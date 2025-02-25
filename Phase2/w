@@ -1,3 +1,26 @@
+void Server::broadcastStats(bool test_mode) {
+    json stats;
+    stats["boot_count"] = boot_count.load();
+    stats["uptime"] = getUptime();
+    std::string message = stats.dump();
+
+    std::lock_guard<std::mutex> lock(clients_mutex);
+    for (auto &client : clients) {
+        boost::system::error_code ec;
+        client->write(net::buffer(message), ec);
+    }
+
+    if (!test_mode) {  // Run only once in test mode
+        std::this_thread::sleep_for(std::chrono::seconds(logging_interval));
+        broadcastStats(false);
+    }
+}
+
+
+
+
+
+
 TEST(ServerTest, WebSocketClientHandling) {
     Server server;
     EXPECT_NO_THROW({
