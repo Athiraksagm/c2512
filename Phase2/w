@@ -1,10 +1,40 @@
-TEST(ServerTest, HandleWebSocketClient) {
-    Server server;
-    boost::asio::io_context io_context;
-    ip::tcp::socket dummy_socket(io_context);  // Create a dummy socket
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/build$ ./test_server
+[==========] Running 8 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 8 tests from ServerTest
+[ RUN      ] ServerTest.LoadConfig
+Logging interval set to: 10s
+[       OK ] ServerTest.LoadConfig (20 ms)
+[ RUN      ] ServerTest.GetBootCount
+Logging interval set to: 10s
+[       OK ] ServerTest.GetBootCount (6 ms)
+[ RUN      ] ServerTest.GetUptime
+Logging interval set to: 10s
+[       OK ] ServerTest.GetUptime (4 ms)
+[ RUN      ] ServerTest.RESTApiResponseFormat
+Logging interval set to: 10s
+[       OK ] ServerTest.RESTApiResponseFormat (5 ms)
+[ RUN      ] ServerTest.WebSocketClientHandling
+Logging interval set to: 10s
+WebSocket Server running on port 9000
+[       OK ] ServerTest.WebSocketClientHandling (1004 ms)
+[ RUN      ] ServerTest.StartRESTServer
+Logging interval set to: 10s
+REST API Server running on port 8080
+[       OK ] ServerTest.StartRESTServer (1012 ms)
+[ RUN      ] ServerTest.StartWebSocketServer
+Logging interval set to: 10s
+WebSocket Server running on port 9001
+[       OK ] ServerTest.StartWebSocketServer (1019 ms)
+[ RUN      ] ServerTest.HandleWebSocketClient
+Logging interval set to: 10s
+WebSocket client error: Bad file descriptor
+[       OK ] ServerTest.HandleWebSocketClient (41 ms)
+[----------] 8 tests from ServerTest (3116 ms total)
 
-    EXPECT_NO_THROW(server.handleWebSocketClient(std::move(dummy_socket)));
-}
+[----------] Global test environment tear-down
+[==========] 8 tests from 1 test suite ran. (3116 ms total)
+[  PASSED  ] 8 tests.
 
 
 
