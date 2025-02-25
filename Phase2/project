@@ -1,23 +1,38 @@
-TEST(ServerTest, LoadConfig_MissingFile) {
-    std::ifstream originalConfig(CONFIG_FILE_PATH);
-    std::string backupConfig;
-    
-    if (originalConfig) {
-        backupConfig.assign((std::istreambuf_iterator<char>(originalConfig)),
-                            std::istreambuf_iterator<char>());
-        originalConfig.close();
-    }
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/build$ ./test_server
+[==========] Running 8 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 8 tests from ServerTest
+[ RUN      ] ServerTest.GetBootCount_Valid
+Logging interval set to: 10s
+[       OK ] ServerTest.GetBootCount_Valid (11 ms)
+[ RUN      ] ServerTest.GetUptime_Valid
+Logging interval set to: 10s
+[       OK ] ServerTest.GetUptime_Valid (3 ms)
+[ RUN      ] ServerTest.LoadConfig_ValidXML
+Logging interval set to: 10s
+Logging interval set to: 10s
+[       OK ] ServerTest.LoadConfig_ValidXML (7 ms)
+[ RUN      ] ServerTest.LoadConfig_InvalidXML
+Error: Invalid logging interval in config.xml. Using default.
+Error: Invalid logging interval in config.xml. Using default.
+[       OK ] ServerTest.LoadConfig_InvalidXML (8 ms)
+[ RUN      ] ServerTest.LoadConfig_MissingFile
+Error: Could not load config.xml. Using default logging interval.
+Error: Could not load config.xml. Using default logging interval.
+[       OK ] ServerTest.LoadConfig_MissingFile (10 ms)
+[ RUN      ] ServerTest.WebSocketServerConnection
+Error: Invalid logging interval in config.xml. Using default.
+WebSocket Server running on port 9091
+[       OK ] ServerTest.WebSocketServerConnection (1022 ms)
+[ RUN      ] ServerTest.RESTServerFetchStats
+Error: Invalid logging interval in config.xml. Using default.
+REST API Server running on port 9090
+[       OK ] ServerTest.RESTServerFetchStats (1009 ms)
+[ RUN      ] ServerTest.HandleWebSocketClient
+Error: Invalid logging interval in config.xml. Using default.
+[       OK ] ServerTest.HandleWebSocketClient (516 ms)
+[----------] 8 tests from ServerTest (2590 ms total)
 
-    remove(TEST_CONFIG_FILE.c_str());  // Delete config file for the test
-    
-    Server server;
-    server.loadConfig();
-    EXPECT_EQ(server.getLoggingInterval(), DEFAULT_LOGGING_INTERVAL);
-
-    // Restore original config after test
-    if (!backupConfig.empty()) {
-        std::ofstream restoreConfig(CONFIG_FILE_PATH);
-        restoreConfig << backupConfig;
-        restoreConfig.close();
-    }
-}
+[----------] Global test environment tear-down
+[==========] 8 tests from 1 test suite ran. (2590 ms total)
+[  PASSED  ] 8 tests.
