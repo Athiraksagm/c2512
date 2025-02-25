@@ -1,61 +1,211 @@
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/build$ ./test_server
-[==========] Running 8 tests from 1 test suite.
-[----------] Global test environment set-up.
-[----------] 8 tests from ServerTest
-[ RUN      ] ServerTest.LoadConfig
-Logging interval set to: 10s
-[       OK ] ServerTest.LoadConfig (15 ms)
-[ RUN      ] ServerTest.GetBootCount
-Logging interval set to: 10s
-[       OK ] ServerTest.GetBootCount (5 ms)
-[ RUN      ] ServerTest.GetUptime
-Logging interval set to: 10s
-[       OK ] ServerTest.GetUptime (3 ms)
-[ RUN      ] ServerTest.RESTApiResponseFormat
-Logging interval set to: 10s
-[       OK ] ServerTest.RESTApiResponseFormat (5 ms)
-[ RUN      ] ServerTest.WebSocketClientHandling
-Logging interval set to: 10s
-WebSocket Server running on port 9000
-[       OK ] ServerTest.WebSocketClientHandling (1003 ms)
-[ RUN      ] ServerTest.StartRESTServer
-Logging interval set to: 10s
-REST API Server running on port 8080
-[       OK ] ServerTest.StartRESTServer (1012 ms)
-[ RUN      ] ServerTest.StartWebSocketServer
-Logging interval set to: 10s
-WebSocket Server running on port 9001
-[       OK ] ServerTest.StartWebSocketServer (1015 ms)
-[ RUN      ] ServerTest.HandleWebSocketClient
-Logging interval set to: 10s
-WebSocket client error: Bad file descriptor
-[       OK ] ServerTest.HandleWebSocketClient (47 ms)
-[----------] 8 tests from ServerTest (3109 ms total)
-
-[----------] Global test environment tear-down
-[==========] 8 tests from 1 test suite ran. (3109 ms total)
-[  PASSED  ] 8 tests.
-
-void Server::sendPeriodicStats(bool test_mode) {
-    json periodicStats;
-    periodicStats["boot_count"] = boot_count.load();
-    periodicStats["uptime"] = getUptime();
-
-    std::lock_guard<std::mutex> lock(clients_mutex);
-    for (auto &client : clients) {
-        boost::system::error_code ec;
-        client->write(net::buffer(periodicStats.dump()), ec);
-    }
-
-    if (!test_mode) {  // Prevent infinite loop in tests
-        std::this_thread::sleep_for(std::chrono::seconds(logging_interval));
-        sendPeriodicStats(false);
-    }
-}
-
-
-
-TEST(ServerTest, SendPeriodicStats) {
-    Server server;
-    EXPECT_NO_THROW(server.sendPeriodicStats(true));  // Run once
-}
+Source code
+       1             : //#include "server.h"
+       2             :  #include "../include/server.h"
+       3             : 
+       4           7 : Server::Server() : boot_count(0), logging_interval(10) {
+       5           7 :     loadConfig();
+       6           7 :     boot_count.store(getBootCount());
+       7           7 : }
+       8             : 
+       9             : /**
+      10             :  * @brief Loads configuration settings from `config.xml`.
+      11             :  * 
+      12             :  * This function reads the logging interval from the XML configuration file.
+      13             :  * If the file is missing or contains invalid data, it falls back to the default interval.
+      14             :  */
+      15           7 : void Server::loadConfig() {
+      16           7 :             XMLDocument doc;
+      17           7 :             if (doc.LoadFile("../source/config.xml") != XML_SUCCESS) {
+      18           0 :                 std::cerr << "Error: Could not load config.xml. Using default logging interval.\n";
+      19           0 :                 return;
+      20             :             }
+      21           7 :             XMLElement *root = doc.FirstChildElement("config");
+      22           7 :             if (!root) {
+      23           0 :                 std::cerr << "Error: <config> element missing in config.xml. Using default.\n";
+      24           0 :                 return;
+      25             :             }
+      26           7 :             XMLElement *interval_element = root->FirstChildElement("logging_interval");
+      27           7 :             if (!interval_element) {
+      28           0 :                 std::cerr << "Error: <logging_interval> element missing in config.xml. Using default.\n";
+      29           0 :                 return;
+      30             :             }
+      31           7 :             const char* interval_text = interval_element->GetText();
+      32           7 :             if (interval_text && std::all_of(interval_text, interval_text + strlen(interval_text), ::isdigit)) {
+      33             :                 try {
+      34           7 :                     logging_interval = std::stoi(interval_text);
+      35           7 :                     std::cerr << "Logging interval set to: " << logging_interval << "s\n";
+      36           0 :                 } catch (...) {
+      37           0 :                     std::cerr << "Error: Invalid logging interval in config.xml. Using default.\n";
+      38           0 :                     logging_interval = DEFAULT_LOGGING_INTERVAL;
+      39           0 :                 }
+      40             :             } else {
+      41           0 :                 std::cerr << "Error: Invalid logging interval in config.xml. Using default.\n";
+      42           0 :                 logging_interval = DEFAULT_LOGGING_INTERVAL;
+      43             :             }
+      44           7 :         }
+      45             : 
+      46             : /**
+      47             :  * @brief Retrieves the system boot count.
+      48             :  * 
+      49             :  * @return The number of times the system has booted. Returns -1 on failure.
+      50             :  */
+      51           9 : int Server::getBootCount() {
+      52           9 :             FILE *pipe = popen("last reboot | wc -l", "r");
+      53           9 :             if (!pipe) {
+      54           0 :                 std::cerr << "Error: Failed to execute system command for boot count.\n";
+      55           0 :                 return -1;
+      56             :             }
+      57             :             char buffer[128];
+      58           9 :             if (!fgets(buffer, sizeof(buffer), pipe)) {
+      59           0 :                 std::cerr << "Error: Failed to read boot count from command output.\n";
+      60           0 :                 pclose(pipe);
+      61           0 :                 return -1;
+      62             :             }
+      63           9 :             pclose(pipe);
+      64             :             try {
+      65           9 :                 int count = std::stoi(buffer);
+      66           9 :                 return (count > 0) ? count : -1;
+      67           0 :             } catch (...) {
+      68           0 :                 std::cerr << "Error: Invalid boot count format.\n";
+      69           0 :                 return -1;
+      70           0 :             }
+      71             :         }
+      72             : 
+      73             : /**
+      74             :  * @brief Retrieves the system uptime.
+      75             :  * 
+      76             :  * @return The system uptime in seconds. Returns -1 on failure.
+      77             :  */
+      78           2 : long Server::getUptime() {
+      79             :     struct sysinfo info;
+      80           2 :     if (sysinfo(&info) != 0) {
+      81           0 :         std::cerr << "Error: Failed to retrieve system uptime.\n";
+      82           0 :         return -1;
+      83             :     }
+      84           2 :     return info.uptime;
+      85             : }
+      86             : 
+      87             : /**
+      88             :  * @brief Broadcasts system statistics to all connected WebSocket clients periodically.
+      89             :  * 
+      90             :  * This function runs in a loop, sending boot count and uptime at the configured interval.
+      91             :  */
+      92           0 : void Server::broadcastStats() {
+      93             :     while (true) {
+      94           0 :         json stats;
+      95           0 :         stats["boot_count"] = boot_count.load();
+      96           0 :         stats["uptime"] = getUptime();
+      97           0 :         std::string message = stats.dump();
+      98             : 
+      99           0 :         std::vector<std::shared_ptr<websocket::stream<ip::tcp::socket>>> disconnected_clients;
+     100             : 
+     101             :         {
+     102           0 :             std::lock_guard<std::mutex> lock(clients_mutex);
+     103           0 :             for (auto &client : clients) {
+     104           0 :                 boost::system::error_code ec;
+     105           0 :                 client->write(net::buffer(message), ec);
+     106           0 :                 if (ec) disconnected_clients.push_back(client);
+     107             :             }
+     108           0 :             for (const auto &client : disconnected_clients) {
+     109           0 :                 clients.erase(client);
+     110             :             }
+     111           0 :         }
+     112             : 
+     113           0 :         std::this_thread::sleep_for(std::chrono::seconds(logging_interval));
+     114           0 :     }
+     115             : }
+     116             : 
+     117             : /**
+     118             :  * @brief Starts the REST API server to provide system statistics on request.
+     119             :  * 
+     120             :  * @param restPort The port number on which the REST API server listens.
+     121             :  */
+     122           1 : void Server::startRESTServer(int restPort) {
+     123           1 :     httplib::Server server;
+     124             : 
+     125           1 :     server.Get("/fetchSystemStats", [this](const httplib::Request &, httplib::Response &res) {
+     126           0 :         json response;
+     127           0 :         response["boot_count"] = boot_count.load();
+     128           0 :         response["uptime"] = getUptime();
+     129           0 :         res.set_content(response.dump(), "application/json");
+     130           0 :     });
+     131             : 
+     132           1 :     std::cout << "REST API Server running on port " << restPort << "\n";
+     133           1 :     server.listen("0.0.0.0", restPort);
+     134           0 : }
+     135             : 
+     136             : /**
+     137             :  * @brief Handles an incoming WebSocket client connection.
+     138             :  * 
+     139             :  * @param socket The connected socket for the WebSocket client.
+     140             :  */
+     141           0 : void Server::handleWebSocketClient(ip::tcp::socket socket) {
+     142             :     try {
+     143           0 :         auto ws = std::make_shared<websocket::stream<ip::tcp::socket>>(std::move(socket));
+     144           0 :         ws->accept();
+     145             : 
+     146             :         {
+     147           0 :             std::lock_guard<std::mutex> lock(clients_mutex);
+     148           0 :             clients.insert(ws);
+     149           0 :         }
+     150             : 
+     151           0 :         boost::beast::flat_buffer buffer;
+     152           0 :         boost::system::error_code ec;
+     153             : 
+     154           0 :         while (ws->is_open()) {
+     155           0 :             ws->read(buffer, ec);
+     156           0 :             if (ec == websocket::error::closed) break;
+     157           0 :             if (ec) {
+     158           0 :                 std::cerr << "WebSocket client error: " << ec.message() <<"\n";
+     159           0 :                 break;
+     160             :             }
+     161             :         }
+     162             : 
+     163             :         {
+     164           0 :             std::lock_guard<std::mutex> lock(clients_mutex);
+     165           0 :             clients.erase(ws);
+     166           0 :         }
+     167             : 
+     168           0 :     } catch (const std::exception &e) {
+     169           0 :         std::cerr << "WebSocket client error: " << e.what() << "\n";
+     170           0 :     }
+     171           0 : }
+     172             : 
+     173             : /**
+     174             :  * @brief Starts the WebSocket server to handle client connections for periodic stats updates.
+     175             :  * 
+     176             :  * @param wsPort The port number on which the WebSocket server listens.
+     177             :  */
+     178           2 : void Server::startWebSocketServer(int wsPort) {
+     179           2 :     ip::tcp::acceptor acceptor(ioc, ip::tcp::endpoint(ip::tcp::v4(), wsPort));
+     180           2 :     std::cout << "WebSocket Server running on port " << wsPort << "\n";
+     181             : 
+     182             :     while (true) {
+     183           2 :         ip::tcp::socket socket(ioc);
+     184           2 :         acceptor.accept(socket);
+     185           0 :         std::thread(&Server::handleWebSocketClient, this, std::move(socket)).detach();
+     186           0 :     }
+     187           0 : }
+     188             : 
+     189             : /**
+     190             :  * @brief Sends periodic system statistics updates to all connected WebSocket clients.
+     191             :  * 
+     192             :  * This function runs continuously, sending system stats every few seconds.
+     193             :  */
+     194           0 : void Server::sendPeriodicStats() {
+     195             :     while (true) {
+     196           0 :         std::this_thread::sleep_for(std::chrono::seconds(10));
+     197           0 :         json periodicStats;
+     198           0 :         periodicStats["boot_count"] = boot_count.load();
+     199           0 :         periodicStats["uptime"] = getUptime();
+     200             : 
+     201           0 :         std::lock_guard<std::mutex> lock(clients_mutex);
+     202           0 :         for (auto &client : clients) {
+     203           0 :             boost::system::error_code ec;
+     204           0 :             client->write(net::buffer(periodicStats.dump()), ec);
+     205           0 :             if (ec) {
+     206           0 :                  std::cerr << "Error sending periodic stats: " << ec.message() << "\n";
+     207             :             }
+     208             :         }
+     209           0 :     }
+     210             : }
