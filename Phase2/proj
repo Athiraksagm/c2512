@@ -1,3 +1,44 @@
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/build$ ./test_server
+[==========] Running 8 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 8 tests from ServerTest
+[ RUN      ] ServerTest.GetBootCount_Valid
+Error: Could not load config.xml. Using default logging interval.
+[       OK ] ServerTest.GetBootCount_Valid (9 ms)
+[ RUN      ] ServerTest.GetUptime_Valid
+Error: Could not load config.xml. Using default logging interval.
+[       OK ] ServerTest.GetUptime_Valid (2 ms)
+[ RUN      ] ServerTest.LoadConfig_ValidXML
+Error: Could not load config.xml. Using default logging interval.
+Error: Could not load config.xml. Using default logging interval.
+[       OK ] ServerTest.LoadConfig_ValidXML (4 ms)
+[ RUN      ] ServerTest.LoadConfig_InvalidXML
+Error: Could not load config.xml. Using default logging interval.
+Error: Could not load config.xml. Using default logging interval.
+[       OK ] ServerTest.LoadConfig_InvalidXML (4 ms)
+[ RUN      ] ServerTest.LoadConfig_MissingFile
+Error: Could not load config.xml. Using default logging interval.
+Error: Could not load config.xml. Using default logging interval.
+[       OK ] ServerTest.LoadConfig_MissingFile (3 ms)
+[ RUN      ] ServerTest.WebSocketServerConnection
+Error: Could not load config.xml. Using default logging interval.
+WebSocket Server running on port 9091
+[       OK ] ServerTest.WebSocketServerConnection (1030 ms)
+[ RUN      ] ServerTest.RESTServerFetchStats
+Error: Could not load config.xml. Using default logging interval.
+REST API Server running on port 9090
+[       OK ] ServerTest.RESTServerFetchStats (1008 ms)
+[ RUN      ] ServerTest.HandleWebSocketClient
+Error: Could not load config.xml. Using default logging interval.
+[       OK ] ServerTest.HandleWebSocketClient (507 ms)
+[----------] 8 tests from ServerTest (2570 ms total)
+
+[----------] Global test environment tear-down
+[==========] 8 tests from 1 test suite ran. (2570 ms total)
+[  PASSED  ] 8 tests.
+
+
+
 void Server::loadConfig() {
             XMLDocument doc;
             if (doc.LoadFile("CONFIG_FILE_PATH") != XML_SUCCESS) {
