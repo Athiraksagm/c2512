@@ -1,190 +1,54 @@
-#include "gtest/gtest.h"
-#include "server.h"
-#include <fstream>
-#include <boost/asio/ip/tcp.hpp>
-#include <boost/asio/io_context.hpp>
-#include <boost/asio/connect.hpp>
+#ifndef SERVER_H
+#define SERVER_H
+
+#include <boost/asio.hpp>
+#include <boost/beast.hpp>
+#include <boost/beast/websocket.hpp>
+#include "json.hpp"
+#include "httplib.h"
+#include "tinyxml2.h"
+#include <iostream>
+#include <unordered_set>
+#include <mutex>
 #include <thread>
+#include <sys/sysinfo.h>
+#include <atomic>
 
 using namespace boost::asio;
 using namespace boost::beast;
-using namespace boost::asio::ip;
+using json = nlohmann::json;
+using namespace tinyxml2;
 
-// ===================== TEST CASES =====================
+const int DEFAULT_LOGGING_INTERVAL = 10;
 
-// Test getBootCount()
-TEST(ServerTest, GetBootCount_Valid) {
-    Server server;
-    int boot_count = server.getBootCountValue();
-    EXPECT_GE(boot_count, 0) << "Boot count should be non-negative.";
-}
+class Server {
+protected:
+    std::atomic<int> boot_count;
+    std::unordered_set<std::shared_ptr<websocket::stream<ip::tcp::socket>>> clients;
+    std::mutex clients_mutex;
+    int logging_interval;
+    io_context ioc;
 
-TEST(ServerTest, GetBootCount_Failure) {
-    Server server;
-    // Simulate a failure by running an invalid command
-    FILE *pipe = popen("invalid_command", "r");
-    if (!pipe) {
-        int result = server.getBootCountValue();
-        EXPECT_EQ(result, -1) << "Should return -1 on failure.";
+    long getUptime();
+    int getBootCount();
+    
+public:
+    Server();
+    void loadConfig();
+    void broadcastStats();
+    void handleWebSocketClient(ip::tcp::socket socket);
+    void startRESTServer(int restPort);
+    void startWebSocketServer(int wsPort);
+    void sendPeriodicStats();
+    int getBootCountValue() {
+        return getBootCount();
     }
-}
+    long getUptimeValue() {
+        return getUptime();
+    }
+    int getLoggingInterval(){
+        return logging_interval;
+    }
+};
 
-// Test getUptime()
-TEST(ServerTest, GetUptime_Valid) {
-    Server server;
-    long uptime = server.getUptimeValue();
-    EXPECT_GT(uptime, 0) << "Uptime should be a positive number.";
-}
-
-TEST(ServerTest, GetUptime_Failure) {
-    Server server;
-    struct sysinfo info;
-    memset(&info, 0, sizeof(info));  // Simulating failure
-
-    long result = server.getUptimeValue();
-    EXPECT_NE(result, -1) << "Should return -1 if sysinfo() fails.";
-}
-
-// Test loadConfig()
-TEST(ServerTest, LoadConfig_ValidXML) {
-    Server server;
-    std::ofstream configFile("../source/config.xml");
-    configFile << "<config>\n"
-               << "    <logging_interval>20</logging_interval>\n"
-               << "</config>";
-    configFile.close();
-
-    server.loadConfig();
-    EXPECT_EQ(server.getLoggingInterval(), 20) << "Should correctly set logging interval.";
-}
-
-TEST(ServerTest, LoadConfig_InvalidXML) {
-    Server server;
-    std::ofstream configFile("../source/config.xml");
-    configFile << "<config>\n"
-               << "    <logging_interval>invalid</logging_interval>\n"
-               << "</config>";
-    configFile.close();
-
-    server.loadConfig();
-    EXPECT_EQ(server.getLoggingInterval(), 10) << "Should fall back to default on invalid value.";
-}
-
-TEST(ServerTest, LoadConfig_MissingFile) {
-    Server server;
-    remove("../source/config.xml");
-    server.loadConfig();
-    EXPECT_EQ(server.getLoggingInterval(), 10) << "Should fall back to default if file is missing.";
-}
-
-TEST(ServerTest, LoadConfig_MissingLoggingInterval) {
-    Server server;
-    std::ofstream configFile("../source/config.xml");
-    configFile << "<config>\n"
-               << "    <!-- Missing logging_interval -->\n"
-               << "</config>";
-    configFile.close();
-
-    server.loadConfig();
-    EXPECT_EQ(server.getLoggingInterval(), 10) << "Should fall back to default if element is missing.";
-}
-  
-// Test WebSocket Client Handling
-TEST(ServerTest, HandleWebSocketClient) {
-    Server server;
-    io_context ioc;
-    ip::tcp::acceptor acceptor(ioc, ip::tcp::endpoint(ip::tcp::v4(), 8081));
-
-    std::thread server_thread([&]() {
-        ip::tcp::socket socket(ioc);
-        acceptor.accept(socket);
-        server.handleWebSocketClient(std::move(socket));
-    });
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
-    websocket::stream<ip::tcp::socket> ws(ioc);
-    tcp::resolver resolver(ioc);
-    auto results = resolver.resolve("127.0.0.1", "8081");
-    connect(ws.next_layer(), results.begin(), results.end());
-    ws.handshake("127.0.0.1", "/");
-
-    EXPECT_TRUE(ws.is_open());
-
-    ws.close(websocket::close_code::normal);
-    server_thread.join();
-}
-
-// Test REST API Server
-TEST(ServerTest, RESTServerFetchStats) {
-    Server server;
-    std::thread rest_thread([]() { server.startRESTServer(8090); });
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-
-    httplib::Client cli("http://127.0.0.1:8090");
-    auto res = cli.Get("/fetchSystemStats");
-
-    EXPECT_EQ(res->status, 200);
-    json response = json::parse(res->body);
-    EXPECT_TRUE(response.contains("boot_count"));
-    EXPECT_TRUE(response.contains("uptime"));
-
-    rest_thread.detach();
-}
-
-// Test WebSocket Server
-TEST(ServerTest, WebSocketServerConnection) {
-    Server server;
-    std::thread ws_thread([]() { server.startWebSocketServer(8091); });
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-
-    io_context ioc;
-    websocket::stream<ip::tcp::socket> ws(ioc);
-    tcp::resolver resolver(ioc);
-    auto results = resolver.resolve("127.0.0.1", "8091");
-    connect(ws.next_layer(), results.begin(), results.end());
-    ws.handshake("127.0.0.1", "/");
-
-    EXPECT_TRUE(ws.is_open());
-
-    ws.close(websocket::close_code::normal);
-    ws_thread.detach();
-}
-
-// ===================== MAIN FUNCTION FOR TESTS =====================
-int main(int argc, char **argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
-
-
-
-
-
-athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/build$ make
-[ 57%] Built target server
-Consolidate compiler generated dependencies of target test_server
-[ 71%] Building CXX object CMakeFiles/test_server.dir/test/test_server.cpp.o
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/test/test_server.cpp: In lambda function:
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/test/test_server.cpp:121:36: error: ‘server’ is not captured
-  121 |     std::thread rest_thread([]() { server.startRESTServer(8090); });
-      |                                    ^~~~~~
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/test/test_server.cpp:121:30: note: the lambda has no capture-default
-  121 |     std::thread rest_thread([]() { server.startRESTServer(8090); });
-      |                              ^
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/test/test_server.cpp:120:12: note: ‘Server server’ declared here
-  120 |     Server server;
-      |            ^~~~~~
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/test/test_server.cpp: In lambda function:
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/test/test_server.cpp:138:34: error: ‘server’ is not captured
-  138 |     std::thread ws_thread([]() { server.startWebSocketServer(8091); });
-      |                                  ^~~~~~
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/test/test_server.cpp:138:28: note: the lambda has no capture-default
-  138 |     std::thread ws_thread([]() { server.startWebSocketServer(8091); });
-      |                            ^
-/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/test/test_server.cpp:137:12: note: ‘Server server’ declared here
-  137 |     Server server;
-      |            ^~~~~~
-make[2]: *** [CMakeFiles/test_server.dir/build.make:76: CMakeFiles/test_server.dir/test/test_server.cpp.o] Error 1
-make[1]: *** [CMakeFiles/Makefile2:111: CMakeFiles/test_server.dir/all] Error 2
-make: *** [Makefile:101: all] Error 2
+#endif
