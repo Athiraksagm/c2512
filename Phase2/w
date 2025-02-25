@@ -1,23 +1,14 @@
-TEST(ServerTest, StartRESTServer) {
-    Server server;
-    EXPECT_NO_THROW({
-        std::thread rest_thread(&Server::startRESTServer, &server, 8080);
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-        rest_thread.detach();
-    });
-}
-
-
-
-
-TEST(ServerTest, StartWebSocketServer) {
-    Server server;
-    EXPECT_NO_THROW({
-        std::thread ws_thread(&Server::startWebSocketServer, &server, 9001);
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-        ws_thread.detach();
-    });
-}
+athira@INTVMLT2342:/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/build$ make
+[ 57%] Built target server
+Consolidate compiler generated dependencies of target test_server
+[ 71%] Building CXX object CMakeFiles/test_server.dir/test/test_server.cpp.o
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/test/test_server.cpp: In member function ‘virtual void ServerTest_HandleWebSocketClient_Test::TestBody()’:
+/mnt/c/Users/2022004/Desktop/SystemStatLoggingMicroservice/server/test/test_server.cpp:228:41: error: ‘class Server’ has no member named ‘getIOContext’
+  228 |     ip::tcp::socket dummy_socket(server.getIOContext());  // Create a dummy socket
+      |                                         ^~~~~~~~~~~~
+make[2]: *** [CMakeFiles/test_server.dir/build.make:76: CMakeFiles/test_server.dir/test/test_server.cpp.o] Error 1
+make[1]: *** [CMakeFiles/Makefile2:111: CMakeFiles/test_server.dir/all] Error 2
+make: *** [Makefile:101: all] Error 2
 
 
 TEST(ServerTest, HandleWebSocketClient) {
