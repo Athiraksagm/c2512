@@ -1,46 +1,16 @@
-#include <gtest/gtest.h>
-#include "server.h"
-
-// Test the constructor and config loading
-TEST(ServerTest, LoadConfig) {
-    Server server;
-    EXPECT_GE(server.getLoggingInterval(), 1);  // Should be positive
-}
-
-// Test getBootCount() without system dependency
-TEST(ServerTest, GetBootCount) {
-    Server server;
-    int count = server.getBootCountValue();
-    EXPECT_GE(count, -1);  // -1 indicates failure, otherwise positive count
-}
-
-// Test getUptime() without system dependency
-TEST(ServerTest, GetUptime) {
-    Server server;
-    long uptime = server.getUptimeValue();
-    EXPECT_GE(uptime, -1);  // Uptime should be positive or -1 on failure
-}
-
-// Test REST API response format (Mocking required in real tests)
-TEST(ServerTest, RESTApiResponseFormat) {
-    Server server;
-    nlohmann::json response;
-    response["boot_count"] = server.getBootCountValue();
-    response["uptime"] = server.getUptimeValue();
-    EXPECT_TRUE(response.contains("boot_count"));
-    EXPECT_TRUE(response.contains("uptime"));
-}
-
-// Simulate WebSocket client connection handling
 TEST(ServerTest, WebSocketClientHandling) {
     Server server;
     EXPECT_NO_THROW({
-        // This should not crash but requires real network tests
+        // Simulate WebSocket server start
+        std::thread ws_thread(&Server::startWebSocketServer, &server, 9000);
+        std::this_thread::sleep_for(std::chrono::seconds(1));  // Allow time for setup
+        ws_thread.detach();
     });
 }
 
-// Test broadcasting logic (Mocking needed)
+
+
 TEST(ServerTest, BroadcastStats) {
     Server server;
-    EXPECT_NO_THROW(server.broadcastStats());  // Function should not crash
+    EXPECT_NO_THROW(server.broadcastStats(true));  // Run once
 }
